@@ -1551,10 +1551,13 @@ setInterval(()=>{
     }
   }
 }, 1000);
+// V30.14 migrace - staré díry co nechtěly mizet - smaž je hned po startu za 1.5s
+setTimeout(()=>{ console.log('V30.14 clearing old holes migration'); clearAllOldHoles(); ensureDugTimes(); }, 1500);
 // === KONEC REGENERACE ===
 
 
-function ensureDugTimes(){ try{ for(let y=0;y<WORLD_H;y++) for(let x=0;x<WORLD_W;x++){ let c=world[y][x]; if(c.dug && !c.dugTime) c.dugTime=Date.now(); } }catch(e){} }
+function ensureDugTimes(){ try{ for(let y=0;y<WORLD_H;y++) for(let x=0;x<WORLD_W;x++){ let c=world[y][x]; if(c.dug){ if(!c.dugTime){ c.dugTime=Date.now()-9500; } } } }catch(e){} }
+function clearAllOldHoles(){ try{ let cnt=0; for(let y=0;y<WORLD_H;y++) for(let x=0;x<WORLD_W;x++){ let c=world[y][x]; if(c.dug){ c.dug=false; c.dugTime=null; c.mineral=null; c.hasRock=false; let t=c.type; let mineralChance=0.78; if(t==="rock") mineralChance=0.68; else if(t==="forest") mineralChance=0.73; else if(t==="grass") mineralChance=0.80; else if(t==="sand") mineralChance=0.85; else mineralChance=0.95; if(hash(x+31,y+77)>mineralChance){ c.mineral=Math.floor(hash(x*5+17,y*3+11)*minerals.length); } if(t==="rock" && hash(x*1.9,y*2.7)>0.38){ c.hasRock=true; } cnt++; } } console.log("Cleared old holes:",cnt); }catch(e){} }
 function saveGame(){
  try{
    const save={money,found,inventory,equipped,player:{tool:player.tool,maxEnergy:player.maxEnergy,energy:player.energy,x:player.x,y:player.y},dug:world.map(row=>row.map(c=>c.dug)),emptyDigs};
@@ -2126,7 +2129,7 @@ function applySaveData(save){
       player.x=save.player.x??player.x;
       player.y=save.player.y??player.y;
     }
-    if(save.dug && Array.isArray(save.dug)){ for(let y=0;y<WORLD_H;y++) for(let x=0;x<WORLD_W;x++) if(save.dug[y]&&save.dug[y][x]) world[y][x].dug=true; }
+    if(save.dug && Array.isArray(save.dug)){ for(let y=0;y<WORLD_H;y++) for(let x=0;x<WORLD_W;x++) if(save.dug[y]&&save.dug[y][x]){ world[y][x].dug=true; world[y][x].dugTime=Date.now()-9500; } ensureDugTimes(); }
     if(Array.isArray(save.museum)){
       museum.length=0;
       save.museum.forEach(m=>museum.push(m));
@@ -2175,7 +2178,7 @@ async function handleNickEntry(raw){
         else { /* new player - keep defaults */ }
       }catch(e){}
     }
-    try{ renderInventory(); renderShop(); renderCraft(); updateEquipPanel(); renderMuseum(); updateHUD(); }catch(e){}
+    try{ ensureDugTimes(); renderInventory(); renderShop(); renderCraft(); updateEquipPanel(); renderMuseum(); updateHUD(); }catch(e){}
     setupGlobalAnnouncementsListener();
     await savePlayerToFirebase(true);
     setInterval(()=>savePlayerToFirebase(true), 10000);
