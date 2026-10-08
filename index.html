@@ -56,6 +56,8 @@ canvas{display:block;width:100%;height:100%;background:#71a84e;touch-action:none
 .tooltip-legend{font-size:11.5px;color:#9ab09d;margin-bottom:10px;background:rgba(255,255,255,0.05);padding:6px 8px;border-radius:6px}
 @media(max-width:600px){#hud{height:50px;min-height:50px;font-size:11px}#controls{bottom:calc(24px + env(safe-area-inset-bottom, 0px));padding-bottom:env(safe-area-inset-bottom, 0px)}#joystick{width:110px;height:110px}.joy{width:38px;height:38px}}
 #minimapWrap{display:none}
+
+
 </style>
 
 <style>
@@ -93,7 +95,7 @@ canvas{display:block;width:100%;height:100%;background:#71a84e;touch-action:none
 .leaderPos{font-weight:900;font-size:14px;width:36px;text-align:center}
 .pos-1{color:#FFD700} .pos-2{color:#C0C0C0} .pos-3{color:#CD7F32}
 #leaderboardAboveMap{position:absolute;right:10px;top:50px;width:90px;height:34px;background:linear-gradient(90deg,#4caf50,#2e7d32);color:#000;border:2px solid #000;border-radius:8px;font-weight:900;font-size:11px;z-index:150;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.5);cursor:pointer}
-#onlineStatus{position:absolute;top:90px;right:10px;z-index:150;background:rgba(0,0,0,0.7);border:1px solid #333;border-radius:8px;padding:5px 8px;font-size:10px;color:#8f8;display:none}
+#onlineStatus{position:absolute;top:92px;right:10px;z-index:250;background:rgba(0,0,0,0.88);border:1.5px solid #4caf50;border-radius:12px;padding:8px 12px;font-size:11px;color:#4caf50;display:none;max-width:260px;line-height:1.35;font-weight:700;box-shadow:0 4px 15px #000a, 0 0 12px rgba(76,175,80,0.35);backdrop-filter:blur(4px);pointer-events:none}
 </style>
 </head>
 <body>
@@ -140,6 +142,7 @@ canvas{display:block;width:100%;height:100%;background:#71a84e;touch-action:none
 <button id="shopAboveMap" style="position:absolute;right:10px;top:10px;width:90px;height:32px;background:#ffeb3b;color:#000;border:2px solid #000;border-radius:8px;font-weight:900;font-size:11px;z-index:100;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.5);">🏪 OBCHOD</button>
 <div id="minimapWrap"><canvas id="minimapCanvas" width="80" height="80"></canvas></div>
 <canvas id="canvas"></canvas>
+<!-- worldAnnouncements replaced by onlineStatus side green -->
 <div id="controls">
 <div id="joystick"><button class="joy" id="up">▲</button><button class="joy" id="left">◀</button><button class="joy" id="right">▶</button><button class="joy" id="down">▼</button></div>
 <button id="dig">⛏<br>KOPEJ</button>
@@ -734,6 +737,9 @@ function craftEquipment(equipTypeKey){
   saveGame(); renderInventory(); renderCraft(); updateHUD();
   let tier=equipTiers[newEquip.tier];
   showToast("✨ Vytvořeno: "+newEquip.name+" ("+tier.name+")",2);
+  if(newEquip.tier===4){
+    sendGlobalAnnouncement({type:"craft_legendary", itemName:newEquip.name, tierName:tier.name, tierColor:tier.color, tierGlow:tier.glow, icon:newEquip.icon, equipType:newEquip.equipType});
+  }
 }
 
 function equipEquipmentFromInventory(invIdx){
@@ -913,12 +919,12 @@ function updateHUD(){
       player.maxEnergy=effMax;
     }
     let perc=Math.floor(player.energy/player.maxEnergy*100);
-    // FIX V30.6 - only 168% as requested
-    let displayPercent = player.maxEnergy;
-    document.getElementById("energyText").textContent= displayPercent + "%";
-    document.getElementById("energyFill").style.width=Math.max(0,Math.min(100,perc))+"%";
+    perc=Math.max(0,Math.min(100,perc));
+    // FIX V30.11 - zobrazuj skutečné % energie, ne max
+    document.getElementById("energyText").textContent= perc + "%";
+    document.getElementById("energyFill").style.width=perc+"%";
     let energyEl=document.getElementById("energyText");
-    if(energyEl) energyEl.title = Math.floor(player.energy)+"/"+player.maxEnergy+" energie | "+perc+"% plná";
+    if(energyEl) energyEl.title = Math.floor(player.energy)+"/"+player.maxEnergy+" energie | "+perc+"% | max "+player.maxEnergy;
     document.getElementById("toolName").textContent=tools[player.tool]?.name.split(" ")[0]||"??";
   }catch(e){}
 }
@@ -1015,6 +1021,13 @@ function safePolish(id){
     item.raw=false; item.quality=q|0; item.polished=true;
     item.price=Math.max(item.price*2,(item.price*(2+q/50+item.weight/10))|0);
     showToast('✨ Vybroušeno '+q+'% | +cena');
+    try{
+      let legCnt=countLegendaryStatsForMineral(item);
+      if(legCnt>=3){
+        let mData=minerals[item.type];
+        sendGlobalAnnouncement({type:"polish_3leg", mineralName:mData?mData.name:"kámen", weight:item.weight, purity:item.purity, quality:item.quality, price:item.price, legendCount:legCnt});
+      }
+    }catch(e){}
   }
   saveGame(); renderInventory(); updateHUD();
 }
@@ -1449,11 +1462,18 @@ function dig(){
  const finalChance=Math.min(95, toolChance+bonus);
  if(cell.mineral!==null){
    if(Math.random()*100 < finalChance || emptyDigs>=14){
-     cell.dug=true; cell.hasRock=false; player.energy-=8; player.digging=true; player.digTime=0;
+     cell.dug=true; cell.dugTime=Date.now(); cell.hasRock=false; player.energy-=8; player.digging=true; player.digTime=0;
      const mineral=createMineral(cell.mineral);
      inventory.push(mineral); found++; emptyDigs=0;
      const data=minerals[mineral.type];
      showToast("🪨 Surový "+data.name+" "+mineral.weight+"g Čistota "+mineral.purity+"%",2.4);
+     // GOD stone check - 3+ legendárních statů
+     try{
+       let legCnt=countLegendaryStatsForMineral(mineral);
+       if(legCnt>=3){
+         sendGlobalAnnouncement({type:"stone_3leg", mineralName:data.name, weight:mineral.weight, purity:mineral.purity, quality:mineral.quality||0, price:mineral.price, legendCount:legCnt});
+       }
+     }catch(e){}
      // 1% šance na nález vybavení + bonus z legendárních
      let hasAnyEquip=Object.values(equipped).some(v=>!!v); let findChance=1+(hasAnyEquip?(totalBon.findChance||0):0);
      if(Math.random()*100 < findChance){
@@ -1461,6 +1481,10 @@ function dig(){
        let foundEquip=generateEquipment(randomEquipType);
        inventory.push(foundEquip);
        showToast("🎉 Gratuluji našel si předmět!! "+foundEquip.name+" ("+equipTiers[foundEquip.tier].name+")",3);
+       if(foundEquip.tier===4){
+         let t=equipTiers[foundEquip.tier];
+         sendGlobalAnnouncement({type:"find_legendary", itemName:foundEquip.name, tierName:t.name, tierColor:t.color, tierGlow:t.glow, icon:foundEquip.icon, equipType:foundEquip.equipType});
+       }
      }
      cell.mineral=null; saveGame(); renderInventory(); updateHUD();
    } else {
@@ -1469,7 +1493,7 @@ function dig(){
      showToast(nearMsgs[Math.floor(Math.random()*nearMsgs.length)],1.6);
    }
  } else {
-   cell.dug=true; cell.hasRock=false; player.energy-=8; player.digging=true; player.digTime=0; emptyDigs++;
+   cell.dug=true; cell.dugTime=Date.now(); cell.hasRock=false; player.energy-=8; player.digging=true; player.digTime=0; emptyDigs++;
    // I v prázdné díře šance na vybavení
    let totalBon2=getTotalBonuses();
    let hasAnyEquip2=Object.values(equipped).some(v=>!!v);
@@ -1479,6 +1503,10 @@ function dig(){
      let foundEquip=generateEquipment(randomEquipType);
      inventory.push(foundEquip);
      showToast("🎉 Gratuluji našel si předmět!! "+foundEquip.name+" ("+equipTiers[foundEquip.tier].name+")",3);
+     if(foundEquip.tier===4){
+       let t=equipTiers[foundEquip.tier];
+       sendGlobalAnnouncement({type:"find_legendary", itemName:foundEquip.name, tierName:t.name, tierColor:t.color, tierGlow:t.glow, icon:foundEquip.icon, equipType:foundEquip.equipType});
+     }
      saveGame(); renderInventory();
    } else {
      showToast(emptyMessages[Math.floor(Math.random()*emptyMessages.length)],1.3);
@@ -1488,6 +1516,45 @@ function dig(){
 }
 document.getElementById("dig").addEventListener("pointerdown",e=>{ e.preventDefault();e.stopPropagation(); dig(); },{passive:false});
 
+// === AUTO-REGENERACE DĚR PO 10s - V30.13 ===
+function regenerateCell(x,y){
+  let cell = world[y] && world[y][x];
+  if(!cell) return;
+  cell.dug=false;
+  cell.dugTime=null;
+  cell.hasRock=false;
+  cell.mineral=null;
+  // znovu vygeneruj minerál podle původní logiky
+  let t = cell.type;
+  let mineralChance=0.78;
+  if(t==="rock") mineralChance=0.68;
+  else if(t==="forest") mineralChance=0.73;
+  else if(t==="grass") mineralChance=0.80;
+  else if(t==="sand") mineralChance=0.85;
+  else mineralChance=0.95;
+  if(hash(x+31,y+77)>mineralChance){
+    cell.mineral=Math.floor(hash(x*5+17,y*3+11)*minerals.length);
+  }
+  if(t==="rock" && hash(x*1.9,y*2.7)>0.38){
+    cell.hasRock=true;
+  }
+}
+
+setInterval(()=>{
+  let now=Date.now();
+  for(let y=0;y<WORLD_H;y++){
+    for(let x=0;x<WORLD_W;x++){
+      let cell=world[y][x];
+      if(cell.dug && cell.dugTime && (now - cell.dugTime) > 10000){
+        regenerateCell(x,y);
+      }
+    }
+  }
+}, 1000);
+// === KONEC REGENERACE ===
+
+
+function ensureDugTimes(){ try{ for(let y=0;y<WORLD_H;y++) for(let x=0;x<WORLD_W;x++){ let c=world[y][x]; if(c.dug && !c.dugTime) c.dugTime=Date.now(); } }catch(e){} }
 function saveGame(){
  try{
    const save={money,found,inventory,equipped,player:{tool:player.tool,maxEnergy:player.maxEnergy,energy:player.energy,x:player.x,y:player.y},dug:world.map(row=>row.map(c=>c.dug)),emptyDigs};
@@ -1828,6 +1895,7 @@ document.addEventListener("touchmove",e=>{
 },{passive:false});
 
 loadGame();
+ensureDugTimes();
 updateEquipPanel();
 renderInventory();
 renderShop();
@@ -1851,6 +1919,96 @@ try{
   db = firebase.database();
   console.log("Firebase OK");
 }catch(e){ console.error("Firebase fail",e); }
+
+// ===== GLOBAL ANNOUNCEMENTS SYSTEM V30.8 =====
+function sendGlobalAnnouncement(payload){
+  if(!db || !currentNick) return;
+  try{
+    payload.timestamp = Date.now();
+    payload.nick = currentNick;
+    db.ref("globalAnnouncements").push(payload);
+    // keep only last 60
+    db.ref("globalAnnouncements").once("value", snap=>{
+      let cnt = snap.numChildren();
+      if(cnt>60){
+        let toDel = cnt-60;
+        db.ref("globalAnnouncements").orderByChild("timestamp").limitToFirst(toDel).once("value", s=>{
+          s.forEach(ch=>{ ch.ref.remove(); });
+        });
+      }
+    });
+  }catch(e){ console.error("announce send err",e); }
+}
+
+function countLegendaryStatsForMineral(mineral){
+  if(!mineral) return 0;
+  let cnt=0;
+  let mData = minerals[mineral.type];
+  if(!mData) return 0;
+  let range = mData.maxWeight - mData.minWeight;
+  let weightPct = range>0 ? (mineral.weight - mData.minWeight)/range : 0;
+  if(weightPct>=0.90) cnt++; // váha 90%+ maxima = legendární
+  if((mineral.purity||0)>=90) cnt++;
+  if((mineral.quality||0)>=90) cnt++;
+  if((mineral.price||0)>=1500) cnt++;
+  // praskliny 0 je bonus ale nepočítáme jako legendární pro God kámen
+  return cnt;
+}
+
+function showWorldAnnouncement(data){
+  try{
+    let statusEl=document.getElementById("onlineStatus");
+    if(!statusEl) return;
+    let msg="";
+    let nick = data.nick || "Hráč";
+    // VŽDY přezdívka toho kdo to vyrobil/našel!
+    if(data.type==="craft_legendary"){
+      msg=`🔨 ${nick} vyrobil LEGENDÁRNÍ ${data.itemName}`;
+    }else if(data.type==="find_legendary"){
+      msg=`🎉 ${nick} našel LEGENDÁRNÍ ${data.itemName}`;
+    }else if(data.type==="stone_3leg"){
+      msg=`💎 ${nick} NAŠEL GOD KÁMEN ${data.mineralName} ${data.legendCount}x🔴`;
+    }else if(data.type==="polish_3leg"){
+      msg=`✨ ${nick} VYBROUSIL GOD ${data.mineralName} ${data.legendCount}x🔴`;
+    }else{
+      msg=`${nick}: ${data.message||""}`;
+    }
+    // zelené písmo jak chceš
+    statusEl.innerHTML=`☁️ <span style="color:#4caf50;font-weight:900">${msg}</span>`;
+    statusEl.style.display="block";
+    statusEl.style.border="2px solid #4caf50";
+    statusEl.style.background="rgba(0,0,0,0.92)";
+    statusEl.style.color="#4caf50";
+    statusEl.dataset.isAnnouncement="1";
+    clearTimeout(statusEl._hideTimer);
+    statusEl._hideTimer=setTimeout(()=>{
+      statusEl.style.display="none";
+      statusEl.dataset.isAnnouncement="0";
+    }, 10000); // 10 vteřin pro všechny online
+  }catch(e){ console.error("showWorld err",e); }
+}
+
+let _announceListenerStarted=false;
+function setupGlobalAnnouncementsListener(){
+  if(!db || _announceListenerStarted) return;
+  _announceListenerStarted=true;
+  try{
+    let ref=db.ref("globalAnnouncements").limitToLast(20);
+    // Track initial load to avoid spam of old messages
+    let initialLoad=true;
+    ref.once("value", ()=>{ setTimeout(()=>{ initialLoad=false; },1500); });
+    ref.on("child_added", snap=>{
+      let data=snap.val();
+      if(!data) return;
+      // on initial load, only show messages from last 90 seconds
+      if(initialLoad && Date.now()-(data.timestamp||0) > 90000) return;
+      // don't show own announcement twice instantly? We show all, including own, because it's cool
+      showWorldAnnouncement(data);
+    });
+  }catch(e){ console.error("listener err",e); }
+}
+// ===== END GLOBAL ANNOUNCEMENTS =====
+
 
 function normalizeNick(s){
   if(!s) return "";
@@ -1940,8 +2098,8 @@ async function savePlayerToFirebase(isFull=true){
         lastSeen: Date.now()
       });
     }
-    let statusEl=document.getElementById("onlineStatus");
-    if(statusEl){ statusEl.style.display="block"; statusEl.textContent="☁️ "+currentNick+" • "+totalBeauty+" krásy | ⚡ fix aktivní"; setTimeout(()=>statusEl.style.display="none",3000); }
+    // V30.10 - krása online hláška odstraněna, zobrazujeme jen legendární oznámení
+    // let statusEl=document.getElementById("onlineStatus"); // disabled
   }catch(e){ console.error("save err",e); }
 }
 function applySaveData(save){
@@ -2018,6 +2176,7 @@ async function handleNickEntry(raw){
       }catch(e){}
     }
     try{ renderInventory(); renderShop(); renderCraft(); updateEquipPanel(); renderMuseum(); updateHUD(); }catch(e){}
+    setupGlobalAnnouncementsListener();
     await savePlayerToFirebase(true);
     setInterval(()=>savePlayerToFirebase(true), 10000);
   }catch(e){
@@ -2070,6 +2229,65 @@ async function fetchMineralBest(type){
   if(!db) return [];
   try{ const snap=await db.ref("mineralBest/"+type).once("value"); let arr=[]; snap.forEach(ch=>arr.push(ch.val())); return arr; }catch(e){ return []; }
 }
+async function fetchMineralBestCombined(type){
+  // spojí mineralBest + všech hráčů saveData, aby tam byli opravdu všichni kdo mají vybroušený kámen
+  let map = {};
+  try{
+    // 1) načti mineralBest
+    let bestList = await fetchMineralBest(type);
+    bestList.forEach(entry=>{
+      if(entry && entry.nick) map[entry.nick]=entry;
+    });
+    // 2) načti všechny hráče a projdi jejich saveData pro daný typ
+    let playersSnap = await db.ref("players").once("value");
+    playersSnap.forEach(ch=>{
+      let p = ch.val();
+      if(!p || !p.nick) return;
+      let nick = p.nick;
+      // pokud už máme záznam z mineralBest, necháme ho, ale zkontrolujeme jestli saveData nemá lepší kámen
+      try{
+        let save = p.saveData;
+        if(!save) return;
+        let candidates = [];
+        if(Array.isArray(save.museum)) candidates = candidates.concat(save.museum.filter(Boolean));
+        if(Array.isArray(save.inventory)) candidates = candidates.concat(save.inventory.filter(it=>it && !it.isTool && !it.isEquipment && !it.raw && it.type===type));
+        if(candidates.length===0) return;
+        // najdi nejlepší podle krásy
+        let best = null, bestScore=-1;
+        candidates.forEach(st=>{
+          if(st.type!==type) return;
+          // spočítej krásu podobně jako getBeautyScore
+          let quality = st.quality||0;
+          let purity = st.purity||0;
+          let weight = st.weight||0;
+          let price = st.price||0;
+          let cracks = st.cracks||0;
+          let score = quality + purity + weight + (price/50) - (cracks*15);
+          score = Math.max(0, Math.round(score*10)/10);
+          if(score>bestScore){ bestScore=score; best=st; }
+        });
+        if(best && bestScore>0){
+          // pokud hráč ještě není v mapě, nebo máme lepší kámen než v mineralBest
+          let existing = map[nick];
+          if(!existing || (bestScore > (existing.beauty||0))){
+            map[nick] = {
+              nick: nick,
+              type: type,
+              mineralName: best.type!==undefined ? (minerals[best.type]?.name||"") : "",
+              weight: best.weight,
+              purity: best.purity,
+              quality: best.quality,
+              price: best.price,
+              beauty: bestScore,
+              lastSeen: p.lastSeen||Date.now()
+            };
+          }
+        }
+      }catch(e){}
+    });
+  }catch(e){ console.error("combined fetch err",e); }
+  return Object.values(map);
+}
 function renderLeaderboardRows(list, valueKey, valueLabel, detailFn){
   const wrap=document.getElementById("leaderboardList");
   if(!wrap) return;
@@ -2121,13 +2339,13 @@ async function showLeaderboardTab(tab){
         chips.querySelectorAll(".mineralChip").forEach(c=>c.classList.remove("active"));
         chip.classList.add("active");
         listWrap.innerHTML='<div class="empty">⏳ Načítám '+m.name+'...</div>';
-        let list=await fetchMineralBest(i);
+        let list=await fetchMineralBestCombined(i);
         renderLeaderboardRows(list, "beauty", "krásy", p=> p.weight+"g • "+p.purity+"% čistota • "+p.quality+"% kvalita • "+p.price+" Kč");
       });
       chips.appendChild(chip);
     });
     listWrap.innerHTML='<div class="empty">⏳ Načítám '+minerals[currentMineralType].name+'...</div>';
-    let list=await fetchMineralBest(currentMineralType);
+    let list=await fetchMineralBestCombined(currentMineralType);
     renderLeaderboardRows(list, "beauty", "krásy", p=> p.weight+"g • "+p.purity+"% čistota • "+p.quality+"% kvalita • "+p.price+" Kč");
   }
 }
