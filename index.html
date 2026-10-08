@@ -8,11 +8,16 @@
 *{box-sizing:border-box}
 html,body{width:100%;height:100%;height:100dvh;margin:0;padding:0;overflow:hidden;position:fixed;background:#101612;color:white;font-family:Arial,sans-serif;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 #gameWrap{width:100%;height:100vh;height:100dvh;height:100svh;display:flex;flex-direction:column;overflow:hidden;position:relative}
-#hud{position:absolute;top:0;left:0;right:0;height:38px;min-height:38px;background:#1a221a;border-bottom:2px solid #354238;display:flex;align-items:center;justify-content:flex-start;gap:3px;padding:3px 4px;z-index:100;overflow-x:auto;overflow-y:hidden;flex-shrink:0;flex-wrap:nowrap}
+#hud{position:absolute;top:0;left:0;right:0;height:42px;min-height:42px;background:#1a221a;border-bottom:2px solid #354238;display:flex;align-items:center;justify-content:flex-start;gap:4px;padding:4px 6px;z-index:100;overflow:hidden;flex-shrink:0;flex-wrap:nowrap}
+#hud::-webkit-scrollbar{display:none}
+#hud{ -ms-overflow-style:none }
+.hudBox{flex-shrink:0}
 .hudBox{background:#2a2f2a;border:1px solid #3a4a3a;border-radius:6px;padding:3px 6px;white-space:nowrap;flex-shrink:0;font-size:11px;line-height:1.2;display:flex;align-items:center;gap:3px;height:26px}
 .hudButton{cursor:pointer;min-width:30px;justify-content:center;height:26px}
 .hudButton:active{transform:scale(.94)}
 #toolName{max-width:50px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px}
+
+
 #game{position:absolute;top:54px;left:0;right:0;bottom:0;overflow:hidden}
 canvas{display:block;width:100%;height:100%;background:#71a84e;touch-action:none}
 #controls{position:absolute;left:0;right:0;bottom:calc(18px + env(safe-area-inset-bottom, 0px));display:flex;justify-content:space-between;align-items:flex-end;padding:0 18px;padding-bottom:env(safe-area-inset-bottom, 0px);pointer-events:none;z-index:6}
@@ -54,7 +59,7 @@ canvas{display:block;width:100%;height:100%;background:#71a84e;touch-action:none
 #energyBar{width:46px;height:8px;background:#333;border-radius:4px;display:inline-block;overflow:hidden;vertical-align:middle}
 #energyFill{height:100%;background:#4caf50;display:block;border-radius:4px;transition:width .2s}
 .tooltip-legend{font-size:11.5px;color:#9ab09d;margin-bottom:10px;background:rgba(255,255,255,0.05);padding:6px 8px;border-radius:6px}
-@media(max-width:600px){#hud{height:50px;min-height:50px;font-size:11px}#controls{bottom:calc(24px + env(safe-area-inset-bottom, 0px));padding-bottom:env(safe-area-inset-bottom, 0px)}#joystick{width:110px;height:110px}.joy{width:38px;height:38px}}
+@media(max-width:600px){#hud{height:52px;min-height:52px;font-size:11px;padding:4px 6px;gap:4px;overflow-x:auto !important;-webkit-overflow-scrolling:touch !important}#hud::-webkit-scrollbar{display:none}#controls{bottom:calc(24px + env(safe-area-inset-bottom, 0px));padding-bottom:env(safe-area-inset-bottom, 0px)}#joystick{width:110px;height:110px}.joy{width:38px;height:38px}.hudBox{padding:4px 7px !important;font-size:11px !important;height:32px !important;min-width:32px} #toolName{max-width:60px !important} #energyBar{width:40px !important}}
 #minimapWrap{display:none}
 
 
@@ -95,7 +100,23 @@ canvas{display:block;width:100%;height:100%;background:#71a84e;touch-action:none
 .leaderPos{font-weight:900;font-size:14px;width:36px;text-align:center}
 .pos-1{color:#FFD700} .pos-2{color:#C0C0C0} .pos-3{color:#CD7F32}
 #leaderboardAboveMap{position:absolute;right:10px;top:50px;width:90px;height:34px;background:linear-gradient(90deg,#4caf50,#2e7d32);color:#000;border:2px solid #000;border-radius:8px;font-weight:900;font-size:11px;z-index:150;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.5);cursor:pointer}
-#onlineStatus{position:absolute;top:92px;right:10px;z-index:250;background:rgba(0,0,0,0.88);border:1.5px solid #4caf50;border-radius:12px;padding:8px 12px;font-size:11px;color:#4caf50;display:none;max-width:260px;line-height:1.35;font-weight:700;box-shadow:0 4px 15px #000a, 0 0 12px rgba(76,175,80,0.35);backdrop-filter:blur(4px);pointer-events:none}
+
+#onlineStatus{position:absolute;top:138px;right:10px;z-index:250;background:rgba(0,0,0,0.88);border:1.5px solid #4caf50;border-radius:12px;padding:8px 12px;font-size:11px;color:#4caf50;display:none;max-width:260px;line-height:1.35;font-weight:700;box-shadow:0 4px 15px #000a, 0 0 12px rgba(76,175,80,0.35);backdrop-filter:blur(4px);pointer-events:none}
+#chatButton{position:absolute;top:92px;right:10px;z-index:151;background:linear-gradient(135deg,#1e88e5,#1565c0);border:2px solid #64b5f6;border-radius:20px;padding:6px 14px;font-size:12px;font-weight:800;color:#fff;cursor:pointer;box-shadow:0 3px 10px #000a;display:flex;align-items:center;gap:5px}
+#chatButton .chatBadge{background:#ff4444;color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;display:none}
+#chatOverlay{position:absolute;left:10px;bottom:130px;z-index:160;max-width:220px;pointer-events:none;display:flex;flex-direction:column;gap:5px}
+.chatBubble{background:rgba(0,0,0,0.9);border:1.5px solid #64b5f6;border-radius:12px;padding:6px 10px;font-size:11px;color:#fff;line-height:1.3;animation:chatIn 0.3s ease, chatOut 0.4s ease 4.6s forwards;max-width:220px;word-break:break-word;box-shadow:0 2px 8px #000a}
+.chatBubble b{color:#ffeb3b}
+@keyframes chatIn{from{opacity:0;transform:translateX(-20px)}to{opacity:1;transform:translateX(0)}}
+@keyframes chatOut{from{opacity:1}to{opacity:0;transform:translateY(-10px)}}
+#chatPanel{position:absolute;inset:0;z-index:600;background:rgba(0,0,0,0.93);display:none;flex-direction:column}
+#chatPanel.open{display:flex}
+.chatHeader{background:#111;border-bottom:1px solid #333;padding:12px;display:flex;justify-content:space-between;align-items:center}
+.chatMessages{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:6px}
+.chatInputArea{background:#111;border-top:1px solid #333;padding:8px;display:flex;gap:8px;align-items:center;padding-bottom:calc(8px + env(safe-area-inset-bottom,0px))}
+.chatInputArea input{flex:1;background:#222;border:1px solid #444;border-radius:20px;padding:10px 14px;color:#fff;font-size:14px}
+.chatInputArea button{background:#4caf50;border:none;border-radius:20px;padding:10px 18px;color:#fff;font-weight:800;cursor:pointer}
+
 </style>
 </head>
 <body>
@@ -107,7 +128,7 @@ canvas{display:block;width:100%;height:100%;background:#71a84e;touch-action:none
 <div class="hudBox">💎 <b id="found">0</b></div>
 <button class="hudBox hudButton" id="inventoryButton">🎒</button>
 <button class="hudBox hudButton" id="equipBtn">🦺</button>
-<button class="hudBox hudButton" id="museumBtn">🏛️</button>
+<button class="hudBox hudButton" id="museumBtn" style="background:#3d2e1e;border-color:#8d6e63;display:flex !important">🏛️</button>
 </div>
 <div id="game">
 
@@ -139,10 +160,12 @@ canvas{display:block;width:100%;height:100%;background:#71a84e;touch-action:none
   </div>
 </div>
 
+<button id="chatButton">💬 CHAT <span class="chatBadge" id="chatBadge">0</span></button>
 <button id="shopAboveMap" style="position:absolute;right:10px;top:10px;width:90px;height:32px;background:#ffeb3b;color:#000;border:2px solid #000;border-radius:8px;font-weight:900;font-size:11px;z-index:100;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.5);">🏪 OBCHOD</button>
 <div id="minimapWrap"><canvas id="minimapCanvas" width="80" height="80"></canvas></div>
 <canvas id="canvas"></canvas>
 <!-- worldAnnouncements replaced by onlineStatus side green -->
+<div id="chatOverlay"></div>
 <div id="controls">
 <div id="joystick"><button class="joy" id="up">▲</button><button class="joy" id="left">◀</button><button class="joy" id="right">▶</button><button class="joy" id="down">▼</button></div>
 <button id="dig">⛏<br>KOPEJ</button>
@@ -1958,6 +1981,104 @@ function countLegendaryStatsForMineral(mineral){
   return cnt;
 }
 
+
+// === CHAT SYSTEM V30.16 - FIX VIDITELNOST ===
+let chatUnread=0;
+let chatPanelOpen=false;
+function setupChatSystem(){
+  if(!db){ console.log('db not ready for chat'); return; }
+  let btn=document.getElementById("chatButton");
+  let panel=document.getElementById("chatPanel");
+  let close=document.getElementById("closeChat");
+  let input=document.getElementById("chatInput");
+  let sendBtn=document.getElementById("sendChatBtn");
+  let badge=document.getElementById("chatBadge");
+  console.log('Chat setup', !!btn, !!panel);
+  if(btn){
+    btn.addEventListener("click", ()=>{
+      panel.classList.add("open");
+      chatPanelOpen=true;
+      chatUnread=0;
+      if(badge){ badge.style.display="none"; badge.textContent="0"; }
+      setTimeout(()=>{ let m=document.getElementById("chatMessages"); if(m) m.scrollTop=99999; },100);
+    });
+  }
+  if(close){ close.addEventListener("click", ()=>{ panel.classList.remove("open"); chatPanelOpen=false; }); }
+  if(sendBtn){ sendBtn.addEventListener("click", sendChatMessage); }
+  if(input){
+    input.addEventListener("keydown", (e)=>{ if(e.key==="Enter") sendChatMessage(); });
+  }
+  // Firebase listener - ukazuje všem hráčům na serveru!
+  db.ref("chat").limitToLast(50).on("child_added", (snap)=>{
+    let data=snap.val();
+    if(!data) return;
+    console.log('New chat', data);
+    addChatMessageToPanel(data);
+    showChatBubble(data);
+    if(!chatPanelOpen && data.nick!==currentNick){
+      chatUnread++;
+      if(badge){ badge.style.display="inline-block"; badge.textContent=chatUnread>99?"99+":chatUnread; }
+    }
+  });
+}
+
+function addChatMessageToPanel(data){
+  let wrap=document.getElementById("chatMessages");
+  if(!wrap) return;
+  if(wrap.children.length===1 && wrap.children[0].textContent.includes("Načítám")) wrap.innerHTML="";
+  let div=document.createElement("div");
+  div.style.cssText="background:#1e1e1e;border-radius:10px;padding:7px 10px;font-size:12px;line-height:1.3;border:1px solid #333";
+  let time = data.timestamp ? new Date(data.timestamp).toLocaleTimeString('cs-CZ',{hour:'2-digit',minute:'2-digit'}) : "";
+  let isMe = data.nick===currentNick;
+  let safeNick = (data.nick||"??").replace(/</g,"&lt;");
+  let safeMsg = (data.message||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  div.innerHTML=`<div style="display:flex;justify-content:space-between"><b style="color:${isMe?"#4caf50":"#ffeb3b"}">${safeNick}${isMe?" (TY)":""}</b><span style="font-size:10px;color:#666">${time}</span></div><div style="color:#ddd;word-break:break-word;margin-top:2px">${safeMsg}</div>`;
+  wrap.appendChild(div);
+  wrap.scrollTop=wrap.scrollHeight;
+  while(wrap.children.length>60){ wrap.removeChild(wrap.firstChild); }
+}
+
+function showChatBubble(data){
+  let overlay=document.getElementById("chatOverlay");
+  if(!overlay){ console.log('no overlay'); return; }
+  let div=document.createElement("div");
+  div.className="chatBubble";
+  let safeNick = (data.nick||"??").replace(/</g,"&lt;");
+  let safeMsg = (data.message||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").substring(0,70);
+  div.innerHTML=`<b>${safeNick}:</b> ${safeMsg}`;
+  overlay.appendChild(div);
+  console.log('Bubble shown', safeNick, safeMsg);
+  setTimeout(()=>{ if(div.parentNode) div.parentNode.removeChild(div); },5000);
+}
+
+function sendChatMessage(){
+  let input=document.getElementById("chatInput");
+  if(!input || !db || !currentNick){ console.log('cannot send', !!input, !!db, currentNick); return; }
+  let msg=input.value.trim();
+  if(!msg) return;
+  if(msg.length>120) msg=msg.substring(0,120);
+  console.log('Sending chat', msg);
+  db.ref("chat").push({
+    nick: currentNick,
+    message: msg,
+    timestamp: Date.now()
+  });
+  input.value="";
+  db.ref("chat").once("value").then(snap=>{
+    let count=snap.numChildren();
+    if(count>100){
+      let toDelete=count-100;
+      let i=0;
+      snap.forEach(ch=>{
+        if(i<toDelete) ch.ref.remove();
+        i++;
+        if(i>=toDelete) return true;
+      });
+    }
+  });
+}
+// === KONEC CHAT ===
+
 function showWorldAnnouncement(data){
   try{
     let statusEl=document.getElementById("onlineStatus");
@@ -2180,6 +2301,7 @@ async function handleNickEntry(raw){
     }
     try{ ensureDugTimes(); renderInventory(); renderShop(); renderCraft(); updateEquipPanel(); renderMuseum(); updateHUD(); }catch(e){}
     setupGlobalAnnouncementsListener();
+    setupChatSystem();
     await savePlayerToFirebase(true);
     setInterval(()=>savePlayerToFirebase(true), 10000);
   }catch(e){
@@ -2354,6 +2476,25 @@ async function showLeaderboardTab(tab){
 }
 
 </script>
+<div id="chatPanel"><div class="chatHeader"><h2 style="margin:0;font-size:16px">💬 Chat - všichni hráči</h2><button id="closeChat" style="background:#ff4444;color:white;border:none;border-radius:50%;width:36px;height:36px;font-size:20px;font-weight:900;cursor:pointer">×</button></div><div class="chatMessages" id="chatMessages"><div style="text-align:center;color:#777;padding:20px;font-size:12px">⏳ Načítám chat...<br>Pište slušně prosím!</div></div><div class="chatInputArea"><input id="chatInput" placeholder="Napiš zprávu..." maxlength="120"><button id="sendChatBtn">➤</button></div></div>
 <div id="museumPanel" class="panel"><div class="panelHeader"><h2>🏛️ Muzeum</h2><button id="closeMuseum" onclick="closeMuseum()" style="background:#ff4444;color:white;border:none;border-radius:50%;width:36px;height:36px;font-size:20px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center">×</button></div><div class="panelBody"><div id="museumList"></div></div></div>
+
+<script>
+// Drag scroll for HUD
+(function(){
+  const hud = document.getElementById('hud');
+  if(!hud) return;
+  let isDown=false, startX, scrollLeft;
+  hud.addEventListener('mousedown', e=>{isDown=true;hud.classList.add('dragging');startX=e.pageX-hud.offsetLeft;scrollLeft=hud.scrollLeft;});
+  hud.addEventListener('mouseleave', ()=>{isDown=false;hud.classList.remove('dragging');});
+  hud.addEventListener('mouseup', ()=>{isDown=false;hud.classList.remove('dragging');});
+  hud.addEventListener('mousemove', e=>{if(!isDown) return; e.preventDefault(); const x=e.pageX-hud.offsetLeft; const walk=(x-startX)*2; hud.scrollLeft=scrollLeft-walk;});
+  hud.addEventListener('touchstart', e=>{startX=e.touches[0].pageX-hud.offsetLeft;scrollLeft=hud.scrollLeft;},{passive:true});
+  hud.addEventListener('touchmove', e=>{const x=e.touches[0].pageX-hud.offsetLeft; const walk=(x-startX)*2; hud.scrollLeft=scrollLeft-walk;},{passive:true});
+  // Auto scroll hint to show museum
+  setTimeout(()=>{if(hud.scrollWidth>hud.clientWidth){hud.scrollLeft=20; setTimeout(()=>{hud.scrollLeft=0;},800);}},1000);
+})();
+</script>
+
 </body>
 </html>
