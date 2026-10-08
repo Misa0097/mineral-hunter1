@@ -2,12 +2,12 @@
 <html lang="cs">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Mineral Hunter - Fixed + Colors</title>
 <style>
 *{box-sizing:border-box}
-html,body{width:100%;height:100%;margin:0;padding:0;overflow:hidden;position:fixed;background:#101612;color:white;font-family:Arial,sans-serif;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
-#gameWrap{width:100%;height:100vh;display:flex;flex-direction:column;overflow:hidden;position:relative}
+html,body{width:100%;height:100%;height:100dvh;margin:0;padding:0;overflow:hidden;position:fixed;background:#101612;color:white;font-family:Arial,sans-serif;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+#gameWrap{width:100%;height:100vh;height:100dvh;height:100svh;display:flex;flex-direction:column;overflow:hidden;position:relative}
 #hud{position:absolute;top:0;left:0;right:0;height:38px;min-height:38px;background:#1a221a;border-bottom:2px solid #354238;display:flex;align-items:center;justify-content:flex-start;gap:3px;padding:3px 4px;z-index:100;overflow-x:auto;overflow-y:hidden;flex-shrink:0;flex-wrap:nowrap}
 .hudBox{background:#2a2f2a;border:1px solid #3a4a3a;border-radius:6px;padding:3px 6px;white-space:nowrap;flex-shrink:0;font-size:11px;line-height:1.2;display:flex;align-items:center;gap:3px;height:26px}
 .hudButton{cursor:pointer;min-width:30px;justify-content:center;height:26px}
@@ -15,12 +15,12 @@ html,body{width:100%;height:100%;margin:0;padding:0;overflow:hidden;position:fix
 #toolName{max-width:50px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px}
 #game{position:absolute;top:54px;left:0;right:0;bottom:0;overflow:hidden}
 canvas{display:block;width:100%;height:100%;background:#71a84e;touch-action:none}
-#controls{position:absolute;left:0;right:0;bottom:15px;display:flex;justify-content:space-between;align-items:flex-end;padding:0 18px;pointer-events:none;z-index:6}
+#controls{position:absolute;left:0;right:0;bottom:calc(18px + env(safe-area-inset-bottom, 0px));display:flex;justify-content:space-between;align-items:flex-end;padding:0 18px;padding-bottom:env(safe-area-inset-bottom, 0px);pointer-events:none;z-index:6}
 #joystick{width:125px;height:125px;position:relative;pointer-events:auto;touch-action:none}
 .joy{position:absolute;width:42px;height:42px;border:0;border-radius:10px;background:rgba(20,25,21,.82);color:white;font-size:20px;font-weight:bold;touch-action:none}
 .joy:active{background:rgba(55,65,55,.95);transform:scale(.94)}
 #up{left:41px;top:0}#down{left:41px;bottom:0}#left{left:0;top:41px}#right{right:0;top:41px}
-#dig{width:82px;height:82px;border:0;border-radius:50%;background:#6b4526;color:white;font-weight:bold;font-size:14px;pointer-events:auto;box-shadow:0 3px 7px #0008;touch-action:none}
+#dig{width:82px;height:82px;border:0;border-radius:50%;background:#6b4526;color:white;font-weight:bold;font-size:14px;pointer-events:auto;box-shadow:0 3px 7px #0008;touch-action:none;margin-bottom:env(safe-area-inset-bottom, 0px)}
 #dig:active{transform:scale(.94)}
 .panel{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(92%,560px);max-height:84vh;background:#1b241e;border:2px solid #455347;border-radius:14px;box-shadow:0 12px 40px #000b;z-index:3000;display:none;overflow:hidden}
 .panel.open{display:block}
@@ -54,7 +54,7 @@ canvas{display:block;width:100%;height:100%;background:#71a84e;touch-action:none
 #energyBar{width:46px;height:8px;background:#333;border-radius:4px;display:inline-block;overflow:hidden;vertical-align:middle}
 #energyFill{height:100%;background:#4caf50;display:block;border-radius:4px;transition:width .2s}
 .tooltip-legend{font-size:11.5px;color:#9ab09d;margin-bottom:10px;background:rgba(255,255,255,0.05);padding:6px 8px;border-radius:6px}
-@media(max-width:600px){#hud{height:50px;min-height:50px;font-size:11px}#controls{bottom:8px}#joystick{width:110px;height:110px}.joy{width:38px;height:38px}}
+@media(max-width:600px){#hud{height:50px;min-height:50px;font-size:11px}#controls{bottom:calc(24px + env(safe-area-inset-bottom, 0px));padding-bottom:env(safe-area-inset-bottom, 0px)}#joystick{width:110px;height:110px}.joy{width:38px;height:38px}}
 #minimapWrap{display:none}
 </style>
 
@@ -101,7 +101,7 @@ canvas{display:block;width:100%;height:100%;background:#71a84e;touch-action:none
 <div id="hud">
 <div class="hudBox">💰 <b id="money">100</b></div>
 <div class="hudBox">⛏ <span id="toolName">Rezavý</span></div>
-<div class="hudBox">⚡ <span id="energyBar"><span id="energyFill" style="width:100%"></span></span> <b id="energyText">100</b>%</div>
+<div class="hudBox">⚡ <span id="energyBar"><span id="energyFill" style="width:100%"></span></span> <b id="energyText">100%</b></div>
 <div class="hudBox">💎 <b id="found">0</b></div>
 <button class="hudBox hudButton" id="inventoryButton">🎒</button>
 <button class="hudBox hudButton" id="equipBtn">🦺</button>
