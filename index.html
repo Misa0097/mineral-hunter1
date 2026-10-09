@@ -166,6 +166,9 @@ canvas{display:block;width:100%;height:100%;background:#71a84e;touch-action:none
 <canvas id="canvas"></canvas>
 <!-- worldAnnouncements replaced by onlineStatus side green -->
 <div id="chatOverlay"></div>
+
+<button id="unstuckBtn" onclick="tryUnstuck()" style="position:absolute;left:50%;bottom:90px;transform:translateX(-50%);background:#ff5722;border:2px solid #000;border-radius:20px;padding:8px 16px;color:white;font-weight:900;font-size:13px;z-index:20;display:none;box-shadow:0 4px 10px #000a">🆘 ODSEKNOUT - jsem v kameni</button>
+
 <div id="controls">
 <div id="joystick"><button class="joy" id="up">▲</button><button class="joy" id="left">◀</button><button class="joy" id="right">▶</button><button class="joy" id="down">▼</button></div>
 <button id="dig">⛏<br>KOPEJ</button>
@@ -352,7 +355,126 @@ function resize(){
 }
 window.addEventListener("resize",resize); resize();
 
-const player={x:40*48,y:40*48,direction:Math.PI/2,speed:190,baseMaxEnergy:100,baseSpeed:190,energyUpgrades:0,energy:100,maxEnergy:100,tool:0,digging:false,digTime:0,walkTime:0, _energyFixV304:true};
+const player={x:40*48,y:40*48,direction:Math.PI/2,speed:190,baseMaxEnergy:100,baseSpeed:190,energyUpgrades:0,energy:100,maxEnergy:100,tool:0,digging:false,digTime:0,walkTime:0, _energyFixV304:true}
+
+
+// === UNSTUCK SYSTEM - pouze tlacitko, zadny auto teleport pri dotyku ===
+function isWalkableTile(tx, ty){
+  if(tx<0||ty<0||tx>=WORLD_W||ty>=WORLD_H) return false;
+  const cell = world[ty] && world[ty][tx];
+  if(!cell) return false;
+  // pouze hasRock && !dug je bug - terrain rock je normalni hranice
+  if(cell.hasRock && !cell.dug) return false;
+  return true;
+}
+function findSafeSpawnNear(cx, cy, maxR){
+  for(let r=0;r<maxR;r++){
+    for(let dy=-r; dy<=r; dy++){
+      for(let dx=-r; dx<=r; dx++){
+        if(Math.abs(dx)!==r && Math.abs(dy)!==r) continue;
+        let tx=cx+dx, ty=cy+dy;
+        if(isWalkableTile(tx,ty)){
+          let tt=terrain(tx,ty);
+          if(tt==="forest" || tt==="grass" || tt==="field") return {x: tx*TILE+TILE/2, y: ty*TILE+TILE/2, tx, ty};
+        }
+      }
+    }
+  }
+  for(let r=0;r<maxR;r++){
+    for(let dy=-r; dy<=r; dy++){
+      for(let dx=-r; dx<=r; dx++){
+        let tx=cx+dx, ty=cy+dy;
+        if(isWalkableTile(tx,ty)) return {x: tx*TILE+TILE/2, y: ty*TILE+TILE/2, tx, ty};
+      }
+    }
+  }
+  return null;
+}
+function getForestStartPosition(){
+  const centerX=40, centerY=40;
+  let safe=findSafeSpawnNear(centerX, centerY, 20);
+  if(safe) return safe;
+  return {x:40*TILE+24, y:40*TILE+24, tx:40, ty:40};
+}
+function checkIfStuck(){
+  const tx=Math.floor(player.x/TILE), ty=Math.floor(player.y/TILE);
+  // pouze pokud je primo v kameni ktery neni vykopany
+  if(!isWalkableTile(tx,ty)){
+    return true;
+  }
+  return false;
+}
+function teleportToForestStart(showMsg){
+  const spawn=getForestStartPosition();
+  player.x=spawn.x;
+  player.y=spawn.y;
+  player.energy=player.maxEnergy;
+  if(showMsg) showToast("🏕️ Přesunut na start v lese!");
+  saveGame();
+  if(typeof saveToFirebase==="function") saveToFirebase();
+}
+function tryUnstuck(){
+  const tx=Math.floor(player.x/TILE), ty=Math.floor(player.y/TILE);
+  let near=findSafeSpawnNear(tx,ty,8);
+  if(near){
+    player.x=near.x;
+    player.y=near.y;
+    showToast("🆘 Odseknut! Jsi vedle kamene.");
+    saveGame();
+    document.getElementById('unstuckBtn').style.display='none';
+    return true;
+  }
+  teleportToForestStart(true);
+  document.getElementById('unstuckBtn').style.display='none';
+  return true;
+}
+let _stuckTimer=0;
+let _stuckCheckTimer=null;
+function startStuckDetection(){
+  if(_stuckCheckTimer) clearInterval(_stuckCheckTimer);
+  _stuckTimer=0;
+  _stuckCheckTimer=setInterval(()=>{
+    const btn=document.getElementById('unstuckBtn');
+    if(!btn) return;
+    if(checkIfStuck()){
+      _stuckTimer+=0.5;
+      // az po 1.5s v kameni zobraz tlacitko - aby se neukazovalo pri rychlem dotyku
+      if(_stuckTimer>=1.5){
+        btn.style.display='block';
+      }
+    }else{
+      _stuckTimer=0;
+      // schovej po 3s kdyz uz neni v bugu
+      if(btn.style.display==='block'){
+        // nech ho jeste chvili, at ho stihne zmacknout
+        setTimeout(()=>{
+          if(!checkIfStuck()) btn.style.display='none';
+        }, 4000);
+      }else{
+        btn.style.display='none';
+      }
+    }
+  }, 500);
+}
+const _origLoadGame = loadGame;
+loadGame = function(){
+  _origLoadGame();
+  setTimeout(()=>{
+    const tx=Math.floor(player.x/TILE), ty=Math.floor(player.y/TILE);
+    if(!isWalkableTile(tx,ty)){
+      // pouze pri nacteni hry auto presun do lesa - opravi aktualni bug
+      console.log("Load: player in rock, moving to forest");
+      const spawn=getForestStartPosition();
+      player.x=spawn.x;
+      player.y=spawn.y;
+      showToast("🏕️ Byl jsi zaseknutý v kameni, přesunul jsem tě do lesa!");
+      saveGame();
+    }
+    startStuckDetection();
+  }, 600);
+};
+
+;
 const tools=[
   {name:"Rezavý krompáč",price:0,speed:2,color:"#b85c26"},
   {name:"Železný krompáč",price:300,speed:2,color:"#a0a0a5"},
@@ -2494,6 +2616,33 @@ async function showLeaderboardTab(tab){
   // Auto scroll hint to show museum
   setTimeout(()=>{if(hud.scrollWidth>hud.clientWidth){hud.scrollLeft=20; setTimeout(()=>{hud.scrollLeft=0;},800);}},1000);
 })();
+</script>
+
+
+
+
+
+<script>
+window.addEventListener('keydown', e=>{
+  if(e.key.toLowerCase()==='r' && e.shiftKey){
+    if(confirm("Chceš se přesunout na start v lese? (Shift+R)")){
+      teleportToForestStart(true);
+    }
+  }
+});
+// Double tap on player to unstuck on mobile
+let _lastTap=0;
+window.addEventListener('touchend', e=>{
+  const now=Date.now();
+  if(now-_lastTap<400){
+    // double tap near center
+    const tx=Math.floor(player.x/TILE), ty=Math.floor(player.y/TILE);
+    if(!isWalkableTile(tx,ty)){
+      tryUnstuck();
+    }
+  }
+  _lastTap=now;
+});
 </script>
 
 </body>
