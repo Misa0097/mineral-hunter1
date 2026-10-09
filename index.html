@@ -192,6 +192,22 @@ canvas{display:block;width:100%;height:100%;background:#71a84e;touch-action:none
 <div class="panelBody" id="shopList"></div>
 </div>
 
+
+<div class="panel" id="changerModal" style="width:min(96%,520px);max-height:88vh">
+  <div class="panelHeader"><span>🌀 Měnič Bonusů - vyber předmět</span><button id="closeChangerModal">×</button></div>
+  <div class="panelBody">
+    <div style="font-size:11px;color:#aaa;margin-bottom:10px;text-align:center">Klikni na předmět kterému chceš změnit bonusy.<br><span style="color:#ce93d8">Každá změna spotřebuje 1x Měnič (5000 Kč)</span><br><span style="font-size:9px;color:#666">Krompáče nelze měnit</span></div>
+    <div id="changerList" style="max-height:55vh;overflow-y:auto"></div>
+    <div style="margin-top:10px;text-align:center"><button id="changerCancel" style="background:#333;border:1px solid #555;color:#ccc;padding:8px 16px;border-radius:8px">Zavřít</button></div>
+  </div>
+</div>
+
+<div class="panel" id="changerResultModal" style="width:min(96%,480px)">
+  <div class="panelHeader"><span>🎲 Bonusy změněny!</span><button id="closeChangerResult">×</button></div>
+  <div class="panelBody" id="changerResultContent"></div>
+</div>
+
+
 <div class="panel" id="equipPanel">
   <div class="panelHeader"><h2>🦺 Vybavení</h2><button id="closeEquip">×</button></div>
   <div class="panelBody">
@@ -506,6 +522,8 @@ const equipTiers = [
   {name:"Červený", color:"#FF1744", bg:"rgba(255,23,68,0.15)", bonusCount:4, chance:3, glow:"0 0 8px #FF1744", legendary:true, legendaryName:"Legendární"}
 ];
 
+const CHANGER_IMG = "data:image/webp;base64,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";
+const CHANGER_PRICE = 5000;
 const allBonusStats = [
   {key:"tezba", name:"Těžba", min:1, max:10, unit:"%", icon:"⛏️"},
   {key:"rychlost", name:"Rychlost", min:1, max:20, unit:"%", icon:"🏃"},
@@ -728,11 +746,15 @@ function renderMuseum(){
         let size=28 + Math.round(((item.weight - minW)/Math.max(1,(maxW-minW)))*14);
         size=Math.max(28, Math.min(42, size));
         div.style.cssText='background:#1a2420;border:1px solid #3b4a3e;border-radius:8px;padding:8px';
+        // GOD check for museum
+        let isGodM=false; let godCntM=0; try{ godCntM=countLegendaryStatsForMineral(item); if(godCntM>=3) isGodM=true; }catch(e){}
+        let godBadgeHtml = isGodM ? '<div style="background:linear-gradient(90deg,#ff0000,#ff6a00);color:#fff;border:1px solid #ffeb3b;border-radius:4px;padding:1px 4px;font-size:8px;font-weight:900;margin-top:2px;text-align:center;box-shadow:0 0 6px #ff0000">GOD '+godCntM+'x🔴</div>' : '';
+        if(isGodM){ div.style.border='2px solid #ff0000'; div.style.boxShadow='0 0 12px rgba(255,0,0,0.4)'; div.style.background='linear-gradient(135deg, #2a1a1a, #1a2420)'; }
         div.innerHTML='<div style="display:flex;gap:8px;align-items:flex-start">'
-          +'<div style="width:'+(size+14)+'px;height:'+(size+14)+'px;background:rgba(0,0,0,0.3);border-radius:8px;display:flex;align-items:center;justify-content:center;border:1.5px solid '+data.color+';flex-shrink:0">'
+          +'<div style="width:'+(size+14)+'px;height:'+(size+14)+'px;background:rgba(0,0,0,0.3);border-radius:8px;display:flex;align-items:center;justify-content:center;border:1.5px solid '+(isGodM?'#ff0000':data.color)+';flex-shrink:0">'
           +(src?'<img src="'+src+'" style="width:'+size+'px;height:'+size+'px;object-fit:contain">':'💎')
           +'</div>'
-          +'<div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:800;color:'+data.color+'">'+data.name+'</div>'
+          +'<div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:800;color:'+data.color+'">'+data.name+godBadgeHtml+'</div>'
           +'<div style="font-size:8px;color:#bbb">Kval:'+(item.quality||0)+'% Čist:'+item.purity+'%<br>Váha:'+item.weight+'g</div>'
           +'<div style="font-size:8px;color:#ffeb3b">✨ '+beauty+' krásy | 💰 '+incomePerMin+' Kč/min</div>'
           +'<div style="font-size:7px;color:#4caf50">Hodnota: '+item.price+' Kč</div></div></div>'
@@ -861,7 +883,27 @@ function getEffectiveTezbaBonus(){
 
 function countPolishedMinerals(mineralType){
   let c=0;
-  for(let it of inventory){ if(!it.isTool && !it.isEquipment && it.type===mineralType && !it.raw) c++; }
+  for(let it of inventory){
+    if(!it.isTool && !it.isEquipment && it.type===mineralType && !it.raw){
+      // GOD kameny se nepouzivaji na normalni craft - budou na specialni vyrobu
+      try{
+        let legCnt=countLegendaryStatsForMineral(it);
+        if(legCnt>=3) continue; // preskoc GOD
+      }catch(e){}
+      c++;
+    }
+  }
+  return c;
+}
+function countGodMinerals(){
+  let c=0;
+  for(let it of inventory){
+    if(!it.isTool && !it.isEquipment){
+      try{
+        if(countLegendaryStatsForMineral(it)>=3) c++;
+      }catch(e){}
+    }
+  }
   return c;
 }
 
@@ -870,12 +912,18 @@ function craftEquipment(equipTypeKey){
   if(!def){ showToast("Neznámý typ"); return; }
   let need=10;
   let have=countPolishedMinerals(def.mineral);
-  if(have<need){ showToast("❌ Potřebuješ "+need+"x vybroušený "+def.mineralName+" (máš "+have+")"); return; }
-  // remove 10 polished
+  let haveGod=0; try{ for(let it of inventory){ if(!it.isTool && !it.isEquipment && it.type===def.mineral && !it.raw && countLegendaryStatsForMineral(it)>=3) haveGod++; } }catch(e){}
+  if(have<need){ let msg="❌ Potřebuješ "+need+"x vybroušený "+def.mineralName+" (máš "+have+")"; if(haveGod>0) msg+=" | GOD: "+haveGod+"x (rezervováno na speciální výrobu)"; showToast(msg,2.5); return; }
+  // remove 10 polished - skip GOD stones
   let removed=0;
   for(let i=inventory.length-1;i>=0 && removed<need;i--){
     let it=inventory[i];
-    if(!it.isTool && !it.isEquipment && it.type===def.mineral && !it.raw){ inventory.splice(i,1); removed++; }
+    if(!it.isTool && !it.isEquipment && it.type===def.mineral && !it.raw){
+      try{
+        if(countLegendaryStatsForMineral(it)>=3) continue; // nebrat GOD
+      }catch(e){}
+      inventory.splice(i,1); removed++;
+    }
   }
   let newEquip=generateEquipment(equipTypeKey);
   inventory.push(newEquip);
@@ -1310,8 +1358,8 @@ function renderInventory(){
     var inventoryList=document.getElementById('inventoryList');
     if(!inventoryList) return;
     inventoryList.innerHTML='';
-    var toolEntries=[], mineralEntries=[], equipEntries=[];
-    inventory.forEach(function(it, idx){ if(it.isTool) toolEntries.push({item:it, index:idx}); else if(it.isEquipment) equipEntries.push({item:it, index:idx}); else mineralEntries.push({item:it, index:idx}); });
+    var toolEntries=[], mineralEntries=[], equipEntries=[], changerEntries=[];
+    inventory.forEach(function(it, idx){ if(it.isTool) toolEntries.push({item:it, index:idx}); else if(it.isEquipment) equipEntries.push({item:it, index:idx}); else if(it.isChanger) changerEntries.push({item:it, index:idx}); else mineralEntries.push({item:it, index:idx}); });
 
     var hasRezavy=false; for(var i=0;i<toolEntries.length;i++) if(toolEntries[i].item.toolIndex===0) hasRezavy=true;
     if(!hasRezavy){
@@ -1391,10 +1439,45 @@ function renderInventory(){
       inventoryList.appendChild(div);
     });
 
+
+    // Měnič Bonusů - bez separátoru, jen u jména je 2x
+    changerEntries.forEach(function(entry){
+      var item=entry.item;
+      var div=document.createElement('div'); div.className='item';
+      div.style.borderLeft='4px solid #ab47bc';
+      div.style.background='linear-gradient(90deg, rgba(123,31,162,0.15), rgba(171,71,188,0.08))';
+      div.style.boxShadow='0 0 10px rgba(171,71,188,0.3)';
+      var h='';
+      h+='<div class="itemRow">';
+      h+='<div class="mineralImgWrap" style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.3);border-radius:8px;border:1.5px solid #ab47bc"><img src="'+CHANGER_IMG+'" style="width:38px;height:38px;object-fit:contain"></div>';
+      h+='<div style="flex:1;min-width:0;margin-left:8px">';
+      h+='<div class="itemTitle" style="color:#ce93d8;font-size:12px">🌀 Měnič Bonusů <span style="font-size:10px;background:#7b1fa2;color:#fff;padding:1px 6px;border-radius:10px;margin-left:6px">'+(item.count||1)+'x</span></div>';
+      h+='<div class="itemInfo" style="font-size:10px;line-height:1.3;color:#ab47bc">Změní náhodné bonusy u vybavení<br><span style="font-size:9px;color:#888">Nelze použít na krumpáče</span></div>';
+      h+='</div>';
+      h+='<div style="display:flex;flex-direction:column;gap:4px;min-width:85px">';
+      h+='<button class="actionButton buyButton" data-changer-use-id="'+item.id+'" style="background:linear-gradient(90deg,#7b1fa2,#ab47bc);border:1px solid #ce93d8;color:#fff;font-weight:800">POUŽÍT</button>';
+      h+='<button class="actionButton sellButton" data-changer-sell-id="'+item.id+'" style="font-size:9px">PRODAT 2500</button>';
+      h+='</div></div>';
+      div.innerHTML=h;
+      var ub=div.querySelector('[data-changer-use-id]');
+      var sb=div.querySelector('[data-changer-sell-id]');
+      if(ub){ (function(id,b){ b.addEventListener('click', function(){ openChangerModal(); }); })(item.id, ub); }
+      if(sb){ (function(id,b){ b.addEventListener('click', function(){ let idx=findIdx(id); if(idx!==-1){ let it=inventory[idx]; let cnt=it.count||1; if(cnt>1){ it.count=cnt-1; money+=2500; } else { inventory.splice(idx,1); money+=2500; } saveGame(); renderInventory(); updateHUD(); showToast("Prodán Měnič za 2500 Kč"); } }); })(item.id, sb); }
+      inventoryList.appendChild(div);
+    });
+
     // Minerály
     mineralEntries.sort(function(a,b){ if(a.item.raw!==b.item.raw) return a.item.raw? -1:1; return b.item.price-a.item.price; }).forEach(function(entry){
       var item=entry.item; var data=minerals[item.type]; if(!data) return;
       var div=document.createElement('div'); div.className='item';
+      // GOD styling
+      try{
+        if(countLegendaryStatsForMineral(item)>=3){
+          div.style.borderLeft='4px solid #ff0000';
+          div.style.background='linear-gradient(90deg, rgba(255,0,0,0.15), rgba(255,100,0,0.08))';
+          div.style.boxShadow='0 0 10px rgba(255,0,0,0.35)';
+        }
+      }catch(e){}
       var isRaw=item.raw;
       var size=getSize(item.weight,data.minWeight,data.maxWeight);
       var v=getVar(item.type,item.weight,item.purity,entry.index);
@@ -1412,6 +1495,17 @@ function renderInventory(){
       var badgeRaw = isRaw ? '<span class="badge badge-raw">SUROVÝ</span>' : '<span class="badge badge-polished">VYBRUŠENÝ</span>';
       var badgeCrack = (item.cracks>0) ? '<span class="badge badge-cracked">PRASKLINY: '+item.cracks+'</span>' : '';
       if(item.damaged) badgeCrack+=' <span class="badge badge-cracked">POŠKOZENO</span>';
+      // GOD badge
+      var godBadge='';
+      var isGod=false;
+      try{
+        let legCnt=countLegendaryStatsForMineral(item);
+        if(legCnt>=3){
+          isGod=true;
+          godBadge='<span class="badge" style="background:linear-gradient(90deg,#ff0000,#ff6a00);color:#fff;border:1px solid #ffeb3b;box-shadow:0 0 6px #ff0000;font-weight:900;font-size:9px;animation:godPulse 1s infinite">GOD '+legCnt+'x🔴</span>';
+        }
+      }catch(e){}
+      
 
       var h='';
       h+='<div class="itemRow">';
@@ -1419,7 +1513,7 @@ function renderInventory(){
       if(src) h+='<img src="'+src+'" class="mineralImg" style="width:'+size+'px;height:'+size+'px;opacity:'+opacity+';transform:'+transform+';">';
       h+='</div>';
       h+='<div style="flex:1;min-width:0;margin-left:8px">';
-      h+='<div class="itemTitle" style="color:'+data.color+';font-size:12px">'+data.name+' '+badgeRaw+badgeCrack+' <span style="font-size:10px;color:#777">#'+v.seed+'</span></div>';
+      h+='<div class="itemTitle" style="color:'+data.color+';font-size:12px">'+data.name+' '+badgeRaw+badgeCrack+godBadge+' <span style="font-size:10px;color:#777">#'+v.seed+'</span></div>';
       h+='<div class="itemInfo" style="font-size:10.5px;line-height:1.3">';
       h+='Váha:<span class="has-tip" data-tip="weight" style="color:'+colW.c+';text-shadow:'+colW.glow+';font-weight:'+colW.w+';margin-left:4px">'+item.weight+'g</span> | ';
       h+='Kval:<span class="has-tip" data-tip="quality" style="color:'+colQ.c+';text-shadow:'+colQ.glow+';font-weight:'+colQ.w+';margin-left:4px">'+(isRaw?'0%':item.quality+'%')+'</span> | ';
@@ -1490,11 +1584,238 @@ function renderShop(){
  museumSection.appendChild(museumExpItem);
  shopList.appendChild(museumSection);
 
+
+ const changerSection=document.createElement("div"); changerSection.className="shopSection"; changerSection.innerHTML="<h3>🌀 Měnič Bonusů</h3>";
+ const changerItem=document.createElement("div"); changerItem.className="item";
+ changerItem.style.borderLeft="4px solid #ab47bc";
+ changerItem.style.background="linear-gradient(90deg, rgba(123,31,162,0.12), rgba(171,71,188,0.08))";
+ let changerOwned = getChangerCount();
+ changerItem.innerHTML='<div class="itemRow"><div style="display:flex;gap:10px;align-items:center"><div style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.3);border-radius:8px;border:1.5px solid #ab47bc"><img src="'+CHANGER_IMG+'" style="width:38px;height:38px"></div><div><div class="itemTitle" style="color:#ce93d8">🌀 Měnič Bonusů</div><div class="itemInfo">Změní bonusy u vybavení na náhodné<br>Cena: <b>5000 Kč</b><br>V batohu: <b>'+changerOwned+'x</b></div></div></div><button class="actionButton buyButton" id="buyChangerBtn" style="background:linear-gradient(90deg,#7b1fa2,#ab47bc);border:1px solid #ce93d8;color:#fff;font-weight:800">KOUPIT 5000</button></div>';
+ changerItem.querySelector("#buyChangerBtn").addEventListener("click", buyBonusChanger);
+ changerSection.appendChild(changerItem);
+ shopList.appendChild(changerSection);
+
  const resetDiv=document.createElement("div"); resetDiv.id="resetWrap"; resetDiv.style.marginTop="12px"; resetDiv.style.display="flex"; resetDiv.style.justifyContent="center";
  resetDiv.innerHTML='<button id="resetBtn" style="width:100%;border-radius:12px;background:rgba(255,90,90,0.12);border:1px dashed rgba(255,90,90,0.4);color:#ffb4b4;padding:10px;font-weight:bold">🗑️ Resetovat postup</button>';
  resetDiv.querySelector("#resetBtn").addEventListener("click",()=>{ if(confirm("Opravdu resetovat?")){ localStorage.removeItem("mineralHunterSave_v3"); localStorage.removeItem("mineralHunterSave_v2"); localStorage.removeItem("mineralHunterSave"); location.reload(); } });
  shopList.appendChild(resetDiv);
 }
+
+
+function getChangerCount(){
+  let c=0;
+  for(let it of inventory){ if(it.isChanger) c+= (it.count||1); }
+  return c;
+}
+function buyBonusChanger(){
+  if(money < CHANGER_PRICE){ showToast("💰 Nemáš dost peněz (5000 Kč)"); return; }
+  money -= CHANGER_PRICE;
+  let existing = inventory.find(it=>it.isChanger);
+  if(existing){
+    existing.count = (existing.count||1)+1;
+  } else {
+    inventory.push({isChanger:true, id:Date.now()+Math.random(), name:"Měnič Bonusů", count:1, price:CHANGER_PRICE});
+  }
+  saveGame(); renderInventory(); renderShop(); updateHUD();
+  showToast("🌀 Zakoupen Měnič Bonusů! V batohu 🎒",2);
+}
+
+function rerollEquipmentBonuses(equipItem){
+  let tierIdx = equipItem.tier;
+  let tier = equipTiers[tierIdx];
+  let bonuses=[];
+  let pool=allBonusStats.filter(s=>!s.legendary);
+  let shuffled=[...pool].sort(()=>0.5-Math.random());
+  for(let i=0;i<tier.bonusCount && i<shuffled.length;i++){
+    let stat=shuffled[i];
+    let val=Math.floor(Math.random()*(stat.max-stat.min+1))+stat.min;
+    bonuses.push({key:stat.key, name:stat.name, value:val, unit:stat.unit, icon:stat.icon});
+  }
+  if(tier.legendary){
+    let leg=allBonusStats.find(s=>s.legendary);
+    let val=(Math.random()*(leg.max-leg.min)+leg.min);
+    val=Math.round(val*10)/10;
+    bonuses.push({key:leg.key, name:leg.name, value:val, unit:leg.unit, icon:leg.icon, legendary:true});
+  }
+  equipItem.bonuses = bonuses;
+  return bonuses;
+}
+
+function openChangerModal(){
+  const modal = document.getElementById('changerModal');
+  const list = document.getElementById('changerList');
+  if(!modal||!list) return;
+  list.innerHTML='';
+  let allEquips = [];
+  inventory.forEach((it, idx)=>{
+    if(it.isEquipment){
+      allEquips.push({item:it, location:'inventory', idx:idx, equipped:false});
+    }
+  });
+  for(let slot in equipped){
+    let eq = equipped[slot];
+    if(eq){
+      allEquips.push({item:eq, location:'equipped', slot:slot, equipped:true});
+    }
+  }
+  if(allEquips.length===0){
+    list.innerHTML='<div style="text-align:center;color:#888;padding:20px">Žádné vybavení k přerolování<br><span style="font-size:10px">Krompáče nelze měnit</span></div>';
+  } else {
+    allEquips.forEach((entry)=>{
+      let item = entry.item;
+      let tier = equipTiers[item.tier]||equipTiers[0];
+      let div = document.createElement('div');
+      div.className='item';
+      div.style.borderLeft='4px solid '+tier.color;
+      div.style.background=tier.bg;
+      div.style.cursor='pointer';
+      div.style.marginBottom='6px';
+      let locText = entry.equipped ? '📍 Nasazeno ('+entry.slot+')' : '🎒 Batoh';
+      let h='';
+      h+='<div class="itemRow" style="background:rgba(0,0,0,0.15)">';
+      h+='<div class="mineralImgWrap" style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(0,0,0,0.25);border-radius:8px;border:1px solid '+tier.color+'">'+item.icon+'</div>';
+      h+='<div style="flex:1;min-width:0;margin-left:8px">';
+      h+='<div class="itemTitle" style="color:'+tier.color+';font-size:11px">'+item.name+' <span style="font-size:7px;background:#333;color:#aaa;padding:1px 4px;border-radius:3px">'+locText+'</span></div>';
+      h+='<div class="itemInfo" style="font-size:9px;line-height:1.2">';
+      for(let b of item.bonuses){
+        let col=b.legendary?'#FFEB3B':(b.key==='tezba'?'#7dd8ff':b.key==='rychlost'?'#ffab40':b.key==='energieRegen'?'#a5d6a7':b.key==='cistota'?'#ce93d8':b.key==='vaha'?'#90caf9':b.key==='energieMax'?'#ff8a80':'#ffd54f');
+        h+='<span style="color:'+col+';margin-right:5px">'+b.icon+' '+b.value+b.unit+'</span>';
+      }
+      h+='</div></div>';
+      h+='<div style="min-width:70px"><button class="actionButton buyButton" style="background:'+tier.color+';color:#000;font-weight:800;font-size:10px">PŘEROLOVAT</button></div></div>';
+      div.innerHTML=h;
+      div.addEventListener('click', ()=>{ performReroll(entry); });
+      list.appendChild(div);
+    });
+  }
+  modal.classList.add('open');
+}
+
+function closeChangerModal(){
+  const modal = document.getElementById('changerModal');
+  if(modal) modal.classList.remove('open');
+  const resultModal = document.getElementById('changerResultModal');
+  if(resultModal) resultModal.classList.remove('open');
+  // Ujisti se ze overlay nezustane
+  document.body.style.overflow='';
+}
+
+function performReroll(entry){
+  let changerCount = getChangerCount();
+  if(changerCount<=0){ showToast("❌ Nemáš Měnič Bonusů"); closeChangerModal(); return; }
+  let item = entry.item;
+  let oldBonuses = JSON.parse(JSON.stringify(item.bonuses));
+  
+  // Zavri vyberove okno pred zobrazenim vysledku
+  const selModal = document.getElementById('changerModal');
+  if(selModal) selModal.classList.remove('open');
+  
+  // Spotrebuj 1 menic
+  let changerItem = inventory.find(it=>it.isChanger);
+  if(changerItem){
+    changerItem.count = (changerItem.count||1)-1;
+    if(changerItem.count<=0){
+      let idx = inventory.indexOf(changerItem);
+      if(idx!==-1) inventory.splice(idx,1);
+    }
+  }
+  
+  // Preroluj bonusy
+  rerollEquipmentBonuses(item);
+  
+  // PREPOCITEJ VSECHNY BONUSY - dulezite pro hrace!
+  // Uloz stare max pro porovnani
+  let oldMax = player.maxEnergy;
+  let oldBon = getTotalBonuses();
+  
+  // Uloz a prekresli vse
+  saveGame(); 
+  renderInventory(); 
+  // Toto prepocita getTotalBonuses() uvnitr
+  if(typeof updateEquipPanel === 'function') updateEquipPanel();
+  if(typeof renderEquipPanel === 'function') renderEquipPanel();
+  updateHUD();
+  
+  // Pokud se zmenila max energie, uprav i aktualni energii
+  let newMax = getEffectiveMaxEnergy();
+  if(newMax !== oldMax){
+    if(newMax > oldMax){
+      player.energy += (newMax - oldMax);
+    }
+    if(player.energy > newMax) player.energy = newMax;
+    player.maxEnergy = newMax;
+  }
+  
+  // Log pro kontrolu
+  let newBon = getTotalBonuses();
+  console.log("REROLL BONUSY:", {pred: oldBon, po: newBon, item: item.name, old: oldBonuses, new: item.bonuses});
+  
+  // Ukaz vysledek PRE vs NYNI
+  setTimeout(()=>{ showRerollResult(item, oldBonuses); }, 150);
+}
+
+function showRerollResult(item, oldBonuses){
+  const modal = document.getElementById('changerResultModal');
+  const content = document.getElementById('changerResultContent');
+  if(!modal||!content) return;
+  let tier = equipTiers[item.tier]||equipTiers[0];
+  let html='';
+  html+='<div style="text-align:center;margin-bottom:10px"><div style="font-size:24px">'+item.icon+'</div><div style="font-size:14px;font-weight:800;color:'+tier.color+'">'+item.name+'</div><div style="font-size:9px;color:#888">'+tier.name+'</div></div>';
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">';
+  html+='<div style="background:rgba(255,0,0,0.1);border:1px solid #ff4444;border-radius:8px;padding:8px"><div style="font-size:10px;color:#ff8888;font-weight:700;text-align:center;margin-bottom:4px">PŘEDTÍM</div>';
+  oldBonuses.forEach(b=>{
+    let col=b.legendary?'#FFEB3B':(b.key==='tezba'?'#7dd8ff':b.key==='rychlost'?'#ffab40':b.key==='energieRegen'?'#a5d6a7':b.key==='cistota'?'#ce93d8':b.key==='vaha'?'#90caf9':b.key==='energieMax'?'#ff8a80':'#ffd54f');
+    html+='<div style="font-size:10px;color:'+col+'">'+b.icon+' '+b.name+': '+b.value+b.unit+'</div>';
+  });
+  html+='</div>';
+  html+='<div style="background:rgba(0,255,0,0.1);border:1px solid #4caf50;border-radius:8px;padding:8px"><div style="font-size:10px;color:#88ff88;font-weight:700;text-align:center;margin-bottom:4px">NYNÍ ✨</div>';
+  item.bonuses.forEach(b=>{
+    let col=b.legendary?'#FFEB3B':(b.key==='tezba'?'#7dd8ff':b.key==='rychlost'?'#ffab40':b.key==='energieRegen'?'#a5d6a7':b.key==='cistota'?'#ce93d8':b.key==='vaha'?'#90caf9':b.key==='energieMax'?'#ff8a80':'#ffd54f');
+    html+='<div style="font-size:10px;color:'+col+'">'+b.icon+' '+b.name+': '+b.value+b.unit+'</div>';
+  });
+  html+='</div></div>';
+  // Prepocet bonusu info
+  let totalBon = getTotalBonuses();
+  let bonInfo = Object.entries(totalBon).filter(([k,v])=>v>0).map(([k,v])=>{
+    let stat=allBonusStats.find(s=>s.key===k);
+    return (stat?stat.icon:'')+' '+v+(stat?stat.unit:'%');
+  }).join(' | ');
+  if(!bonInfo) bonInfo='Žádné bonusy (sundej a nasaď znovu pokud je to bug)';
+
+  let remaining = getChangerCount();
+  html+='<div style="background:rgba(79,195,247,0.1);border:1px solid #4fc3f7;border-radius:6px;padding:6px;margin-bottom:10px;text-align:center"><div style="font-size:9px;color:#4fc3f7;font-weight:700">📊 CELKOVÉ BONUSY PO ZMĚNĚ</div><div style="font-size:8px;color:#ccc;margin-top:3px">'+bonInfo+'</div><div style="font-size:8px;color:#aaa;margin-top:2px">Max Energie: '+getEffectiveMaxEnergy()+'% | Rychlost: +'+(totalBon.rychlost||0)+'% | Těžba: +'+(totalBon.tezba||0)+'%</div></div>';
+  html+='<div style="text-align:center;font-size:11px;color:#aaa;margin-bottom:10px">Zbývá Měničů: <b style="color:#ffeb3b">'+remaining+'</b></div>';
+  html+='<div style="display:flex;gap:8px"><button id="changerResultClose" style="flex:1;background:#333;border:1px solid #555;color:#ccc;padding:10px;border-radius:8px;font-weight:700">✕ ZAVŘÍT</button>';
+  if(remaining>0){
+    html+='<button id="changerResultAgain" style="flex:1;background:linear-gradient(90deg,#7b1fa2,#ab47bc);border:1px solid #ce93d8;color:#fff;padding:10px;border-radius:8px;font-weight:800">🌀 DALŠÍ MĚNIČ</button>';
+  } else {
+    html+='<button id="changerBuyMore" style="flex:1;background:linear-gradient(90deg,#2e7d32,#4caf50);border:1px solid #4caf50;color:#fff;padding:10px;border-radius:8px;font-weight:800">🛒 KOUPIT (5000 Kč)</button>';
+  }
+  html+='</div>';
+  content.innerHTML=html;
+  modal.classList.add('open');
+  document.getElementById('changerResultClose').addEventListener('click', closeChangerModal);
+  let againBtn = document.getElementById('changerResultAgain');
+  if(againBtn){
+    againBtn.addEventListener('click', ()=>{
+      modal.classList.remove('open');
+      openChangerModal();
+    });
+  }
+  let buyBtn = document.getElementById('changerBuyMore');
+  if(buyBtn){
+    buyBtn.addEventListener('click', ()=>{
+      if(money>=CHANGER_PRICE){
+        buyBonusChanger();
+        modal.classList.remove('open');
+        openChangerModal();
+      } else {
+        showToast("💰 Nemáš 5000 Kč");
+      }
+    });
+  }
+}
+
 
 function buyTool(index){
  if(tools[index].craftable){ showToast("🔨 Jen v Craftu!"); return; }
@@ -1723,7 +2044,7 @@ function loadGame(){
    money=s.money??100; found=s.found??0;
    if(Array.isArray(s.inventory)){
      inventory.length=0;
-     s.inventory.forEach(it=>{ if(it && (typeof it.type==="number" || it.isTool)){ if(!it.id) it.id=nextToolId(); inventory.push(it); } });
+     s.inventory.forEach(it=>{ if(it && (typeof it.type==="number" || it.isTool || it.isEquipment || it.isChanger)){ if(!it.id) it.id=nextToolId(); inventory.push(it); } });
    }
    if(s.player){ let st=s.player.tool??0; if(st>=tools.length||st<0) st=0; player.tool=st; if(s.player.baseMaxEnergy!==undefined) player.baseMaxEnergy=s.player.baseMaxEnergy; if(s.player.energyUpgrades!==undefined) player.energyUpgrades=s.player.energyUpgrades; player.maxEnergy=s.player.maxEnergy??player.maxEnergy; player.energy=s.player.energy??player.maxEnergy; player.x=s.player.x??player.x; player.y=s.player.y??player.y; }
    if(s.dug && Array.isArray(s.dug)){ for(let y=0;y<WORLD_H;y++) for(let x=0;x<WORLD_W;x++) if(s.dug[y]&&s.dug[y][x]) world[y][x].dug=true; }
@@ -2035,7 +2356,10 @@ document.getElementById("shopAboveMap").addEventListener("click", openShop);
 document.getElementById("closeInventory").addEventListener("click", closeInventory);
 document.getElementById("closeShop").addEventListener("click", closeShop);
 document.getElementById("closeCraft").addEventListener("click", closeCraft);
-document.getElementById("closeEquip").addEventListener("click", closeEquip);
+document.getElementById("closeChangerModal")?.addEventListener("click", closeChangerModal);
+  document.getElementById("changerCancel")?.addEventListener("click", closeChangerModal);
+  document.getElementById("closeChangerResult")?.addEventListener("click", closeChangerModal);
+  document.getElementById("closeEquip").addEventListener("click", closeEquip);
 document.getElementById("closeMuseum")?.addEventListener("click", closeMuseum);
 document.getElementById("museumBtn")?.addEventListener("click", openMuseum);
 document.getElementById("openCraftTab").addEventListener("click", openCraftFromBackpack);
@@ -2364,7 +2688,7 @@ function applySaveData(save){
     found=save.found??found;
     if(Array.isArray(save.inventory)){
       inventory.length=0;
-      save.inventory.forEach(it=>{ if(it && (typeof it.type==="number" || it.isTool || it.isEquipment)){ if(!it.id) it.id=nextToolId(); inventory.push(it); } });
+      save.inventory.forEach(it=>{ if(it && (typeof it.type==="number" || it.isTool || it.isEquipment || it.isChanger)){ if(!it.id) it.id=nextToolId(); inventory.push(it); } });
     }
     if(save.equipped){ for(let k in save.equipped){ equipped[k]=save.equipped[k]; } }
     if(save.player){
@@ -2397,7 +2721,7 @@ saveGame = function(){
   _origSaveGame();
   if(currentNick){
     try{
-      const save={money,found,inventory,equipped,player:{tool:player.tool,maxEnergy:player.maxEnergy,energy:player.energy,x:player.x,y:player.y},dug:world.map(row=>row.map(c=>c.dug)),emptyDigs,museum,museumSize,museumExpansionLevel};
+      const save={money,found,inventory,equipped,player:{tool:player.tool,baseMaxEnergy:player.baseMaxEnergy,energyUpgrades:player.energyUpgrades,maxEnergy:player.maxEnergy,energy:player.energy,x:player.x,y:player.y},dug:world.map(row=>row.map(c=>c.dug)),emptyDigs,museum,museumSize,museumExpansionLevel};
       localStorage.setItem("mineralHunterSave_"+currentNick, JSON.stringify(save));
     }catch(e){}
     savePlayerToFirebase(true);
