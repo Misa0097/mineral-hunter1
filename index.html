@@ -1056,7 +1056,6 @@ function updateHUD(){
   try{
     document.getElementById("money").textContent=Math.floor(money);
     document.getElementById("found").textContent=found;
-    // effective max energy from equipment
     let effMax=getEffectiveMaxEnergy();
     if(player.maxEnergy!==effMax){
       if(effMax>player.maxEnergy) player.energy+=effMax-player.maxEnergy;
@@ -1065,13 +1064,19 @@ function updateHUD(){
     }
     let perc=Math.floor(player.energy/player.maxEnergy*100);
     perc=Math.max(0,Math.min(100,perc));
-    // FIX V30.11 - zobrazuj skutečné % energie, ne max
-    document.getElementById("energyText").textContent= perc + "%";
-    document.getElementById("energyFill").style.width=perc+"%";
     let energyEl=document.getElementById("energyText");
-    if(energyEl) energyEl.title = Math.floor(player.energy)+"/"+player.maxEnergy+" energie | "+perc+"% | max "+player.maxEnergy;
-    document.getElementById("toolName").textContent=tools[player.tool]?.name.split(" ")[0]||"??";
-  }catch(e){}
+    if(energyEl){
+      // UKAZ JEN MAX PROCENTO - jak chce hrac: 244% misto 100%
+      energyEl.textContent = player.maxEnergy + "%";
+      energyEl.title = "Energie: "+Math.floor(player.energy)+"/"+player.maxEnergy+" | Plnost: "+perc+"% | Max: "+player.maxEnergy+"% | base "+(player.baseMaxEnergy||100)+" + bonus "+(getTotalBonuses().energieMax||0)+"%";
+      energyEl.style.fontSize="12px";
+      energyEl.style.fontWeight="900";
+    }
+    let energyFillEl=document.getElementById("energyFill");
+    if(energyFillEl) energyFillEl.style.width=perc+"%";
+    let toolEl=document.getElementById("toolName");
+    if(toolEl) toolEl.textContent=tools[player.tool]?.name.split(" ")[0]||"??";
+  }catch(e){ console.warn("HUD err",e); }
 }
 
 function getVar(type, weight, purity, idx){
@@ -1705,7 +1710,7 @@ function ensureDugTimes(){ try{ for(let y=0;y<WORLD_H;y++) for(let x=0;x<WORLD_W
 function clearAllOldHoles(){ try{ let cnt=0; for(let y=0;y<WORLD_H;y++) for(let x=0;x<WORLD_W;x++){ let c=world[y][x]; if(c.dug){ c.dug=false; c.dugTime=null; c.mineral=null; c.hasRock=false; let t=c.type; let mineralChance=0.78; if(t==="rock") mineralChance=0.68; else if(t==="forest") mineralChance=0.73; else if(t==="grass") mineralChance=0.80; else if(t==="sand") mineralChance=0.85; else mineralChance=0.95; if(hash(x+31,y+77)>mineralChance){ c.mineral=Math.floor(hash(x*5+17,y*3+11)*minerals.length); } if(t==="rock" && hash(x*1.9,y*2.7)>0.38){ c.hasRock=true; } cnt++; } } console.log("Cleared old holes:",cnt); }catch(e){} }
 function saveGame(){
  try{
-   const save={money,found,inventory,equipped,player:{tool:player.tool,maxEnergy:player.maxEnergy,energy:player.energy,x:player.x,y:player.y},dug:world.map(row=>row.map(c=>c.dug)),emptyDigs};
+   const save={money,found,inventory,equipped,player:{tool:player.tool,baseMaxEnergy:player.baseMaxEnergy,energyUpgrades:player.energyUpgrades,maxEnergy:player.maxEnergy,energy:player.energy,x:player.x,y:player.y},dug:world.map(row=>row.map(c=>c.dug)),emptyDigs};
    localStorage.setItem("mineralHunterSave_v3",JSON.stringify(save));
  }catch(e){}
 }
@@ -1720,7 +1725,7 @@ function loadGame(){
      inventory.length=0;
      s.inventory.forEach(it=>{ if(it && (typeof it.type==="number" || it.isTool)){ if(!it.id) it.id=nextToolId(); inventory.push(it); } });
    }
-   if(s.player){ let st=s.player.tool??0; if(st>=tools.length||st<0) st=0; player.tool=st; player.maxEnergy=s.player.maxEnergy??100; player.energy=s.player.energy??player.maxEnergy; player.x=s.player.x??player.x; player.y=s.player.y??player.y; }
+   if(s.player){ let st=s.player.tool??0; if(st>=tools.length||st<0) st=0; player.tool=st; if(s.player.baseMaxEnergy!==undefined) player.baseMaxEnergy=s.player.baseMaxEnergy; if(s.player.energyUpgrades!==undefined) player.energyUpgrades=s.player.energyUpgrades; player.maxEnergy=s.player.maxEnergy??player.maxEnergy; player.energy=s.player.energy??player.maxEnergy; player.x=s.player.x??player.x; player.y=s.player.y??player.y; }
    if(s.dug && Array.isArray(s.dug)){ for(let y=0;y<WORLD_H;y++) for(let x=0;x<WORLD_W;x++) if(s.dug[y]&&s.dug[y][x]) world[y][x].dug=true; }
    emptyDigs=s.emptyDigs??0;
  }catch(e){ console.warn("Load failed",e); }
