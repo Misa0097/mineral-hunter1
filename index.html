@@ -2264,7 +2264,11 @@ function setupGlobalAnnouncementsListener(){
 function normalizeNick(s){
   if(!s) return "";
   s=s.trim().replace(/\s+/g,"_").slice(0,16);
-  s=s.replace(/[^a-zA-Z0-9_\-]/g,"");
+  // FIX: povol ceske diakritiky - predtim se mazaly pismena jako č,š,ž atd. -> Zaječice -> Zajeice
+  // Firebase zakazuje jen . $ # [ ] / < > ale diakritiku povoluje
+  s=s.replace(/[.$#\[\]\/<>]/g,"");
+  // povol pismena vcetne diakritiky, cisla, _, -
+  s=s.replace(/[^a-zA-Z0-9_\-áčďéěíňóřšťúůýžÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ]/g,"");
   return s;
 }
 async function getNextAutoNick(){
