@@ -3171,13 +3171,16 @@ cell.mineral=null; saveGame(); renderInventory(); updateHUD();
    }
  } else {
    cell.dug=true; cell.dugTime=Date.now(); cell.hasRock=false; player.energy-=8; player.digging=true; player.digTime=0; emptyDigs++;
-   // I v prázdné díře šance na vybavení
+   // I v prázdné díře šance na vybavení - OPRAVA: jen bílé a zelené na základní mapě
    let totalBon2=getTotalBonuses();
    let hasAnyEquip2=Object.values(equipped).some(v=>!!v);
    let findChance2=1+(hasAnyEquip2?(totalBon2.findChance||0):0);
    if(Math.random()*100 < findChance2){
      let randomEquipType=equipTypeDefs[Math.floor(Math.random()*equipTypeDefs.length)].key;
-     let foundEquip=generateEquipment(randomEquipType);
+     let allowedTiers2=null;
+     if(isIceMapActiveCheck() || isFireMapActiveCheck()) allowedTiers2=[0,1,2,3,4];
+     else allowedTiers2=[0,1];
+     let foundEquip=generateEquipment(randomEquipType, allowedTiers2);
      inventory.push(foundEquip);
      showToast("🎉 Gratuluji našel si předmět!! "+foundEquip.name+" ("+equipTiers[foundEquip.tier].name+")",3);
      if(foundEquip.tier===4){
@@ -3201,7 +3204,7 @@ function regenerateCell(x,y){
   cell.dugTime=null;
   cell.hasRock=false;
   cell.mineral=null;
-  // znovu vygeneruj minerál podle původní logiky
+  // OPRAVA: náhodný minerál, ne deterministický hash - aby na stejném místě nebyl pořád stejný opál
   let t = cell.type;
   let mineralChance=0.78;
   if(t==="rock") mineralChance=0.68;
@@ -3209,10 +3212,17 @@ function regenerateCell(x,y){
   else if(t==="grass") mineralChance=0.80;
   else if(t==="sand") mineralChance=0.85;
   else mineralChance=0.95;
-  if(hash(x+31,y+77)>mineralChance){
-    let _pool=MAP_MINERALS.normal; cell.mineral=_pool[Math.floor(hash(x*5+17,y*3+11)*_pool.length)];
+  if(Math.random()>mineralChance){
+    let _pool=null;
+    try{
+      if(typeof isFireMapActiveCheck==="function" && isFireMapActiveCheck()) _pool=MAP_MINERALS.fire;
+      else if(typeof isIceMapActiveCheck==="function" && isIceMapActiveCheck()) _pool=MAP_MINERALS.ice;
+      else _pool=MAP_MINERALS.normal;
+    }catch(e){ _pool=MAP_MINERALS.normal; }
+    if(!_pool) _pool=MAP_MINERALS.normal;
+    cell.mineral=_pool[Math.floor(Math.random()*_pool.length)];
   }
-  if(t==="rock" && hash(x*1.9,y*2.7)>0.38){
+  if(t==="rock" && Math.random()>0.38){
     cell.hasRock=true;
   }
 }
@@ -3234,7 +3244,7 @@ setTimeout(()=>{ console.log('V30.14 clearing old holes migration'); clearAllOld
 
 
 function ensureDugTimes(){ try{ for(let y=0;y<WORLD_H;y++) for(let x=0;x<WORLD_W;x++){ let c=world[y][x]; if(c.dug){ if(!c.dugTime){ c.dugTime=Date.now()-9500; } } } }catch(e){} }
-function clearAllOldHoles(){ try{ let cnt=0; for(let y=0;y<WORLD_H;y++) for(let x=0;x<WORLD_W;x++){ let c=world[y][x]; if(c.dug){ c.dug=false; c.dugTime=null; c.mineral=null; c.hasRock=false; let t=c.type; let mineralChance=0.78; if(t==="rock") mineralChance=0.68; else if(t==="forest") mineralChance=0.73; else if(t==="grass") mineralChance=0.80; else if(t==="sand") mineralChance=0.85; else mineralChance=0.95; if(hash(x+31,y+77)>mineralChance){ c.mineral=Math.floor(hash(x*5+17,y*3+11)*minerals.length); } if(t==="rock" && hash(x*1.9,y*2.7)>0.38){ c.hasRock=true; } cnt++; } } console.log("Cleared old holes:",cnt); }catch(e){} }
+function clearAllOldHoles(){ try{ let cnt=0; for(let y=0;y<WORLD_H;y++) for(let x=0;x<WORLD_W;x++){ let c=world[y][x]; if(c.dug){ c.dug=false; c.dugTime=null; c.mineral=null; c.hasRock=false; let t=c.type; let mineralChance=0.78; if(t==="rock") mineralChance=0.68; else if(t==="forest") mineralChance=0.73; else if(t==="grass") mineralChance=0.80; else if(t==="sand") mineralChance=0.85; else mineralChance=0.95; if(Math.random()>mineralChance){ let _pool=null; try{ if(typeof isFireMapActiveCheck==="function" && isFireMapActiveCheck()) _pool=MAP_MINERALS.fire; else if(typeof isIceMapActiveCheck==="function" && isIceMapActiveCheck()) _pool=MAP_MINERALS.ice; else _pool=MAP_MINERALS.normal; }catch(e){ _pool=MAP_MINERALS.normal; } if(!_pool) _pool=MAP_MINERALS.normal; c.mineral=_pool[Math.floor(Math.random()*_pool.length)]; } if(t==="rock" && Math.random()>0.38){ c.hasRock=true; } cnt++; } } console.log("Cleared old holes:",cnt); }catch(e){} }
 function saveGame(){
  try{
    const save={money,found,inventory,equipped,petsOwned,activePetId,player:{tool:player.tool,baseMaxEnergy:player.baseMaxEnergy,energyUpgrades:player.energyUpgrades,maxEnergy:player.maxEnergy,energy:player.energy,x:player.x,y:player.y},dug:world.map(row=>row.map(c=>c.dug)),emptyDigs,vipEndTime};
