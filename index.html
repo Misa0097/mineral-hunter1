@@ -3762,7 +3762,8 @@ ctx.fillStyle="rgba(0,0,0,0.38)"; ctx.beginPath(); ctx.ellipse(sx, sy+16, 14, 6,
   try{drawLavaEffects(cam);}catch(e){} try{drawIceEffects(cam);}catch(e){}
 }
 
-// === MULTIPLAYER - VIDITELNOST HRÁČŮ NA MAPĚ V30.17 ===
+
+// === MULTIPLAYER - VIDITELNOST HRÁČŮ NA MAPĚ V30.18 - STEJNÁ VELIKOST + MAZLÍČCI ===
 let otherPlayers = {};
 let _multiplayerStarted = false;
 let _lastPosSend = 0;
@@ -3772,18 +3773,21 @@ function setupMultiplayerPresence(){
   _multiplayerStarted = true;
   try{
     let myRef = db.ref("online/"+currentNick);
-    // Odstranit při odpojení
     myRef.onDisconnect().remove();
-    // Posílat pozici pravidelně
     setInterval(()=>{
       try{
         if(!currentNick || !db) return;
         let now = Date.now();
-        if(now - _lastPosSend < 150) return; // throttle 150ms
+        if(now - _lastPosSend < 150) return;
         _lastPosSend = now;
         let isSpecial = false;
         try{ if(isFireMapActiveCheck() || isIceMapActiveCheck()) isSpecial = true; }catch(e){}
-        // Posílej jen na základní mapě, nebo i na speciálních s flag
+        let ap = null;
+        try{ ap = getActivePet(); }catch(e){}
+        let petData = null;
+        if(ap){
+          petData = {type: ap.type, level: ap.level, id: ap.id};
+        }
         myRef.set({
           nick: currentNick,
           x: Math.round(player.x),
@@ -3791,13 +3795,13 @@ function setupMultiplayerPresence(){
           tool: player.tool,
           walkTime: player.walkTime||0,
           digging: !!player.digging,
+          pet: petData,
           map: isSpecial ? (isFireMapActiveCheck() ? "fire" : "ice") : "normal",
           timestamp: Date.now()
         });
       }catch(e){}
     }, 200);
 
-    // Poslouchat ostatní hráče
     db.ref("online").on("child_added", snap=>{
       let data = snap.val();
       if(!data || !data.nick || data.nick===currentNick) return;
@@ -3813,7 +3817,6 @@ function setupMultiplayerPresence(){
       let nick = data && data.nick ? data.nick : snap.key;
       if(nick && otherPlayers[nick]) delete otherPlayers[nick];
     });
-    // Cleanup starých hráčů (>15s neaktivní)
     setInterval(()=>{
       let now = Date.now();
       for(let nick in otherPlayers){
@@ -3823,7 +3826,7 @@ function setupMultiplayerPresence(){
         }
       }
     }, 3000);
-    console.log("Multiplayer presence started");
+    console.log("Multiplayer presence started v30.18 - same size + pets");
   }catch(e){ console.error("multiplayer setup err", e); }
 }
 
@@ -3835,52 +3838,75 @@ function drawOtherPlayers(cam){
     for(let nick in otherPlayers){
       let op = otherPlayers[nick];
       if(!op) continue;
-      // Zobraz jen hráče na stejné mapě (základní vidí jen základní)
       if(op.map !== myMap) continue;
       let sx = op.x - cam.x;
       let sy = op.y - cam.y;
-      // Mimo obrazovku? Nes vykresluj
-      if(sx < -100 || sx > W+100 || sy < -100 || sy > H+100) continue;
+      if(sx < -120 || sx > W+120 || sy < -120 || sy > H+120) continue;
       let bob = Math.sin(op.walkTime||0)*0.6;
-      // Stín
-      ctx.fillStyle="rgba(0,0,0,0.22)";
-      ctx.beginPath(); ctx.ellipse(sx, sy+16, 10, 4, 0,0,Math.PI*2); ctx.fill();
-      // Hero podle nástroje
-      let toolIdx = op.tool||0;
-      let heroImgOther = null;
+      
+      // === MAZLÍČEK - STEJNÝ JAKO U HLAVNÍHO HRÁČE ===
       try{
-        if(typeof heroImgs!=="undefined" && heroImgs[toolIdx]) heroImgOther = heroImgs[toolIdx];
-        else if(typeof HERO_SRCS!=="undefined") heroImgOther = heroImgs[0];
+        if(op.pet && op.pet.type!==undefined){
+          let def = null;
+          try{ def = petTypes.find(p=>p.mineral===op.pet.type); }catch(e){}
+          if(def && def.img){
+            let scale = 1;
+            try{ scale = getPetScale(op.pet.level||1); }catch(e){ scale = 0.5 + (op.pet.level||1)/100*0.5; }
+            let bobPet = Math.sin((op.walkTime||0)*1.2)*1.2;
+            let offX = def.fly ? -48 : -42;
+            let offY = def.fly ? -30+bobPet : 20;
+            let sz = 72*scale;
+            let img = null;
+            try{ img = getPetCachedImage(def); }catch(e){}
+            if(img){
+              ctx.fillStyle="rgba(0,0,0,0.25)";
+              ctx.beginPath(); ctx.ellipse(sx+offX, sy+offY+sz*0.35, sz*0.35, sz*0.15, 0,0,Math.PI*2); ctx.fill();
+              if(img.complete) ctx.drawImage(img, sx+offX-sz/2, sy+offY-sz/2, sz, sz);
+            }
+          }
+        }
       }catch(e){}
+
+      // Stín - stejný jako hlavní hráč
+      ctx.fillStyle="rgba(0,0,0,0.38)";
+      ctx.beginPath(); ctx.ellipse(sx, sy+16, 14, 6, 0,0,Math.PI*2); ctx.fill();
+      
       let swing = op.digging ? Math.sin((Date.now()/1000)*18)*0.38 : 0;
       ctx.save();
       ctx.translate(sx, sy+8+bob);
       ctx.rotate(swing*0.18);
+      // STEJNÁ VELIKOST JAKO HLAVNÍ HRÁČ - 72x72
+      let heroImgOther = null;
+      try{
+        if(typeof heroImgs!=="undefined" && heroImgs[op.tool||0]) heroImgOther = heroImgs[op.tool||0];
+        else if(typeof heroImgs!=="undefined" && heroImgs[0]) heroImgOther = heroImgs[0];
+      }catch(e){}
       if(heroImgOther && heroImgOther.complete){
-        ctx.drawImage(heroImgOther, -28, -38, 56, 56);
+        ctx.drawImage(heroImgOther, -36, -48, 72, 72);
       } else {
-        ctx.fillStyle="#6a8bd4"; ctx.fillRect(-6, -2, 12, 8);
-        ctx.fillStyle="#ffcd94"; ctx.beginPath(); ctx.arc(0, -8, 6, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle="#4a7bd4"; ctx.fillRect(-7, -2, 14, 10);
+        ctx.fillStyle="#ffcd94"; ctx.beginPath(); ctx.arc(0, -8, 7, 0, Math.PI*2); ctx.fill();
       }
       ctx.restore();
+      
       // Nick nad hlavou
-      ctx.fillStyle="rgba(0,0,0,0.55)";
-      let nickW = ctx.measureText(nick).width + 12;
-      ctx.fillRect(sx - nickW/2, sy - 38 + bob, nickW, 14);
+      ctx.fillStyle="rgba(0,0,0,0.65)";
+      let nickW = ctx.measureText(nick).width + 16;
+      ctx.fillRect(sx - nickW/2, sy - 42 + bob, nickW, 16);
       ctx.fillStyle="#fff";
-      ctx.font="bold 10px Arial";
+      ctx.font="bold 11px Arial";
       ctx.textAlign="center";
-      ctx.fillText(nick, sx, sy - 28 + bob);
+      ctx.fillText(nick, sx, sy - 30 + bob);
       ctx.textAlign="left";
-      // Pokud kope, ikona
       if(op.digging){
-        ctx.font="14px Arial";
-        ctx.fillText("⛏️", sx+18, sy-10+bob);
+        ctx.font="16px Arial";
+        ctx.fillText("⛏️", sx+22, sy-8+bob);
       }
     }
   }catch(e){ console.error("drawOtherPlayers", e); }
 }
 // === KONEC MULTIPLAYER ===
+
 
 
 function draw(){ ctx.clearRect(0,0,W,H); const cam=camera(); drawWorld(cam); drawOtherPlayers(cam); drawPlayer(); updateHUD(); }
