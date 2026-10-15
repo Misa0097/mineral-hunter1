@@ -1097,6 +1097,29 @@ function getTierByRoll(){
   return 4;
 }
 
+function getTierByRollFiltered(allowedTiers){
+  // Pokud je povolen jen jeden tier, vrat ho
+  if(!allowedTiers || allowedTiers.length===0) return getTierByRoll();
+  if(allowedTiers.length===1) return allowedTiers[0];
+  // Vazeny roll podle puvodnich sanci, ale jen z povolenych
+  const baseChances = [45,30,15,7,3];
+  let filtered = [];
+  let total = 0;
+  for(let idx of allowedTiers){
+    let c = baseChances[idx] || 0;
+    if(c>0){ filtered.push({idx: idx, chance: c}); total+=c; }
+  }
+  if(filtered.length===0) return allowedTiers[0];
+  if(total<=0) return allowedTiers[Math.floor(Math.random()*allowedTiers.length)];
+  let r = Math.random()*total;
+  let acc = 0;
+  for(let f of filtered){
+    acc+=f.chance;
+    if(r < acc) return f.idx;
+  }
+  return filtered[filtered.length-1].idx;
+}
+
 function generateEquipment(equipTypeKey, allowedTiers){
   let tierIdx;
   if(allowedTiers && Array.isArray(allowedTiers) && allowedTiers.length>0){
@@ -3158,6 +3181,30 @@ function dig(){
  if(emptyDigs>=14) bonus=100;
  else if(emptyDigs>=10) bonus=15;
  const finalChance=Math.min(95, toolChance+bonus);
+
+ function tryEquipmentDrop(){
+   try{
+     let tb=getTotalBonuses();
+     let hasEq=Object.values(equipped).some(v=>!!v);
+     let fChance=1+(hasEq?(tb.findChance||0):0);
+     if(Math.random()*100 < fChance){
+       let randomEquipType=equipTypeDefs[Math.floor(Math.random()*equipTypeDefs.length)].key;
+       let allowed=null;
+       if(isIceMapActiveCheck() || isFireMapActiveCheck()) allowed=[0,1,2,3,4];
+       else allowed=[0,1];
+       let foundEquip=generateEquipment(randomEquipType, allowed);
+       inventory.push(foundEquip);
+       showToast("🎉 Gratuluji našel si předmět!! "+foundEquip.name+" ("+equipTiers[foundEquip.tier].name+")",3);
+       if(foundEquip.tier===4){
+         let t=equipTiers[foundEquip.tier];
+         sendGlobalAnnouncement({type:"find_legendary", itemName:foundEquip.name, tierName:t.name, tierColor:t.color, tierGlow:t.glow, icon:foundEquip.icon, equipType:foundEquip.equipType});
+       }
+       return true;
+     }
+   }catch(e){ console.error("equip drop error", e); }
+   return false;
+ }
+
  if(cell.mineral!==null){
    if(Math.random()*100 < finalChance || emptyDigs>=14){
      cell.dug=true; cell.dugTime=Date.now(); cell.hasRock=false; player.energy-=8; player.digging=true; player.digTime=0;
@@ -3165,17 +3212,14 @@ function dig(){
      inventory.push(mineral); found++; emptyDigs=0;
      const data=minerals[mineral.type];
      showToast("🪨 Surový "+data.name+" "+mineral.weight+"g Čistota "+mineral.purity+"%",2.4);
-     // GOD stone check - 3+ legendárních statů
      try{
        let legCnt=countLegendaryStatsForMineral(mineral);
        if(legCnt>=3){
          sendGlobalAnnouncement({type:"stone_3leg", mineralName:data.name, weight:mineral.weight, purity:mineral.purity, quality:mineral.quality||0, price:mineral.price, legendCount:legCnt});
        }
      }catch(e){}
-     // 1% šance na nález vybavení + bonus z legendárních
-     
-
-        if(isIceMapActiveCheck()){
+     // Special drops pro ohen/led/normal
+     if(isIceMapActiveCheck()){
        let r=Math.random()*100;
        if(r<1){
          let existing=inventory.find(it=>it.isChanger);
@@ -3215,24 +3259,10 @@ function dig(){
          else inventory.push({isEnergyDrink:true, id:Date.now()+Math.random(), name:"Energetický nápoj", count:1, price:250, energy:50});
          showToast("Našel jsi Energetický nápoj! (ledová) 3% ⚡",2);
        }
-    }
-
-let hasAnyEquip=Object.values(equipped).some(v=>!!v); let findChance=1+(hasAnyEquip?(totalBon.findChance||0):0);
-     if(Math.random()*100 < findChance){
-       let randomEquipType=equipTypeDefs[Math.floor(Math.random()*equipTypeDefs.length)].key;
-       let allowedTiers=null;
-       if(isIceMapActiveCheck() || isFireMapActiveCheck()) allowedTiers=[0,1,2,3,4]; // Ledová a ohnivá: všechny barvy
-       else allowedTiers=[0,1]; // Základní mapa: jen bílé a zelené
-       let foundEquip=generateEquipment(randomEquipType, allowedTiers);
-       inventory.push(foundEquip);
-       showToast("🎉 Gratuluji našel si předmět!! "+foundEquip.name+" ("+equipTiers[foundEquip.tier].name+")",3);
-       if(foundEquip.tier===4){
-         let t=equipTiers[foundEquip.tier];
-         sendGlobalAnnouncement({type:"find_legendary", itemName:foundEquip.name, tierName:t.name, tierColor:t.color, tierGlow:t.glow, icon:foundEquip.icon, equipType:foundEquip.equipType});
-       }
      }
-     
-         if(isFireMapActiveCheck()){
+     // Vybavení - 1% + findChance na všech mapách
+     tryEquipmentDrop();
+     if(isFireMapActiveCheck()){
        let r=Math.random()*100;
        if(r<1){
          let existing=inventory.find(it=>it.isChanger);
@@ -3272,48 +3302,35 @@ let hasAnyEquip=Object.values(equipped).some(v=>!!v); let findChance=1+(hasAnyEq
          else inventory.push({isEnergyDrink:true, id:Date.now()+Math.random(), name:"Energetický nápoj", count:1, price:250, energy:50});
          showToast("Našel jsi Energetický nápoj! (ohnivá) 3% ⚡",2);
        }
-    }
-    // Normal mapa - 2% Energetický nápoj 50
-    if(!isFireMapActiveCheck() && !isIceMapActiveCheck()){
-      let r2=Math.random()*100;
-      if(r2<2){
-        let existing=inventory.find(it=>it.isEnergyDrink);
-        if(existing) existing.count=(existing.count||1)+1;
-        else inventory.push({isEnergyDrink:true, id:Date.now()+Math.random(), name:"Energetický nápoj", count:1, price:250, energy:50});
-        showToast("Našel jsi Energetický nápoj! 2% ⚡",2);
-      }
-    }
-cell.mineral=null; saveGame(); renderInventory(); updateHUD();
+     }
+     if(!isFireMapActiveCheck() && !isIceMapActiveCheck()){
+       let r2=Math.random()*100;
+       if(r2<2){
+         let existing=inventory.find(it=>it.isEnergyDrink);
+         if(existing) existing.count=(existing.count||1)+1;
+         else inventory.push({isEnergyDrink:true, id:Date.now()+Math.random(), name:"Energetický nápoj", count:1, price:250, energy:50});
+         showToast("Našel jsi Energetický nápoj! 2% ⚡",2);
+       }
+     }
+     cell.mineral=null; saveGame(); renderInventory(); updateHUD();
    } else {
      player.energy-=4; player.digging=true; player.digTime=0; emptyDigs++;
      const nearMsgs=["💎 Cítil jsi záblesk! Zkus znovu...","✨ Něco tam je!","🔍 Téměř! Zkus to ještě jednou","⛏️ Zablesklo se!"];
      showToast(nearMsgs[Math.floor(Math.random()*nearMsgs.length)],1.6);
+     // FIX: i při neúspěšném kopnutí šance na vybavení 1% + findChance
+     tryEquipmentDrop();
+     saveGame();
    }
  } else {
    cell.dug=true; cell.dugTime=Date.now(); cell.hasRock=false; player.energy-=8; player.digging=true; player.digTime=0; emptyDigs++;
-   // I v prázdné díře šance na vybavení - OPRAVA: jen bílé a zelené na základní mapě
-   let totalBon2=getTotalBonuses();
-   let hasAnyEquip2=Object.values(equipped).some(v=>!!v);
-   let findChance2=1+(hasAnyEquip2?(totalBon2.findChance||0):0);
-   if(Math.random()*100 < findChance2){
-     let randomEquipType=equipTypeDefs[Math.floor(Math.random()*equipTypeDefs.length)].key;
-     let allowedTiers2=null;
-     if(isIceMapActiveCheck() || isFireMapActiveCheck()) allowedTiers2=[0,1,2,3,4];
-     else allowedTiers2=[0,1];
-     let foundEquip=generateEquipment(randomEquipType, allowedTiers2);
-     inventory.push(foundEquip);
-     showToast("🎉 Gratuluji našel si předmět!! "+foundEquip.name+" ("+equipTiers[foundEquip.tier].name+")",3);
-     if(foundEquip.tier===4){
-       let t=equipTiers[foundEquip.tier];
-       sendGlobalAnnouncement({type:"find_legendary", itemName:foundEquip.name, tierName:t.name, tierColor:t.color, tierGlow:t.glow, icon:foundEquip.icon, equipType:foundEquip.equipType});
-     }
-     saveGame(); renderInventory();
-   } else {
+   // Vybavení i v prázdné díře - 1% + findChance, bílá/zelená na normal, všechny na oheň/led
+   if(!tryEquipmentDrop()){
      showToast(emptyMessages[Math.floor(Math.random()*emptyMessages.length)],1.3);
-     saveGame();
    }
+   saveGame();
  }
 }
+
 document.getElementById("dig").addEventListener("pointerdown",e=>{ e.preventDefault();e.stopPropagation(); dig(); },{passive:false});
 
 // === AUTO-REGENERACE DĚR PO 10s - V30.13 ===
