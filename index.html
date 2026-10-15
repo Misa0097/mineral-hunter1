@@ -1240,6 +1240,9 @@ let iceWorld=null;
 let iceMapTimerInterval=null;
 let iceMapOriginalPos=null;
 const ICE_MAP_ICON_BASE64="data:image/png;base64,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";
+const ENERGY_DRINK_ICON_BASE64="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAOPklEQVR42u2ba4xdV3mGn2+tvc9tzpnxjD0T2+NLghM7sRViCAGRkNomkGJaoVJwirgEAUWgAm3/VQ0VM0OFVG5VL9xUtVCVpipjJQUChKikHkOCQsI4vmRsgm18nRnPOHPmdm5777XW1x/Hgaq/kHpCBupX2tI++2ifvda33/e7rXXgKq7iKq7iKq7iRYOqiqrKi/X86MV68OjoqJ2YmFARCVcuyYEDB+yePXvc/4u3/j/Oi6ra9WKN5VdOvSFVMyISvvv447+bs7m/rC4sXKsiVIrFuZ5K+Z+/+/UH/2p4eNiLiP7GSWBoaMiMiISvPvDAhlw+//Xq5er9h545cl9schpbue1lt+z8+Fvf9vZERD594MCB6FchB3khaX7P/v1mH9Df3y8AzcFBW5yc9A3HG3r7Vz/0ss03vKTYWzzz/D3/efCx7/X3r7HzM9OvHxwctIcPH3YAExMTOjIyEn4jJADwyCOPvrYu5nuFQjTnmo0nsjStW2OvKfWt2bWmp+f+l2/f9q5f+yjwwMMPr5uanR3s6uoa2Lh+/apioVDCmG6X+SgkbmcpOHFpusa50F/Il7qyEG5fVamIsebGx48c+SPxWru8uFRdXFiqDg6sm7zrjlvPrXgGqKoVET9+dPw9x0+d/LuLZybLd7/uLnZuvwlBqDWb/PCpQ5w5fYbqXBVV1UKxIOVKhbWDg3rzTdfLQO8qyuUyiHD0J8/y9OFjVHpXJZvWrf3sbTt3frTTvqGjDBgbG5OhoSFTX5rPnn5mqvzoU6fc/UdqUhl4gigu6NxynfnFRfrKRVnd12ej2Ip6G0LN0pqaN8mhI/TEQSPULy42SWanJFdfDndsH8zvvVWyoaEhs6IlMDYGIyMjIdnwzfiU3aone8rScN5yyUBsoTCAbNpKbnAdq9atodhTwSmmsdxkauY5Ll6aRat1odmISGMIGzBFYSA/SGHG6adGRgK7d5sVaYAr8d19/t++89JjjfLnz9ZqKt1dplc8PsrTICbkYnK5iFzI0CQlWWpijEGbTUyaElmD78oT5QSyFHUBVTWnl9OwaXDd8OceeuqpD++57Tv7Rkft/nvu8Z0Yt+1UyNsN7H3H3u4nLuQfOTadrnt6ala9wUgUsVxPCVEB7Slz3cZr2LplLYOb1rB2XZneviK9PSVKeYNXpdr0+JbHp57gAiENspRmarCsqpTf8Od/+qGv/cXe3QtDQ5iDBw/qimDA7uExe3Bkj7vvXw58/LEZe+NTU7Ou69prouuKnko5z4ZtG5mNivzkZ4sEgel6ldn6ZawVMAYVi88X6L1xA7/1ig1cH5qsSjwnNPCTmZTzz86aHy8sOn+ptNpk7otG5I2gAiMrQwIHR8YCwMJC61UnTs+HDC/dq1fzil2DbF5fpLu7wpFpz/j4RS6en4JaC7yCAtZAHEO5jN2wjr13b+PaG7op0v66eazJxXNVsue8OfqzSX15rvcWH57JiUjaNsL/LWXumA8QIElbqU2WjG3VfXa+C9+9g0Z3jsshcHG2xVI9QVQwuQhVRVTBWjS2YBWTJSzMJUxsikijgM4pM8fOEWp17NI8PVYkqZsUJjvmBDvqUdMgUioVoG8NUbnM4smztBS8QFAQVTQEgleCD/jQPkIAULLU0nRC3gtFL5QKMcW+Mh5pMyUyYMVwstzOX3SFGcAaq7ZURuI8dVMgaSmZQOYF8e3JExRU2+y98ngjQlhIua14kmJYopkIwQEBrFiKc1Nos05wjkKpAjdc37E0rqMGaDTr2nhulqheJT13ihDnCUEJmZL5K7WMBlTDlddniaKIcDnhnZuf5skPnue23BRLdchhaM03WT5ymHhwI6Hcj5b6EO8VUl1ZEhhqT6dULECpgto8xYF+8us34hNFYoM3FrxHQmi/OFWsDbgF5fbVE3z5A3Waz13m2GRC3kKWBOKuIl0vfTnL9QyChxBQ7WyboEMMGAYgjmK1UYzzIFEO10rwqpz+r6M0p+cwRtoTCIIh4JvKoH+W/R+YIo6WOXR8iqMLa4gFWg6mjp5m4dmT5FwTEASFEBRa2ikNdMYAI20DNBs1aC2ic5do1ROMiUiWU2bHT5JOXWxrHxDjEYVcdZL97zvF+tUNmD/Jt08N0Mz1goOQKeVVveTX9IONQf3zPs/DrWHFSQCgUipjC92wZi3EebJGisRFtr9tL4UtW3FpigBWBD+zyJfe+lNevWOO7LlzhKV5vnF6E4WiwacgHvL9fdDVR5IGUG37TgUYkxUZBgmKBI84d0WvgkvAFEo4J+A8UaRkl1P+5I7TvOfuCyST54mLcxw+XeBEdYBS7ElTyJzgmoqm2c+JLigirMxiCMCHoCaXI3YZPng0QHBK4sC7jCgXkc0Id20+wV+/7We46dMYScEkfPPoNrBlbMhwTjECOGlHjOfDpwhOo3m403ciC+y4EwzqvXMe5wNOIA1KmikKSL5ENr3I4MID/Os7TiC1nyLZApFdwlWbPHhiI1rOkzqDV0EDeA/eh59nPBE5tOvwSowCbeTiHFnmcK2AYHCpx+QMDSecffgh4tkRvvL+c6ztniHULiGmicQpZ6YKnLtkKLWmoXqepfkFZquCyxTUoUaxWiGzDzK36rFV7XGLdiIMdFQCGrxaFVBFfIYpFZg62+DQ5z9GefMj/O0nt/L6vl6yU18jKlqghSY5Nm2rcPxvvo+aHxFK6wnFfr52+nb+ffkPkEihXsDaL9O64Qf0Ft7sO5MEvwAGsBJUUFCPKXdx7skTXPjGfbz0XY5dv/9K3js3Tzr7Q4QWGiLEAFlGvn6BwQIQDBT7obzMq+2TfDXcS/3CMnHx78nuGKendS1dGunKc4LH90tbTxraAb5EcugI5+pf4TUjW+i785Xce2KcuPoYLV0gjnOo80gkiAQ0c5BZFCWUE9zFS3z23KeYvnCYfP5jDLyzyuR4H6aZEDS4TjKgoz4gRBHeCRwfw1c+x5Z/fAnZnbdw/cVj7Fw+jylnlLpyxHmPzQFe0aCIyRCTEaRAlJ3h04d+m2/+aJZrN36Um9+zjuq0hcUakjOoo2XEPK//ldER2gfsB7JGWu1xB1m8/VFab1qPX38NtVDlmPHsPzpJdxbISyACukuBm7ZAXLQQBK8QlVMe/UE3Qw/N8Lo/PMSmu1/D6NSPaVarEMWgYCOTNxg8XleMBGa3TwhA98CPD3WtPvv2VjOvuqykaYOeojC+fi2P3HoLjB4jN5OgZxu8d1sfX7w1j1ueRmweUy5x+Sy8/1sL3PyRs0R3vppRPU0jbWCICb6dEBkrHV3M6IgBBnYcV4BWT/bauekGuuQEVZwGUjwWxawtoTf1465JCPnL/N7dqxFmCJkikcPWAh98xHPmj/sYuONGnnGTdEUBCULQdgVgkyt9hZWaB4gTNViKcR5bc4QQcAQSPOo8RgTNAtf1FNh1bYzOLyJiiFX4xMGEB69fjd2xntlQo2AUgyIecAqJx3gw2I5GgQ6vtPigGrDWEnvBJZ6EgMejIbTL4eWEN13XSzFaYjGBOG/49rjhY5MF7DVdaC3FmIxUHAkO0va9RIIGT6ZeVqwBQhANQds1vwto05GlGak6CNp2W87x5pd042oLxHnhmVOW9z2VQzd1o96g3hPwOHEkISM439Z8aDdRAqRKWJkGUFA8NJOUzAraSAjNBJoO44TQSNnaXeQV/UVaWYulaoF3P2yZGShjijlUBZIAwUHIIPEQpJ30RoJU8uTESCfXdDuaCTayhjMGgnpFFJ94QivDZhafCKGW8Dvr19FlhYVWng89BIcKBaL+PE4MuIC0HFLL2rVeE7QZUNMutU3QK30hXZkMSLMMDQ4ShzQdvu5IW57EZ/gkw3jDW7ZsAu8Y/lbgP2qGaGMBrzF4065w04Aup1DP0HoKSaCwFCi5iAhL4OdNQVlxDLDOI8YgOUup7pDpOl3zSqmecqnXEEcWO3mST45P8bczgr25gs/FaCxgFcS0JdDI2ktmwZK7sECPyVGXFjZ0fkNLRw0gqooKitDszsGqItqbp6BFpLpMqxCz98A5FrwiL+sjxDlUzC94qECm0AxITjAnZqnYmMQlWGsICGKisGINEFur5spL0lYGzZR62VNXacvCwsKWVQgexf4inQ9yxcsHcIokAUUpFwqEmWVMPiZtNIjiCNWwcsNgd9/qCmKCBEG03QOURNpHFtAgiFjU2ysrQ4BI+1ylvWjiMtQ5aKY0evJIOY+tpxBF2iTzIfh4JecB383lIqOuZYMGCCBOkKCIV0y4MlEsqAHPLwyhAVFBHEgmGBfjmin1nphmJaKmdSkWrI0d31KUfaP7OjL2jmyQOL7/uDKEeeJDjz9x+xteeaErLt21NF+VtLaMtlpG6ynaSNAka0/YAEbBmPYIIml/jq9ccw6tNaFaw1+a99RSf3PXdbrVr/2zf3rHlz7BEOYLH/5CR3xBR/U0dOBANLJnj/v+2Nh9z9ZOf2LsyA+YrE1xqTXnl31TG6FFU1NxeFHaJFBpx3YjViMDORNpSfN0RyXW5tfYzZVBuWP7q9hS3vy51+9+40dGR0ftPR3aHtNxJzi8e7cfG9oVXZqd/YwuWb++tfndlfqqG7cZtZlLaSRNllvLJFlCCAHvMwKKNZZcnKdc6KKrWKJcLFOwBWyIqfjKT/Pz5fubawc+s2toV7Rv3z7f0cjFCwv7lnvv3ZGzdqcRe6Oo2QysF5GKEVNAia01YqMoxZqmNbpsTDxjY3s+4E+GEJ5+cnns6Pg/jGf8umF0dNT+kk7Y/jK/9UL9qeKFZoAMDQ3J2NiY2b17N8d37NDtExM6PDys/3s7vKrK8PCw7NixQyYmJp4fVxgZGdFONkFXGoQXacP2VVzFVVzFVVwF/DcOWYy1DL3FogAAAABJRU5ErkJggg==";
+const SUPER_ENERGY_DRINK_ICON_BASE64="data:image/png;base64,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";
+
 ;
 
 function isFireMapActiveCheck(){ return isFireMapActive && Date.now() < (fireMapEndTime||0); }
@@ -2206,7 +2209,7 @@ function renderInventory(){
     var inventoryList=document.getElementById('inventoryList');
     if(!inventoryList) return;
     inventoryList.innerHTML='';
-    var toolEntries=[], mineralEntries=[], equipEntries=[], changerEntries=[], feedEntries=[], fireMapEntries=[], iceMapEntries=[];
+    var toolEntries=[], mineralEntries=[], equipEntries=[], changerEntries=[], feedEntries=[], fireMapEntries=[], iceMapEntries=[], energyDrinkEntries=[], superEnergyDrinkEntries=[];
     inventory.forEach(function(it, idx){ if(it.isTool) toolEntries.push({item:it, index:idx}); else if(it.isEquipment) equipEntries.push({item:it, index:idx}); else if(it.isChanger) changerEntries.push({item:it, index:idx}); else if(it.isFeed) feedEntries.push({item:it, index:idx}); else if(it.isFireMap) fireMapEntries.push({item:it, index:idx}); else if(it.isIceMap) iceMapEntries.push({item:it, index:idx}); else mineralEntries.push({item:it, index:idx}); });
 
     var hasRezavy=false; for(var i=0;i<toolEntries.length;i++) if(toolEntries[i].item.toolIndex===0) hasRezavy=true;
@@ -2373,7 +2376,10 @@ function renderInventory(){
       inventoryList.appendChild(div);
     });
 // Mapa ohne v batohu
-    fireMapEntries.forEach(function(entry){
+        // Energetické nápoje - příprava polí (již definovány výše)
+    inventory.forEach(function(it, idx){ if(it.isEnergyDrink) energyDrinkEntries.push({item:it, index:idx}); });
+    inventory.forEach(function(it, idx){ if(it.isSuperEnergyDrink) superEnergyDrinkEntries.push({item:it, index:idx}); });
+fireMapEntries.forEach(function(entry){
       var item=entry.item;
       var div=document.createElement('div'); div.className='item';
       div.style.borderLeft='4px solid #ff5722';
@@ -2421,8 +2427,59 @@ function renderInventory(){
       if(ub){ (function(id,b){ b.addEventListener('click', function(){ useIceMap(id); }); })(item.id, ub); }
       if(sb){ (function(id,b){ b.addEventListener('click', function(){ let idx=findIdx(id); if(idx!==-1){ money+=25000; inventory.splice(idx,1); saveGame(); renderInventory(); updateHUD(); showToast('Prodáno za 25 000 Kč'); } }); })(item.id, sb); }
       inventoryList.appendChild(div);
+    
     });
-// Minerály
+    // Energetické nápoje v batohu - 50 energie
+    energyDrinkEntries.forEach(function(entry){
+      var item=entry.item;
+      var div=document.createElement('div'); div.className='item';
+      div.style.borderLeft='4px solid #4caf50';
+      div.style.background='linear-gradient(90deg, rgba(76,175,80,0.12), rgba(0,0,0,0.2))';
+      var h='';
+      h+='<div class="itemRow">';
+      h+='<div class="mineralImgWrap" style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:#0a1a0a;border-radius:8px;border:1.5px solid #4caf50"><img src="'+ENERGY_DRINK_ICON_BASE64+'" style="width:36px;height:36px;object-fit:contain"></div>';
+      h+='<div style="flex:1;min-width:0;margin-left:8px">';
+      h+='<div class="itemTitle" style="color:#81c784;font-size:12px">Energetický nápoj <span style="font-size:10px;background:#2e7d32;color:#fff;padding:1px 6px;border-radius:10px;margin-left:6px">'+(item.count||1)+'x</span></div>';
+      h+='<div class="itemInfo" style="font-size:10px;line-height:1.3;color:#a5d6a7">Doplní 50 energie<br>Hodnota: 250 Kč</div>';
+      h+='</div>';
+      h+='<div style="display:flex;flex-direction:column;gap:4px;min-width:85px">';
+      h+='<button class="actionButton buyButton" data-energy-use-id="'+item.id+'" style="background:#2e7d32;border:1px solid #81c784;color:#fff;font-weight:800">POUŽÍT</button>';
+      h+='<button class="actionButton sellButton" data-energy-sell-id="'+item.id+'" style="font-size:9px">PRODAT 250</button>';
+      h+='</div></div>';
+      div.innerHTML=h;
+      var ub=div.querySelector('[data-energy-use-id]');
+      var sb=div.querySelector('[data-energy-sell-id]');
+      if(ub){ (function(id,b){ b.addEventListener('click', function(){ useEnergyDrink(id); }); })(item.id, ub); }
+      if(sb){ (function(id,b){ b.addEventListener('click', function(){ let idx=findIdx(id); if(idx!==-1){ let it=inventory[idx]; if((it.count||1)>1){ it.count--; money+=250; } else { money+=250; inventory.splice(idx,1); } saveGame(); renderInventory(); updateHUD(); showToast('Prodáno za 250 Kč'); } }); })(item.id, sb); }
+      inventoryList.appendChild(div);
+    });
+    // Super energetický nápoj - 200 energie
+    superEnergyDrinkEntries.forEach(function(entry){
+      var item=entry.item;
+      var div=document.createElement('div'); div.className='item';
+      div.style.borderLeft='4px solid #ff9800';
+      div.style.background='linear-gradient(90deg, rgba(255,152,0,0.18), rgba(255,193,7,0.12))';
+      div.style.boxShadow='0 0 12px rgba(255,152,0,0.35)';
+      var h='';
+      h+='<div class="itemRow">';
+      h+='<div class="mineralImgWrap" style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:#1a1200;border-radius:8px;border:1.5px solid #ff9800"><img src="'+SUPER_ENERGY_DRINK_ICON_BASE64+'" style="width:36px;height:36px;object-fit:contain"></div>';
+      h+='<div style="flex:1;min-width:0;margin-left:8px">';
+      h+='<div class="itemTitle" style="color:#ffcc80;font-size:12px">Super Energetický nápoj <span style="font-size:10px;background:#ff6f00;color:#fff;padding:1px 6px;border-radius:10px;margin-left:6px">'+(item.count||1)+'x</span> <span style="font-size:8px;background:#ff1744;color:#fff;padding:1px 4px;border-radius:8px">EPIC</span></div>';
+      h+='<div class="itemInfo" style="font-size:10px;line-height:1.3;color:#ffcc80">Doplní 200 energie (max nepřekročí)<br>Hodnota: 1000 Kč • Drop: Láva/Led 2%</div>';
+      h+='</div>';
+      h+='<div style="display:flex;flex-direction:column;gap:4px;min-width:85px">';
+      h+='<button class="actionButton buyButton" data-super-energy-use-id="'+item.id+'" style="background:linear-gradient(90deg,#ff9800,#ff6f00);border:1px solid #ffcc80;color:#fff;font-weight:800">POUŽÍT</button>';
+      h+='<button class="actionButton sellButton" data-super-energy-sell-id="'+item.id+'" style="font-size:9px">PRODAT 1k</button>';
+      h+='</div></div>';
+      div.innerHTML=h;
+      var ub=div.querySelector('[data-super-energy-use-id]');
+      var sb=div.querySelector('[data-super-energy-sell-id]');
+      if(ub){ (function(id,b){ b.addEventListener('click', function(){ useSuperEnergyDrink(id); }); })(item.id, ub); }
+      if(sb){ (function(id,b){ b.addEventListener('click', function(){ let idx=findIdx(id); if(idx!==-1){ let it=inventory[idx]; if((it.count||1)>1){ it.count--; money+=1000; } else { money+=1000; inventory.splice(idx,1); } saveGame(); renderInventory(); updateHUD(); showToast('Prodáno za 1000 Kč'); } }); })(item.id, sb); }
+      inventoryList.appendChild(div);
+    });
+    // Minerály
+
     mineralEntries.sort(function(a,b){ if(a.item.raw!==b.item.raw) return a.item.raw? -1:1; return b.item.price-a.item.price; }).forEach(function(entry){
       var item=entry.item; var data=minerals[item.type]; if(!data) return;
       var div=document.createElement('div'); div.className='item';
@@ -2513,7 +2570,9 @@ function renderShop(){
  shopList.appendChild(toolsSection);
  const energySection=document.createElement("div"); energySection.className="shopSection"; energySection.innerHTML="<h3>⚡ Energie</h3>";
  const energyItem=document.createElement("div"); energyItem.className="item";
- energyItem.innerHTML='<div class="itemRow"><div><div class="itemTitle">🔋 Energetický nápoj</div><div class="itemInfo">Doplní 50 energie.<br>Cena: <b>40 Kč</b></div></div><button class="actionButton buyButton" id="buyEnergy">40 Kč</button></div>';
+ energyItem.style.borderLeft="4px solid #4caf50";
+ energyItem.style.background="linear-gradient(90deg, rgba(76,175,80,0.12), rgba(0,0,0,0.2))";
+ energyItem.innerHTML='<div class="itemRow"><div style="display:flex;gap:8px;align-items:center"><img src="'+ENERGY_DRINK_ICON_BASE64+'" style="width:40px;height:40px;object-fit:contain"><div><div class="itemTitle">🔋 Energetický nápoj</div><div class="itemInfo">Doplní 50 energie do batohu<br>Cena: <b>500 Kč</b> • Prodej: 250 Kč</div></div></div><button class="actionButton buyButton" id="buyEnergy" style="background:#2e7d32">500 Kč</button></div>';
  energyItem.querySelector("#buyEnergy").addEventListener("click",buyEnergy);
  energySection.appendChild(energyItem); shopList.appendChild(energySection);
  const upgradeSection=document.createElement("div"); upgradeSection.className="shopSection"; upgradeSection.innerHTML="<h3>💪 Vylepšení těla</h3>";
@@ -2970,9 +3029,40 @@ function buyTool(index){
  updateHeroByTool(); updateEquipPanel(); renderShop(); renderInventory(); saveGame(); updateHUD();
 }
 function buyEnergy(){
- const price=40; if(money<price){ showToast("💰 Nemáš dost peněz"); return; }
- if(player.energy>=player.maxEnergy){ showToast("⚡ Energie je plná"); return; }
- money-=price; player.energy=Math.min(player.maxEnergy,player.energy+50); showToast("⚡ Energie doplněna"); renderShop(); saveGame(); updateHUD();
+ const price=500; if(money<price){ showToast("💰 Nemáš dost peněz ("+price+" Kč)"); return; }
+ money-=price;
+ let existing=inventory.find(it=>it.isEnergyDrink);
+ if(existing) existing.count=(existing.count||1)+1;
+ else inventory.push({isEnergyDrink:true, id:Date.now()+Math.random(), name:"Energetický nápoj", count:1, price:250, energy:50});
+ showToast("🔋 Koupen Energetický nápoj do batohu!",2);
+ renderShop(); renderInventory(); saveGame(); updateHUD();
+}
+function useEnergyDrink(id){
+ try{
+   let idx=findIdx(id);
+   if(idx===-1) return;
+   let item=inventory[idx];
+   if(!item || !item.isEnergyDrink) return;
+   if(player.energy>=player.maxEnergy){ showToast("⚡ Energie je plná!"); return; }
+   player.energy=Math.min(player.maxEnergy, player.energy+50);
+   if((item.count||1)>1) item.count--; else inventory.splice(idx,1);
+   showToast("⚡ +50 energie! ("+player.energy+"/"+player.maxEnergy+")",2);
+   saveGame(); renderInventory(); updateHUD();
+ }catch(e){ console.error(e); }
+}
+function useSuperEnergyDrink(id){
+ try{
+   let idx=findIdx(id);
+   if(idx===-1) return;
+   let item=inventory[idx];
+   if(!item || !item.isSuperEnergyDrink) return;
+   if(player.energy>=player.maxEnergy){ showToast("⚡ Energie je plná!"); return; }
+   let add = 200;
+   player.energy=Math.min(player.maxEnergy, player.energy+add);
+   if((item.count||1)>1) item.count--; else inventory.splice(idx,1);
+   showToast("⚡ SUPER +"+add+" energie! ("+player.energy+"/"+player.maxEnergy+")",2.5);
+   saveGame(); renderInventory(); updateHUD();
+ }catch(e){ console.error(e); }
 }
 function upgradeMaxEnergy(){
  let level=player.energyUpgrades||0;
@@ -3114,6 +3204,16 @@ function dig(){
          if(existing) existing.count=(existing.count||1)+1;
          else inventory.push({isVIPItem:true, hours:1, id:Date.now()+Math.random(), name:"VIP Pergamen 1h", count:1, price:25000});
          showToast("Našel jsi VIP Pergamen 1h! (ledová) 1%",2);
+       } else if(r<9){
+         let existing=inventory.find(it=>it.isSuperEnergyDrink);
+         if(existing) existing.count=(existing.count||1)+1;
+         else inventory.push({isSuperEnergyDrink:true, id:Date.now()+Math.random(), name:"Super Energetický nápoj", count:1, price:1000, energy:200});
+         showToast("Našel jsi Super Energetický nápoj! (ledová) 2% ⚡",2);
+       } else if(r<12){
+         let existing=inventory.find(it=>it.isEnergyDrink);
+         if(existing) existing.count=(existing.count||1)+1;
+         else inventory.push({isEnergyDrink:true, id:Date.now()+Math.random(), name:"Energetický nápoj", count:1, price:250, energy:50});
+         showToast("Našel jsi Energetický nápoj! (ledová) 3% ⚡",2);
        }
     }
 
@@ -3161,7 +3261,27 @@ let hasAnyEquip=Object.values(equipped).some(v=>!!v); let findChance=1+(hasAnyEq
          if(existing) existing.count=(existing.count||1)+1;
          else inventory.push({isVIPItem:true, hours:1, id:Date.now()+Math.random(), name:"VIP Pergamen 1h", count:1, price:25000});
          showToast("Našel jsi VIP Pergamen 1h! (ohnivá) 1%",2);
+       } else if(r<9){
+         let existing=inventory.find(it=>it.isSuperEnergyDrink);
+         if(existing) existing.count=(existing.count||1)+1;
+         else inventory.push({isSuperEnergyDrink:true, id:Date.now()+Math.random(), name:"Super Energetický nápoj", count:1, price:1000, energy:200});
+         showToast("Našel jsi Super Energetický nápoj! (ohnivá) 2% ⚡",2);
+       } else if(r<12){
+         let existing=inventory.find(it=>it.isEnergyDrink);
+         if(existing) existing.count=(existing.count||1)+1;
+         else inventory.push({isEnergyDrink:true, id:Date.now()+Math.random(), name:"Energetický nápoj", count:1, price:250, energy:50});
+         showToast("Našel jsi Energetický nápoj! (ohnivá) 3% ⚡",2);
        }
+    }
+    // Normal mapa - 2% Energetický nápoj 50
+    if(!isFireMapActiveCheck() && !isIceMapActiveCheck()){
+      let r2=Math.random()*100;
+      if(r2<2){
+        let existing=inventory.find(it=>it.isEnergyDrink);
+        if(existing) existing.count=(existing.count||1)+1;
+        else inventory.push({isEnergyDrink:true, id:Date.now()+Math.random(), name:"Energetický nápoj", count:1, price:250, energy:50});
+        showToast("Našel jsi Energetický nápoj! 2% ⚡",2);
+      }
     }
 cell.mineral=null; saveGame(); renderInventory(); updateHUD();
    } else {
@@ -3260,7 +3380,7 @@ function loadGame(){
    money=s.money??100; found=s.found??0;
    if(Array.isArray(s.inventory)){
      inventory.length=0;
-     s.inventory.forEach(it=>{ if(it && (typeof it.type==="number" || it.isTool || it.isEquipment || it.isChanger || it.isFeed)){ if(!it.id) it.id=nextToolId(); inventory.push(it); } });
+     s.inventory.forEach(it=>{ if(it && (typeof it.type==="number" || it.isTool || it.isEquipment || it.isChanger || it.isFeed || it.isFireMap || it.isIceMap || it.isVIPItem || it.isEnergyDrink || it.isSuperEnergyDrink)){ if(!it.id) it.id=nextToolId(); inventory.push(it); } });
    }
    if(Array.isArray(s.petsOwned)) petsOwned=s.petsOwned;
    if(s.activePetId) activePetId=s.activePetId;
@@ -3762,8 +3882,7 @@ ctx.fillStyle="rgba(0,0,0,0.38)"; ctx.beginPath(); ctx.ellipse(sx, sy+16, 14, 6,
   try{drawLavaEffects(cam);}catch(e){} try{drawIceEffects(cam);}catch(e){}
 }
 
-
-// === MULTIPLAYER - VIDITELNOST HRÁČŮ NA MAPĚ V30.18 - STEJNÁ VELIKOST + MAZLÍČCI ===
+// === MULTIPLAYER - VIDITELNOST HRÁČŮ NA MAPĚ V30.17 ===
 let otherPlayers = {};
 let _multiplayerStarted = false;
 let _lastPosSend = 0;
@@ -3773,21 +3892,18 @@ function setupMultiplayerPresence(){
   _multiplayerStarted = true;
   try{
     let myRef = db.ref("online/"+currentNick);
+    // Odstranit při odpojení
     myRef.onDisconnect().remove();
+    // Posílat pozici pravidelně
     setInterval(()=>{
       try{
         if(!currentNick || !db) return;
         let now = Date.now();
-        if(now - _lastPosSend < 150) return;
+        if(now - _lastPosSend < 150) return; // throttle 150ms
         _lastPosSend = now;
         let isSpecial = false;
         try{ if(isFireMapActiveCheck() || isIceMapActiveCheck()) isSpecial = true; }catch(e){}
-        let ap = null;
-        try{ ap = getActivePet(); }catch(e){}
-        let petData = null;
-        if(ap){
-          petData = {type: ap.type, level: ap.level, id: ap.id};
-        }
+        // Posílej jen na základní mapě, nebo i na speciálních s flag
         myRef.set({
           nick: currentNick,
           x: Math.round(player.x),
@@ -3795,13 +3911,13 @@ function setupMultiplayerPresence(){
           tool: player.tool,
           walkTime: player.walkTime||0,
           digging: !!player.digging,
-          pet: petData,
           map: isSpecial ? (isFireMapActiveCheck() ? "fire" : "ice") : "normal",
           timestamp: Date.now()
         });
       }catch(e){}
     }, 200);
 
+    // Poslouchat ostatní hráče
     db.ref("online").on("child_added", snap=>{
       let data = snap.val();
       if(!data || !data.nick || data.nick===currentNick) return;
@@ -3817,6 +3933,7 @@ function setupMultiplayerPresence(){
       let nick = data && data.nick ? data.nick : snap.key;
       if(nick && otherPlayers[nick]) delete otherPlayers[nick];
     });
+    // Cleanup starých hráčů (>15s neaktivní)
     setInterval(()=>{
       let now = Date.now();
       for(let nick in otherPlayers){
@@ -3826,7 +3943,7 @@ function setupMultiplayerPresence(){
         }
       }
     }, 3000);
-    console.log("Multiplayer presence started v30.18 - same size + pets");
+    console.log("Multiplayer presence started");
   }catch(e){ console.error("multiplayer setup err", e); }
 }
 
@@ -3838,75 +3955,52 @@ function drawOtherPlayers(cam){
     for(let nick in otherPlayers){
       let op = otherPlayers[nick];
       if(!op) continue;
+      // Zobraz jen hráče na stejné mapě (základní vidí jen základní)
       if(op.map !== myMap) continue;
       let sx = op.x - cam.x;
       let sy = op.y - cam.y;
-      if(sx < -120 || sx > W+120 || sy < -120 || sy > H+120) continue;
+      // Mimo obrazovku? Nes vykresluj
+      if(sx < -100 || sx > W+100 || sy < -100 || sy > H+100) continue;
       let bob = Math.sin(op.walkTime||0)*0.6;
-      
-      // === MAZLÍČEK - STEJNÝ JAKO U HLAVNÍHO HRÁČE ===
+      // Stín
+      ctx.fillStyle="rgba(0,0,0,0.22)";
+      ctx.beginPath(); ctx.ellipse(sx, sy+16, 10, 4, 0,0,Math.PI*2); ctx.fill();
+      // Hero podle nástroje
+      let toolIdx = op.tool||0;
+      let heroImgOther = null;
       try{
-        if(op.pet && op.pet.type!==undefined){
-          let def = null;
-          try{ def = petTypes.find(p=>p.mineral===op.pet.type); }catch(e){}
-          if(def && def.img){
-            let scale = 1;
-            try{ scale = getPetScale(op.pet.level||1); }catch(e){ scale = 0.5 + (op.pet.level||1)/100*0.5; }
-            let bobPet = Math.sin((op.walkTime||0)*1.2)*1.2;
-            let offX = def.fly ? -48 : -42;
-            let offY = def.fly ? -30+bobPet : 20;
-            let sz = 72*scale;
-            let img = null;
-            try{ img = getPetCachedImage(def); }catch(e){}
-            if(img){
-              ctx.fillStyle="rgba(0,0,0,0.25)";
-              ctx.beginPath(); ctx.ellipse(sx+offX, sy+offY+sz*0.35, sz*0.35, sz*0.15, 0,0,Math.PI*2); ctx.fill();
-              if(img.complete) ctx.drawImage(img, sx+offX-sz/2, sy+offY-sz/2, sz, sz);
-            }
-          }
-        }
+        if(typeof heroImgs!=="undefined" && heroImgs[toolIdx]) heroImgOther = heroImgs[toolIdx];
+        else if(typeof HERO_SRCS!=="undefined") heroImgOther = heroImgs[0];
       }catch(e){}
-
-      // Stín - stejný jako hlavní hráč
-      ctx.fillStyle="rgba(0,0,0,0.38)";
-      ctx.beginPath(); ctx.ellipse(sx, sy+16, 14, 6, 0,0,Math.PI*2); ctx.fill();
-      
       let swing = op.digging ? Math.sin((Date.now()/1000)*18)*0.38 : 0;
       ctx.save();
       ctx.translate(sx, sy+8+bob);
       ctx.rotate(swing*0.18);
-      // STEJNÁ VELIKOST JAKO HLAVNÍ HRÁČ - 72x72
-      let heroImgOther = null;
-      try{
-        if(typeof heroImgs!=="undefined" && heroImgs[op.tool||0]) heroImgOther = heroImgs[op.tool||0];
-        else if(typeof heroImgs!=="undefined" && heroImgs[0]) heroImgOther = heroImgs[0];
-      }catch(e){}
       if(heroImgOther && heroImgOther.complete){
-        ctx.drawImage(heroImgOther, -36, -48, 72, 72);
+        ctx.drawImage(heroImgOther, -28, -38, 56, 56);
       } else {
-        ctx.fillStyle="#4a7bd4"; ctx.fillRect(-7, -2, 14, 10);
-        ctx.fillStyle="#ffcd94"; ctx.beginPath(); ctx.arc(0, -8, 7, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle="#6a8bd4"; ctx.fillRect(-6, -2, 12, 8);
+        ctx.fillStyle="#ffcd94"; ctx.beginPath(); ctx.arc(0, -8, 6, 0, Math.PI*2); ctx.fill();
       }
       ctx.restore();
-      
       // Nick nad hlavou
-      ctx.fillStyle="rgba(0,0,0,0.65)";
-      let nickW = ctx.measureText(nick).width + 16;
-      ctx.fillRect(sx - nickW/2, sy - 42 + bob, nickW, 16);
+      ctx.fillStyle="rgba(0,0,0,0.55)";
+      let nickW = ctx.measureText(nick).width + 12;
+      ctx.fillRect(sx - nickW/2, sy - 38 + bob, nickW, 14);
       ctx.fillStyle="#fff";
-      ctx.font="bold 11px Arial";
+      ctx.font="bold 10px Arial";
       ctx.textAlign="center";
-      ctx.fillText(nick, sx, sy - 30 + bob);
+      ctx.fillText(nick, sx, sy - 28 + bob);
       ctx.textAlign="left";
+      // Pokud kope, ikona
       if(op.digging){
-        ctx.font="16px Arial";
-        ctx.fillText("⛏️", sx+22, sy-8+bob);
+        ctx.font="14px Arial";
+        ctx.fillText("⛏️", sx+18, sy-10+bob);
       }
     }
   }catch(e){ console.error("drawOtherPlayers", e); }
 }
 // === KONEC MULTIPLAYER ===
-
 
 
 function draw(){ ctx.clearRect(0,0,W,H); const cam=camera(); drawWorld(cam); drawOtherPlayers(cam); drawPlayer(); updateHUD(); }
@@ -4318,7 +4412,7 @@ function applySaveData(save){
     if(save.vipEndTime!==undefined) vipEndTime=save.vipEndTime;
     if(Array.isArray(save.inventory)){
       inventory.length=0;
-      save.inventory.forEach(it=>{ if(it && (typeof it.type==="number" || it.isTool || it.isEquipment || it.isChanger || it.isFeed)){ if(!it.id) it.id=nextToolId(); inventory.push(it); } });
+      save.inventory.forEach(it=>{ if(it && (typeof it.type==="number" || it.isTool || it.isEquipment || it.isChanger || it.isFeed || it.isFireMap || it.isIceMap || it.isVIPItem || it.isEnergyDrink || it.isSuperEnergyDrink)){ if(!it.id) it.id=nextToolId(); inventory.push(it); } });
     }
     if(Array.isArray(save.petsOwned)) petsOwned=save.petsOwned;
     if(save.activePetId) activePetId=save.activePetId;
