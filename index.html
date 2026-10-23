@@ -398,12 +398,15 @@ for(let y=0;y<WORLD_H;y++){
   for(let x=0;x<WORLD_W;x++){
     const t=terrain(x,y);
     const cell={type:t,dug:false,mineral:null,hasRock:false};
-    let mineralChance=0.78;
-    if(t==="rock") mineralChance=0.68;
-    else if(t==="forest") mineralChance=0.73;
-    else if(t==="grass") mineralChance=0.80;
-    else if(t==="sand") mineralChance=0.85;
-    else mineralChance=0.95;
+    // FIX: snizeny drop - 1/10 na kamenech, 1/20 na pisku atd.
+    let mineralChance=0.90;
+    if(t==="rock") mineralChance=0.90; // 10% = 1/10 na kamenech
+    else if(t==="forest") mineralChance=0.90; // 10% v lese
+    else if(t==="grass") mineralChance=0.92; // 8% na trave
+    else if(t==="sand") mineralChance=0.95; // 5% = 1/20 na pisku
+    else if(t==="path") mineralChance=0.97; // 3% na ceste
+    else if(t==="water") mineralChance=1.0; // 0% ve vode
+    else mineralChance=0.90;
     if(hash(x+31,y+77)>mineralChance){
       let _pool=MAP_MINERALS.normal; cell.mineral=_pool[Math.floor(hash(x*5+17,y*3+11)*_pool.length)];
     }
@@ -884,6 +887,43 @@ function feedPet(feedType){
   if(leveledUp){ showToast("🎉 "+pet.name+" LEVEL UP! "+oldLevel+" → "+pet.level+"! 🐾",3); }
   else { showToast("🍖 "+pet.name+" nakrmeno! +"+xpGain+"xp ("+pet.xp+"/"+getXPForLevel(pet.level)+"xp)",2); }
 }
+
+// FIX: normalni krmivo - krmeni podle ID z batohu (oprava bug kdy po 1h neslo nakrmit)
+function feedPetWithItem(itemId){
+  let idx=findIdx(itemId);
+  if(idx===-1){ showToast("❌ Krmivo nenalezeno"); return; }
+  let item=inventory[idx];
+  if(!item || !item.isFeed){ showToast("❌ To není krmivo"); return; }
+  let pet=getActivePet();
+  if(!pet){ showToast("❌ Nemáš aktivního mazlíčka - vyber v ZVÍŘATA"); return; }
+  let check=canFeedPet(pet);
+  if(!check.can){ showToast("⏰ Další krmení za "+(check.text||check.reason),2.5); return; }
+  let xpGain=0;
+  if(item.feedType==='small') xpGain=PET_FEED_SMALL_XP;
+  else if(item.feedType==='big') xpGain=PET_FEED_BIG_XP;
+  else if(item.xp) xpGain=item.xp;
+  else if(item.feedType){
+    let def=getFeedDefById(item.feedType);
+    if(def) xpGain=def.xp;
+  }
+  if(xpGain<=0) xpGain=200;
+  // spotreba
+  if((item.count||1)>1){ item.count--; }
+  else { inventory.splice(idx,1); }
+  pet.xp=(pet.xp||0)+xpGain;
+  pet.lastFed=Date.now();
+  let oldLevel=pet.level;
+  let leveled=false;
+  while(pet.level<100){
+    let need=getXPForLevel(pet.level);
+    if(pet.xp>=need){ pet.xp-=need; pet.level++; leveled=true; }
+    else break;
+  }
+  saveGame(); renderInventory(); renderPetsPanel(); updateHUD();
+  if(leveled) showToast("🎉 "+pet.name+" LEVEL UP! "+oldLevel+" → "+pet.level+"! 🐾",3);
+  else showToast("🍖 "+pet.name+" nakrmeno! +"+xpGain+"xp ("+pet.xp+"/"+getXPForLevel(pet.level)+"xp)",2.2);
+}
+
 
 const allBonusStats = [
   {key:"tezba", name:"Těžba", min:1, max:10, unit:"%", icon:"⛏️"},
@@ -1886,9 +1926,10 @@ function generateFireWorld(){
       if(hash(x*5.3+99, y*4.7+11)>0.88) t="lava";
       if(hash(x*3.1+7, y*6.2+13)>0.90 && t!=="lava") t="rock_fire";
       let cell={type:t,dug:false,mineral:null,hasRock:false,isLava:(t==="lava"), isFireRock:(t==="rock_fire"||t==="rock")};
-      let mineralChance=0.68;
-      if(t==="rock"||t==="rock_fire") mineralChance=0.58;
-      if(t==="lava") mineralChance=0.75;
+      // FIX: snizeny drop na specialnich mapach
+      let mineralChance=0.90;
+      if(t==="rock"||t==="rock_fire") mineralChance=0.90; // 10% = 1/10 na kamenech i na fire mape
+      if(t==="lava") mineralChance=0.95; // 5% = 1/20 na lave
       if(hash(x*7+99,y*11+33)>mineralChance){
         let pool=MAP_MINERALS.fire;
         cell.mineral=pool[Math.floor(Math.random()*pool.length)];
@@ -1942,9 +1983,10 @@ function generateIceWorld(){
       if(hash(x*5.3+109, y*4.7+21)>0.88) t="ice";
       if(hash(x*3.1+17, y*6.2+23)>0.90 && t!=="ice") t="rock_ice";
       let cell={type:t,dug:false,mineral:null,hasRock:false,isIce:(t==="ice"), isIceRock:(t==="rock_ice"||t==="rock")};
-      let mineralChance=0.68;
-      if(t==="rock"||t==="rock_ice") mineralChance=0.58;
-      if(t==="ice") mineralChance=0.75;
+      // FIX: snizeny drop na ledove mape
+      let mineralChance=0.90;
+      if(t==="rock"||t==="rock_ice") mineralChance=0.90; // 10% = 1/10 na kamenech i na ice mape
+      if(t==="ice") mineralChance=0.95; // 5% = 1/20 na ledu
       if(hash(x*7+109,y*11+43)>mineralChance){
         let pool=MAP_MINERALS.ice;
         cell.mineral=pool[Math.floor(Math.random()*pool.length)];
@@ -3201,7 +3243,7 @@ function renderInventory(){
     if(!inventoryList) return;
     inventoryList.innerHTML='';
     var toolEntries=[], mineralEntries=[], equipEntries=[], changerEntries=[], feedEntries=[], fireMapEntries=[], iceMapEntries=[], energyDrinkEntries=[], superEnergyDrinkEntries=[];
-    inventory.forEach(function(it, idx){ if(it.isTool) toolEntries.push({item:it, index:idx}); else if(it.isEquipment) equipEntries.push({item:it, index:idx}); else if(it.isChanger) changerEntries.push({item:it, index:idx}); else if(it.isFeed || it.isMysteryFeedBox) feedEntries.push({item:it, index:idx}); else if(it.isFireMap) fireMapEntries.push({item:it, index:idx}); else if(it.isIceMap) iceMapEntries.push({item:it, index:idx}); else mineralEntries.push({item:it, index:idx}); });
+    inventory.forEach(function(it, idx){ if(it.isTool) toolEntries.push({item:it, index:idx}); else if(it.isEquipment) equipEntries.push({item:it, index:idx}); else if(it.isChanger) changerEntries.push({item:it, index:idx}); else if(it.isFeed || it.isMysteryFeedBox) feedEntries.push({item:it, index:idx}); else if(it.isFireMap) fireMapEntries.push({item:it, index:idx}); else if(it.isIceMap) iceMapEntries.push({item:it, index:idx}); else if(it.isEnergyDrink) energyDrinkEntries.push({item:it, index:idx}); else if(it.isSuperEnergyDrink) superEnergyDrinkEntries.push({item:it, index:idx}); else mineralEntries.push({item:it, index:idx}); });
 
     var hasRezavy=false; for(var i=0;i<toolEntries.length;i++) if(toolEntries[i].item.toolIndex===0) hasRezavy=true;
     if(!hasRezavy){
@@ -3426,10 +3468,8 @@ function renderInventory(){
       if(ub){ (function(id,b){ b.addEventListener('click', function(){ let idx=findIdx(id); if(idx!==-1){ let it=inventory[idx]; let addMs=(it.hours||1)*3600*1000; if(isVIPActive()) vipEndTime+=addMs; else vipEndTime=Date.now()+addMs; if((it.count||1)>1) it.count--; else inventory.splice(idx,1); saveGame(); renderInventory(); updateHUD(); updateVIPStatus(); showToast('VIP aktivovano!'); } }); })(item.id, ub); }
       inventoryList.appendChild(div);
     });
-// Mapa ohne v batohu
-        // Energetické nápoje - příprava polí (již definovány výše)
-    inventory.forEach(function(it, idx){ if(it.isEnergyDrink) energyDrinkEntries.push({item:it, index:idx}); });
-    inventory.forEach(function(it, idx){ if(it.isSuperEnergyDrink) superEnergyDrinkEntries.push({item:it, index:idx}); });
+// Mapa ohne v batohu - FIX: odstraneno duplicitni pridavani energy drinku
+        // (energyDrinkEntries a superEnergyDrinkEntries uz jsou naplneny vyse)
 fireMapEntries.forEach(function(entry){
       var item=entry.item;
       var div=document.createElement('div'); div.className='item';
@@ -4874,31 +4914,82 @@ function ensureDugTimes(){ try{ for(let y=0;y<WORLD_H;y++) for(let x=0;x<WORLD_W
 function clearAllOldHoles(){ try{ let cnt=0; for(let y=0;y<WORLD_H;y++) for(let x=0;x<WORLD_W;x++){ let c=world[y][x]; if(c.dug){ c.dug=false; c.dugTime=null; c.mineral=null; c.hasRock=false; let t=c.type; let mineralChance=0.78; if(t==="rock") mineralChance=0.68; else if(t==="forest") mineralChance=0.73; else if(t==="grass") mineralChance=0.80; else if(t==="sand") mineralChance=0.85; else mineralChance=0.95; if(Math.random()>mineralChance){ let _pool=null; try{ if(typeof isFireMapActiveCheck==="function" && isFireMapActiveCheck()) _pool=MAP_MINERALS.fire; else if(typeof isIceMapActiveCheck==="function" && isIceMapActiveCheck()) _pool=MAP_MINERALS.ice; else _pool=MAP_MINERALS.normal; }catch(e){ _pool=MAP_MINERALS.normal; } if(!_pool) _pool=MAP_MINERALS.normal; c.mineral=_pool[Math.floor(Math.random()*_pool.length)]; } if(t==="rock" && Math.random()>0.38){ c.hasRock=true; } cnt++; } } console.log("Cleared old holes:",cnt); }catch(e){} }
 function saveGame(){
  try{
-   const save={money,found,goldBricks,pickaxeLegacyLevels:player.pickaxeLegacyLevels||[0,0,0,0,0],inventory,equipped,petsOwned,activePetId,player:{tool:player.tool,baseMaxEnergy:player.baseMaxEnergy,energyUpgrades:player.energyUpgrades,maxEnergy:player.maxEnergy,energy:player.energy,x:player.x,y:player.y},dug:world.map(row=>row.map(c=>c.dug)),emptyDigs,vipEndTime,fireMapEndTime,iceMapEndTime,isFireMapActive,isIceMapActive};
+   const save={
+     money,found,goldBricks,
+     pickaxeLegacyLevels:player.pickaxeLegacyLevels||[0,0,0,0,0],
+     inventory,equipped,petsOwned,activePetId,
+     museum, museumSize, museumExpansionLevel, museumLastCollected, museumPending,
+     player:{tool:player.tool,baseMaxEnergy:player.baseMaxEnergy,energyUpgrades:player.energyUpgrades,maxEnergy:player.maxEnergy,energy:player.energy,x:player.x,y:player.y},
+     dug:world.map(row=>row.map(c=>c.dug)),
+     emptyDigs,vipEndTime,fireMapEndTime,iceMapEndTime,isFireMapActive,isIceMapActive
+   };
    localStorage.setItem("mineralHunterSave_v3",JSON.stringify(save));
- }catch(e){}
+   // also backup with timestamp to prevent total loss on quota error
+   try{ localStorage.setItem("mineralHunterSave_v3_backup", JSON.stringify({t:Date.now(), size:JSON.stringify(save).length})); }catch(e){}
+ }catch(e){ console.error("save err",e); }
 }
+
+// FIX: auto-save pri odhlaseni / prechodu na jiny odkaz - aby nemizely cihly a kameny
+window.addEventListener('beforeunload', ()=>{ try{ saveGame(); }catch(e){} });
+document.addEventListener('visibilitychange', ()=>{ if(document.hidden){ try{ saveGame(); }catch(e){} } });
+window.addEventListener('pagehide', ()=>{ try{ saveGame(); }catch(e){} });
+// pravidelny auto-save kazdych 5s
+setInterval(()=>{ try{ saveGame(); }catch(e){} }, 5000);
+
 function loadGame(){
  try{
    const raw=localStorage.getItem("mineralHunterSave_v3")||localStorage.getItem("mineralHunterSave_v2")||localStorage.getItem("mineralHunterSave");
    if(!raw) return;
-   if(raw.length>200000){ localStorage.removeItem("mineralHunterSave_v3"); return; }
+   // FIX: nez mazat save kdyz je velky - jen varovani, zvys limit na 1M
+   if(raw.length>1000000){ console.warn("Save too large", raw.length); /* nemaz */ }
    const s=JSON.parse(raw);
    money=s.money??100; found=s.found??0; goldBricks=s.goldBricks??0;
    if(Array.isArray(s.inventory)){
      inventory.length=0;
-     s.inventory.forEach(it=>{ if(it && (typeof it.type==="number" || it.isTool || it.isEquipment || it.isChanger || it.isFeed || it.isFireMap || it.isIceMap || it.isVIPItem || it.isEnergyDrink || it.isSuperEnergyDrink)){ if(!it.id) it.id=nextToolId(); inventory.push(it); } });
+     s.inventory.forEach(it=>{
+       // FIX: rozsireny whitelist - aby nemizely cihly, mystery boxy, atd po odhlaseni
+       if(it && (typeof it.type==="number" || it.isTool || it.isEquipment || it.isChanger || it.isFeed || it.isFireMap || it.isIceMap || it.isVIPItem || it.isEnergyDrink || it.isSuperEnergyDrink || it.isMysteryFeedBox || it.isMysteryBox || it.isCape || it.isAura || it.isBlueAura || it.isPinkAura || it.isVoidAura || it.isElectricAura)){
+         if(!it.id) it.id=nextToolId();
+         inventory.push(it);
+       } else if(it && it.id){
+         // fallback - vezmi vse co ma id (ochrana proti ztrate)
+         if(!it.id) it.id=nextToolId();
+         inventory.push(it);
+       }
+     });
    }
+   // FIX: nacist muzeum
+   if(Array.isArray(s.museum)){
+     museum = s.museum;
+     // zajisti spravnou velikost
+     if(s.museumSize && museum.length < s.museumSize){
+       while(museum.length < s.museumSize) museum.push(null);
+     }
+   }
+   if(typeof s.museumSize==="number") museumSize=s.museumSize;
+   if(typeof s.museumExpansionLevel==="number") museumExpansionLevel=s.museumExpansionLevel;
+   if(typeof s.museumLastCollected==="number") museumLastCollected=s.museumLastCollected;
+   if(typeof s.museumPending==="number") museumPending=s.museumPending;
+
    if(Array.isArray(s.petsOwned)) petsOwned=s.petsOwned;
    if(s.activePetId) activePetId=s.activePetId;
 
    if(s.pickaxeLegacyLevels) player.pickaxeLegacyLevels=s.pickaxeLegacyLevels;
    if(s.player){ let st=s.player.tool??0; if(st>=tools.length||st<0) st=0; player.tool=st; if(s.player.baseMaxEnergy!==undefined) player.baseMaxEnergy=s.player.baseMaxEnergy; if(s.player.energyUpgrades!==undefined) player.energyUpgrades=s.player.energyUpgrades; player.maxEnergy=s.player.maxEnergy??player.maxEnergy; player.energy=s.player.energy??player.maxEnergy; player.x=s.player.x??player.x; player.y=s.player.y??player.y; }
    if(s.dug && Array.isArray(s.dug)){ for(let y=0;y<WORLD_H;y++) for(let x=0;x<WORLD_W;x++) if(s.dug[y]&&s.dug[y][x]) world[y][x].dug=true; }
-   emptyDigs=s.emptyDigs??0; vipEndTime=s.vipEndTime??0; fireMapEndTime=s.fireMapEndTime||0; iceMapEndTime=s.iceMapEndTime||0; isIceMapActive=s.isIceMapActive||false; isFireMapActive=s.isFireMapActive||false; if(isFireMapActive && fireMapEndTime && Date.now()<fireMapEndTime){ setTimeout(()=>{ if(!fireWorld) fireWorld=generateFireWorld(); enterFireMap();
-   if(isIceMapActive && iceMapEndTime && Date.now()<iceMapEndTime){ setTimeout(()=>{ if(!iceWorld) iceWorld=generateIceWorld(); enterIceMap(); iceMapEndTime=s.iceMapEndTime; }, 1200); } fireMapEndTime=s.fireMapEndTime; iceMapEndTime=s.iceMapEndTime||0; isIceMapActive=s.isIceMapActive||false; }, 1200); } setTimeout(()=>{ if(vipEndTime && Date.now()>=vipEndTime){ vipEndTime=0; showToast('⏰ VIP vypršelo offline',2); saveGame(); } updateVIPStatus(); }, 800); // AUTO TEST PETS ODSTRANĚNO - jen GOD výměna
-   // if(petsOwned.length===0){ try{ giveTestPetsToAll(); }catch(e){} } - vypnuto pro produkci
- }catch(e){ console.warn("Load failed",e); }
+   emptyDigs=s.emptyDigs??0;
+   if(s.vipEndTime) vipEndTime=s.vipEndTime;
+   if(s.fireMapEndTime) fireMapEndTime=s.fireMapEndTime;
+   if(s.iceMapEndTime) iceMapEndTime=s.iceMapEndTime;
+   if(typeof s.isFireMapActive==="boolean") isFireMapActive=s.isFireMapActive;
+   if(typeof s.isIceMapActive==="boolean") isIceMapActive=s.isIceMapActive;
+   if(s.equipped){
+     // obnov equipped - ale jen pokud existuje
+     for(let k in s.equipped){
+       if(s.equipped[k]) equipped[k]=s.equipped[k];
+     }
+   }
+ }catch(e){ console.error("load err",e); }
 }
 
 function update(dt){
