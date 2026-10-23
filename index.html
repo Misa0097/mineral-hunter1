@@ -4601,7 +4601,33 @@ function dig(){
  const cell=world[ty][tx];
  if(cell.type==="water"||cell.type==="lava"){ let msg=cell.type==="lava"?"🔥 Láva, tady kopat nejde":"🌊 Tady kopat nejde"; showToast(msg,1.3); return; }
  if(cell.dug){ showToast("🕳 Tady už je vykopáno",1.2); return; }
- const emptyMessages=["Tady nic není...","Jenom hlína...","Prázdná díra","Tady není nic cenného","Země je prázdná","Kámen bez minerálu","Nic než prach...","Ticho... žádný záblesk","Jen obyčejná zemina","Žádný signál"];
+ const emptyMessages=[
+"Krtci se ti smějí do lopaty",
+"Tady by ani bagr nezaparkoval natož něco našel",
+"Kopeš díru do Austrálie ale zatím jen hlína",
+"Našel jsi nový druh prázdnoty gratuluju k objevu",
+"Tvoje lopata dneska stávkuje",
+"Země ti vzkazuje zkus to vedle vedle",
+"Tady je prázdno jako v lednici po výplatě",
+"I krtek by tady řekl tady nic není kámo",
+"Kdyby prázdno bylo zlato už jsi miliardář",
+"Hledáš diamant a našel jsi hlubokou filozofii",
+"Tady rostou jen pampelišky a zklamání",
+"Prázdná díra hlásí že je spokojeně prázdná",
+"Kopeš tak usilovně až je z toho hlína nervózní",
+"Tohle místo má víc prázdna než politik slibů",
+"Našel jsi vzduch aspoň máš co dýchat",
+"Zase hlína to už je skoro sbírka",
+"Tady už kopali dinosauři a taky nic nenašli",
+"Tvoje štěstí si dalo pauzu na kafe",
+"Země je tu tvrdá jako pondělní ráno",
+"Detektor by tady pípal jen ze soucitu",
+"Nic než hlína ale aspoň je kyprá",
+"Kopeš a kopeš a hlína se ti směje",
+"Tady by nenašel ani Indiana Jones",
+"Prázdno tak hluboké že má vlastní ozvěnu",
+"Našel jsi ticho a to se taky cení"
+];;;
 
  // === NOVÁ LOGIKA TĚŽBY - DĚLENÍ PODLE % ===
  // Křemen 1/10, Záhněda 1/10, Ametyst 1/20, Achát 1/10, Granát 1/20, Topaz 1/40, Rubellit 1/40, Safír 1/40, Rubín 1/80, Smaragd 1/80, Melounový 1/180, Vltavín 1/120, Diamant 1/120, Duhový 1/160, Černý 1/160
@@ -4789,7 +4815,7 @@ function dig(){
      // Vybavení i v prázdné díře - 1% + findChance
      if(!tryEquipmentDrop()){
        let msg = emptyMessages[Math.floor(Math.random()*emptyMessages.length)];
-       showToast("🕳 "+msg+" | Těžba "+totalTezba.toFixed(1)+"% ( /"+divisor.toFixed(2)+" )",1.5);
+       showToast(msg,1.5);
      }
      saveGame();
    }
