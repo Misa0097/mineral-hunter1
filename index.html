@@ -5110,11 +5110,11 @@ function buyBonusChangerGold(){
   saveGame(); renderInventory(); updateHUD(); renderGoldShop(); showToast("🌀 Koupil si Měnič Bonusů za 10 !",3);
 }
 function buyAuraCapeChanger(){
-  if(typeof goldBricks==='undefined' || goldBricks<50){ showToast("Nemáš dost cihel! Potřebuješ 50 cihel"); return; }
+  if(typeof goldBricks==='undefined' || goldBricks<50){ showToast("Nemáš dost cihel! Potřebuješ 40 cihel"); return; }
   goldBricks-=50;
   let existing=inventory.find(it=>it.isAuraCapeChanger);
   if(existing){ existing.count=(existing.count||1)+1; } else { inventory.push({isAuraCapeChanger:true, id:Date.now()+Math.random(), name:"Měnič Aury/Plášťů", count:1, price:0, icon: (typeof AURA_CAPE_CHANGER_IMG!=='undefined'?AURA_CAPE_CHANGER_IMG:"🌪️")}); }
-  saveGame(); renderInventory(); updateHUD(); renderGoldShop(); showToast("🌪️ Koupil si Měnič Aury/Plášťů za 50 cihel!",3);
+  saveGame(); renderInventory(); updateHUD(); renderGoldShop(); showToast("🌪️ Koupil si Měnič Aury/Plášťů za 40 cihel!",3);
 }
 function openAuraCapeChangerModal(){
   const modal=document.getElementById('changerModal');
@@ -5961,16 +5961,13 @@ function dig(){
 "Našel jsi ticho a to se taky cení"
 ];;;
 
- // === NOVÁ LOGIKA TĚŽBY - DĚLENÍ PODLE % ===
- // Křemen 1/10, Záhněda 1/10, Ametyst 1/20, Achát 1/10, Granát 1/20, Topaz 1/40, Rubellit 1/40, Safír 1/40, Rubín 1/80, Smaragd 1/80, Melounový 1/180, Vltavín 1/120, Diamant 1/120, Duhový 1/160, Černý 1/160
  const MINERAL_RARITY = {0:10,12:10,1:20,2:10,3:20,4:40,11:40,5:40,6:80,7:80,10:180,13:120,8:120,14:160,9:160};
  const PICKAXE_BASE = [19,33,45,57,63];
  let pickaxeBase = typeof getEffectivePickaxeTezba==="function" ? getEffectivePickaxeTezba(player.tool) : (PICKAXE_BASE[player.tool]||19);
  let totalBonForMining = getTotalBonuses();
  let equipTezba = totalBonForMining.tezba||0;
  let totalTezba = pickaxeBase + equipTezba;
- let divisor = 1 + totalTezba/100; // 20% = /1.2, 50% = /1.5, 100% = /2, 200% = /3, 300% = /4
-
+ let divisor = 1 + totalTezba/100;
 
  function tryEquipmentDrop(){
    try{
@@ -5999,7 +5996,6 @@ function dig(){
    return false;
  }
 
- // Určení poolu podle mapy
  let _pool=null;
  try{
    if(typeof isFireMapActiveCheck==="function" && isFireMapActiveCheck()) _pool=MAP_MINERALS.fire;
@@ -6008,7 +6004,6 @@ function dig(){
  }catch(e){ _pool=MAP_MINERALS.normal; }
  if(!_pool) _pool=MAP_MINERALS.normal;
 
- // Seřadit od nejvzácnějšího (nejvyšší jmenovatel) po nejběžnější
  let sortedPool = _pool.slice().sort((a,b)=>{
    let da = MINERAL_RARITY[a]||10;
    let db = MINERAL_RARITY[b]||10;
@@ -6044,22 +6039,32 @@ function dig(){
 
      inventory.push(mineral); found++; emptyDigs=0;
      try{ if(typeof onEventMineralFound==='function') onEventMineralFound(); }catch(e){}
+     // === EVENT DROPS - OPRAVENÉ NA 5% ===
      try{
        if(typeof activeEventData!=='undefined' && activeEventData){
          let ed=activeEventData.def;
          if(ed.id==='gold' && !isFireMapActiveCheck() && !isIceMapActiveCheck()){
-           if(Math.random()*100 < 3){
+           // Zlatá horečka - 5% šance na zlatou cihlu
+           if(Math.random()*100 < 5){
+             if(typeof goldBricks==='undefined') goldBricks=0;
              goldBricks++;
-             showToast("💰 Zlatá cihla! 3%",3);
+             saveGame();
+             updateHUD();
+             renderInventory();
+             showToast("💰 Zlatá cihla! +1 cihla do zůstatku!",3);
              if(typeof onEventGoldBrickFound==='function') onEventGoldBrickFound();
            }
          }
          if(ed.id==='treasure' && !isFireMapActiveCheck() && !isIceMapActiveCheck()){
-           if(Math.random()*100 < 2){
+           // Hledání pokladu - 5% šance na Mystery Box
+           if(Math.random()*100 < 5){
              let ex=inventory.find(it=>it.isMysteryEquipBox);
              if(ex) ex.count=(ex.count||1)+1;
-             else inventory.push({isMysteryEquipBox:true, id:Date.now()+Math.random(), name:"Mystery box vybavení", count:1, price:0, icon:(typeof MYSTERY_BOX_EQUIP!=='undefined'?MYSTERY_BOX_EQUIP.icon:'🎁')});
-             showToast("🏴‍☠️ Mystery Box vybavení! 2%",3);
+             else inventory.push({isMysteryEquipBox:true, id:Date.now()+Math.random(), name:"Mystery box vybavení", count:1, price:40, icon:(typeof MYSTERY_BOX_EQUIP!=='undefined'?MYSTERY_BOX_EQUIP.icon:'🎁')});
+             saveGame();
+             updateHUD();
+             renderInventory();
+             showToast("🏴‍☠️ Mystery Box vybavení! +1 do batohu!",3);
              if(typeof onEventMysteryEquipFound==='function') onEventMysteryEquipFound();
            }
          }
@@ -6075,12 +6080,12 @@ function dig(){
              let ex=inventory.find(it=>it.isMysteryFeedBox);
              if(ex) ex.count=(ex.count||1)+1;
              else inventory.push({isMysteryFeedBox:true, id:Date.now()+Math.random(), name:"Mystery box krmivo", count:1, icon:(typeof MYSTERY_BOX_FEED!=='undefined'?MYSTERY_BOX_FEED.icon:'🎁')});
-             showToast("🐾 Mystery Box krmiva! 3%",2);
+             showToast("🐾 Mystery Box krmiva! +1 do batohu!",2);
              if(typeof onEventFeedFound==='function') onEventFeedFound(1);
            }
          }
        }
-     }catch(e){}
+     }catch(e){ console.error(e); }
 
      const data=minerals[mineral.type];
      showToast("🪨 Surový "+data.name+" "+mineral.weight+"g Čistota "+mineral.purity+"%",2.4);
@@ -6090,36 +6095,35 @@ function dig(){
          sendGlobalAnnouncement({type:"stone_3leg", mineralName:data.name, weight:mineral.weight, purity:mineral.purity, quality:mineral.quality||0, price:mineral.price, legendCount:legCnt});
        }
      }catch(e){}
-     // Special drops pro ohen/led/normal
      if(isIceMapActiveCheck()){
        let r=Math.random()*100;
        if(r<1){
          let existing=inventory.find(it=>it.isChanger);
          if(existing) existing.count=(existing.count||1)+1;
          else inventory.push({isChanger:true, id:Date.now()+Math.random(), name:"Měnič Bonusů", count:1, price:5000});
-         showToast("Našel jsi Měnič Bonusů! (ledová mapa) 1%",2);
+         showToast("Našel jsi Měnič Bonusů! (ledová mapa)",2);
        } else if(r<3){
          let feedType='small';
          let existing=inventory.find(it=>it.isFeed && it.feedType===feedType && !it.instant);
          if(existing) existing.count=(existing.count||1)+1;
          else inventory.push({isFeed:true, feedType:feedType, id:Date.now()+Math.random(), name:"Granule 200xp", count:1, price:2000});
-         showToast("Našel jsi Granule 200xp! (ledová) 2%",2);
+         showToast("Našel jsi Granule 200xp! (ledová)",2);
        } else if(r<5){
          let feedType='big';
          let existing=inventory.find(it=>it.isFeed && it.feedType===feedType && !it.instant);
          if(existing) existing.count=(existing.count||1)+1;
          else inventory.push({isFeed:true, feedType:feedType, id:Date.now()+Math.random(), name:"Granule 500xp", count:1, price:4000});
-         showToast("Našel jsi Granule 500xp! (ledová) 2%",2);
+         showToast("Našel jsi Granule 500xp! (ledová)",2);
        } else if(r<6){
          let existing=inventory.find(it=>it.isFeed && it.feedType==='instant500' && it.instant);
          if(existing) existing.count=(existing.count||1)+1;
          else inventory.push({isFeed:true, feedType:'instant500', id:Date.now()+Math.random(), name:"Super krmivo +500xp", count:1, price:0, instant:true});
-         showToast("Našel jsi Super krmivo +500xp! (ledová) 1%",2);
+         showToast("Našel jsi Super krmivo +500xp! (ledová)",2);
        } else if(r<7){
          let existing=inventory.find(it=>it.isVIPItem && it.hours===1);
          if(existing) existing.count=(existing.count||1)+1;
          else inventory.push({isVIPItem:true, hours:1, id:Date.now()+Math.random(), name:"VIP Pergamen 1h", count:1, price:25000});
-         showToast("Našel jsi VIP Pergamen 1h! (ledová) 1%",2);
+         showToast("Našel jsi VIP Pergamen 1h! (ledová)",2);
        } else if(r<9){
          let existing=inventory.find(it=>it.isSuperEnergyDrink);
          if(existing) existing.count=(existing.count||1)+1;
@@ -6131,11 +6135,8 @@ function dig(){
          else inventory.push({isEnergyDrink:true, id:Date.now()+Math.random(), name:"Energetický nápoj", count:1, price:250, energy:50});
          showToast("Našel jsi Energetický nápoj! (ledová) 3% ⚡",2);
        }
-       // Nová instantní krmiva - ledová mapa
        tryNewFeedDrop('icefire');
-
      }
-     // Vybavení - 1% + findChance na všech mapách
      tryEquipmentDrop();
      if(isFireMapActiveCheck()){
        let r=Math.random()*100;
@@ -6143,29 +6144,29 @@ function dig(){
          let existing=inventory.find(it=>it.isChanger);
          if(existing) existing.count=(existing.count||1)+1;
          else inventory.push({isChanger:true, id:Date.now()+Math.random(), name:"Měnič Bonusů", count:1, price:5000});
-         showToast("Našel jsi Měnič Bonusů! (ohnivá mapa) 1%",2);
+         showToast("Našel jsi Měnič Bonusů! (ohnivá mapa)",2);
        } else if(r<3){
          let feedType='small';
          let existing=inventory.find(it=>it.isFeed && it.feedType===feedType && !it.instant);
          if(existing) existing.count=(existing.count||1)+1;
          else inventory.push({isFeed:true, feedType:feedType, id:Date.now()+Math.random(), name:"Granule 200xp", count:1, price:2000});
-         showToast("Našel jsi Granule 200xp! (ohnivá) 2%",2);
+         showToast("Našel jsi Granule 200xp! (ohnivá)",2);
        } else if(r<5){
          let feedType='big';
          let existing=inventory.find(it=>it.isFeed && it.feedType===feedType && !it.instant);
          if(existing) existing.count=(existing.count||1)+1;
          else inventory.push({isFeed:true, feedType:feedType, id:Date.now()+Math.random(), name:"Granule 500xp", count:1, price:4000});
-         showToast("Našel jsi Granule 500xp! (ohnivá) 2%",2);
+         showToast("Našel jsi Granule 500xp! (ohnivá)",2);
        } else if(r<6){
          let existing=inventory.find(it=>it.isFeed && it.feedType==='instant500' && it.instant);
          if(existing) existing.count=(existing.count||1)+1;
          else inventory.push({isFeed:true, feedType:'instant500', id:Date.now()+Math.random(), name:"Super krmivo +500xp", count:1, price:0, instant:true});
-         showToast("Našel jsi Super krmivo +500xp! (ohnivá) 1%",2);
+         showToast("Našel jsi Super krmivo +500xp! (ohnivá)",2);
        } else if(r<7){
          let existing=inventory.find(it=>it.isVIPItem && it.hours===1);
          if(existing) existing.count=(existing.count||1)+1;
          else inventory.push({isVIPItem:true, hours:1, id:Date.now()+Math.random(), name:"VIP Pergamen 1h", count:1, price:25000});
-         showToast("Našel jsi VIP Pergamen 1h! (ohnivá) 1%",2);
+         showToast("Našel jsi VIP Pergamen 1h! (ohnivá)",2);
        } else if(r<9){
          let existing=inventory.find(it=>it.isSuperEnergyDrink);
          if(existing) existing.count=(existing.count||1)+1;
@@ -6177,9 +6178,7 @@ function dig(){
          else inventory.push({isEnergyDrink:true, id:Date.now()+Math.random(), name:"Energetický nápoj", count:1, price:250, energy:50});
          showToast("Našel jsi Energetický nápoj! (ohnivá) 3% ⚡",2);
        }
-       // Nová instantní krmiva - ohnivá mapa
        tryNewFeedDrop('icefire');
-
      }
      if(!isFireMapActiveCheck() && !isIceMapActiveCheck()){
        let r2=Math.random()*100;
@@ -6189,15 +6188,11 @@ function dig(){
          else inventory.push({isEnergyDrink:true, id:Date.now()+Math.random(), name:"Energetický nápoj", count:1, price:250, energy:50});
          showToast("Našel jsi Energetický nápoj! 2% ⚡",2);
        }
-       // Nová instantní krmiva - normální mapa
        tryNewFeedDrop('normal');
-
      }
      cell.mineral=null; saveGame(); renderInventory(); updateHUD();
    } else {
-     // Prázdná díra - nová logika s dělením
      cell.dug=true; cell.dugTime=Date.now(); cell.hasRock=false; player.energy-=8; player.digging=true; player.digTime=0; emptyDigs++;
-     // Vybavení i v prázdné díře - 1% + findChance
      if(!tryEquipmentDrop()){
        let msg = emptyMessages[Math.floor(Math.random()*emptyMessages.length)];
        showToast(msg,1.5);
@@ -7982,8 +7977,8 @@ window.addEventListener('touchend', e=>{
 // ==================== EVENT SYSTEM V6 - NEJNIZ + DOT LEADERBOARD ====================
 const EVENT_DEFS = [
   {id:'meteor', name:'Meteorický déšť', icon:'☄️', duration:10*60*1000, desc:'3x větší šance na minerál, váha +30%, čistota +10', scoreType:'stones', scoreLabel:'kamenů', color:'#29B6F6', mainPrize:'Master Mystery Box', rewardsDetail:['1. Master Mystery Box','2. Mystery Box','3. Mystery Box krmiva'], allPrizes:['Master Mystery Box','Mystery Box','Mystery Box krmiva'], rewardKeys:[['master'],['mystery'],['mystery_feed']]},
-  {id:'gold', name:'Zlatá horečka', icon:'💰', duration:10*60*1000, desc:'Na základní mapě padají zlaté cihly 3% šance', scoreType:'gold', scoreLabel:'zlatých cihel', color:'#FFD700', mainPrize:'Mystery Box legendární', rewardsDetail:['1. Mystery Box legendární','2. Mystery Box vybavení','3. Mystery Box krmiva'], rewardKeys:[['mystery_equip_leg'],['mystery_equip'],['mystery_feed']]},
-  {id:'treasure', name:'Hledání pokladu', icon:'🏴‍☠️', duration:10*60*1000, desc:'Na základní mapě padají Mystery Boxy vybavení 2%', scoreType:'mysteryEquip', scoreLabel:'Mystery boxů vybavení', color:'#AB47BC', mainPrize:'Pergamen 25%', rewardsDetail:['1. Pergamen 25%','2. Pergamen 20%','3. Pergamen 15%'], rewardKeys:[['parchment_25'],['parchment_20'],['parchment_15']]},
+  {id:'gold', name:'Zlatá horečka', icon:'💰', duration:10*60*1000, desc:'Na základní mapě padají zlaté cihly', scoreType:'gold', scoreLabel:'zlatých cihel', color:'#FFD700', mainPrize:'Mystery Box legendární', rewardsDetail:['1. Mystery Box legendární','2. Mystery Box vybavení','3. Mystery Box krmiva'], rewardKeys:[['mystery_equip_leg'],['mystery_equip'],['mystery_feed']]},
+  {id:'treasure', name:'Hledání pokladu', icon:'🏴‍☠️', duration:10*60*1000, desc:'Na základní mapě padají Mystery Boxy vybavení', scoreType:'mysteryEquip', scoreLabel:'Mystery boxů vybavení', color:'#AB47BC', mainPrize:'Pergamen 25%', rewardsDetail:['1. Pergamen 25%','2. Pergamen 20%','3. Pergamen 15%'], rewardKeys:[['parchment_25'],['parchment_20'],['parchment_15']]},
   {id:'lava', name:'Lávová erupce', icon:'🌋', duration:5*60*1000, desc:'Fire mapa ZDARMA 5 min, teleport, 2x šance', scoreType:'equip', scoreLabel:'vybavení', color:'#FF5722', freeMap:'fire', mainPrize:'Mystery Box legendární', rewardsDetail:['1. Mystery Box legendární','2. Mystery Box vybavení','3. Mystery Box krmiva'], rewardKeys:[['mystery_equip_leg'],['mystery_equip'],['mystery_feed']]},
   {id:'ice', name:'Polární noc', icon:'❄️', duration:5*60*1000, desc:'Ice mapa ZDARMA 5 min, teleport, 2x šance', scoreType:'equip', scoreLabel:'vybavení', color:'#29B6F6', freeMap:'ice', mainPrize:'Mystery Box legendární', rewardsDetail:['1. Mystery Box legendární','2. Mystery Box vybavení','3. Mystery Box krmiva'], rewardKeys:[['mystery_equip_leg'],['mystery_equip'],['mystery_feed']]},
   {id:'festival', name:'Festival zvířat', icon:'🐾', duration:10*60*1000, desc:'Na základní mapě padá 3x víc krmiva', scoreType:'feed', scoreLabel:'krmiva', color:'#FF9800', mainPrize:'Speciální Měnič', rewardsDetail:['1. Speciální Měnič','2. 2x Měnič Aury/Plášťů','3. 3x Měnič Bonusů'], rewardKeys:[['special_changer'],['aura_cape_changer','aura_cape_changer'],['changer','changer','changer']]},
@@ -8111,11 +8106,13 @@ function fetchWeeklyLeaderboard(cb){
     }else cb([], wp);
   }catch(e){ cb([], getWeeklyPeriod()); }
 }
-function selectEvent(idx){
+let selectedEventHour = null;
+function selectEvent(idx, hour){
   selectedEventDef = EVENT_DEFS[idx];
+  selectedEventHour = (typeof hour==='number'?hour:null);
   renderEventDetail();
 }
-function clearSelectedEvent(){ selectedEventDef=null; let div=document.getElementById('eventSelectedDetail'); if(div) div.innerHTML=''; renderEventPanel(); }
+function clearSelectedEvent(){ selectedEventDef=null; selectedEventHour=null; let div=document.getElementById('eventSelectedDetail'); if(div) div.innerHTML=''; renderEventPanel(); }
 
 function renderEventDetail(){
   let div=document.getElementById('eventSelectedDetail');
@@ -8126,7 +8123,6 @@ function renderEventDetail(){
   let isActive = cur.isActive && cur.def.id===def.id && activeEventData;
   let timeInfo='';
   let nextTimeInfo='';
-  // najdi kdy bude příště
   let now=new Date();
   if(isActive){
     let remain=Math.max(0, activeEventData.end - now);
@@ -8134,15 +8130,31 @@ function renderEventDetail(){
     timeInfo=`<div style="color:#4caf50;font-weight:900">🟢 AKTIVNÍ - končí v ${formatClock(activeEventData.end)} (zbývá ${m}:${String(s).padStart(2,'0')})</div>`;
     nextTimeInfo=`<div style="color:#ffeb3b">⏰ ${formatClock(cur.start)} - ${formatClock(cur.end)} | ${def.duration/60000} min</div>`;
   } else {
-    for(let h=now.getHours();h<now.getHours()+24;h++){
-      let idx=h % EVENT_DEFS.length;
-      if(EVENT_DEFS[idx].id===def.id){
-        let st=new Date(now); st.setHours(h); st.setMinutes(0,0,0); st.setMilliseconds(0);
-        if(h===now.getHours() && st < now) continue;
-        let en=new Date(st.getTime()+def.duration);
-        timeInfo=`<div style="color:#ff9800">⏸️ NENÍ AKTIVNÍ</div>`;
-        nextTimeInfo=`<div style="color:#ffeb3b">⏰ Příště: ${formatFull(st)} - ${formatClock(en)} | ${def.duration/60000} min</div>`;
-        break;
+    // Pokud byl kliknut konkrétní čas z rozvrhu, použij ten
+    if(selectedEventHour!==null){
+      let today=new Date(); today.setMinutes(0,0,0); today.setMilliseconds(0);
+      let st=new Date(today); st.setHours(selectedEventHour);
+      // Pokud je hodina < dnešní hodiny a dnes už je po ní, je to zítra
+      if(selectedEventHour < now.getHours() && st < now){
+        // Zkus zítra
+        let tomorrow=new Date(today); tomorrow.setDate(today.getDate()+1); tomorrow.setHours(selectedEventHour);
+        st=tomorrow;
+      }
+      let en=new Date(st.getTime()+def.duration);
+      let isPast = en < now;
+      timeInfo=`<div style="color:${isPast?'#f44336':'#ff9800'}">${isPast?'🔴 UKONČEN':'⏸️ NENÍ AKTIVNÍ'}</div>`;
+      nextTimeInfo=`<div style="color:#ffeb3b">⏰ ${formatFull(st)} - ${formatClock(en)} | ${def.duration/60000} min</div>`;
+    } else {
+      for(let h=now.getHours();h<now.getHours()+24;h++){
+        let idx=h % EVENT_DEFS.length;
+        if(EVENT_DEFS[idx].id===def.id){
+          let st=new Date(now); st.setHours(h); st.setMinutes(0,0,0); st.setMilliseconds(0);
+          if(h===now.getHours() && st < now) continue;
+          let en=new Date(st.getTime()+def.duration);
+          timeInfo=`<div style="color:#ff9800">⏸️ NENÍ AKTIVNÍ</div>`;
+          nextTimeInfo=`<div style="color:#ffeb3b">⏰ Příště: ${formatFull(st)} - ${formatClock(en)} | ${def.duration/60000} min</div>`;
+          break;
+        }
       }
     }
   }
@@ -8198,13 +8210,13 @@ function renderEventPanel(){
   if(cur.isActive && activeEventData){
     let remain=Math.max(0, activeEventData.end - now);
     let m=Math.floor(remain/60000), s=Math.floor((remain%60000)/1000);
-    html+=`<div class="eventCard active" onclick="selectEvent(${EVENT_DEFS.findIndex(e=>e.id===cur.def.id)})"><div style="font-weight:900;font-size:15px">${cur.def.icon} ${cur.def.name} - AKTIVNÍ</div><div class="eventTime">⏰ ${formatClock(cur.start)} - ${formatClock(cur.end)} | Zbývá ${m}:${String(s).padStart(2,'0')}</div><div style="font-size:12px;color:#ddd;margin-top:6px">${cur.def.desc}</div><div style="margin-top:4px;color:#ffd700;font-weight:800">🏆 Hlavní cena: ${cur.def.mainPrize}</div><div style="font-size:10px;color:#aaa;margin-top:4px">Klikni pro detail + žebříček</div></div>`;
+    html+=`<div class="eventCard active" style="cursor:pointer" onclick="selectEvent(${EVENT_DEFS.findIndex(e=>e.id===cur.def.id)}, ${cur.start.getHours()})"><div style="font-weight:900;font-size:15px">${cur.def.icon} ${cur.def.name} - AKTIVNÍ (klikni pro detail)</div><div class="eventTime">⏰ ${formatClock(cur.start)} - ${formatClock(cur.end)} | Zbývá ${m}:${String(s).padStart(2,'0')}</div><div style="font-size:12px;color:#ddd;margin-top:6px">${cur.def.desc}</div><div style="margin-top:4px;color:#ffd700;font-weight:800">🏆 Hlavní cena: ${cur.def.mainPrize}</div><div style="font-size:10px;color:#aaa;margin-top:4px">Klikni pro detail + žebříček</div></div>`;
   } else {
     let next=cur.nextDef;
     let msToNext = cur.nextStart - now;
     let mm=Math.floor(msToNext/60000), ss=Math.floor((msToNext%60000)/1000);
     if(mm<0) mm=0;
-    html+=`<div class="eventCard" style="opacity:0.7"><div style="font-weight:900">⏳ Žádný event neprobíhá</div><div style="font-size:12px;color:#aaa;margin-top:4px">Další: <b style="color:${next.color}">${next.icon} ${next.name}</b> v ${formatClock(cur.nextStart)} (za ${mm}m ${ss}s)<br>Hlavní cena: ${next.mainPrize}</div></div>`;
+    html+=`<div class="eventCard" style="opacity:0.7;cursor:pointer" onclick="selectEvent(${EVENT_DEFS.findIndex(e=>e.id===next.id)}, ${cur.nextStart.getHours()})"><div style="font-weight:900">⏳ Žádný event neprobíhá (klikni pro detail dalšího)</div><div style="font-size:12px;color:#aaa;margin-top:4px">Další: <b style="color:${next.color}">${next.icon} ${next.name}</b> v ${formatClock(cur.nextStart)} (za ${mm}m ${ss}s)<br>Hlavní cena: ${next.mainPrize}</div></div>`;
   }
   infoDiv.innerHTML=html;
 
@@ -8216,9 +8228,10 @@ function renderEventPanel(){
       let def=EVENT_DEFS[idx];
       let st=new Date(today); st.setHours(h);
       let en=new Date(st.getTime()+def.duration);
-      let isNow = cur.isActive && cur.def.id===def.id && h===now.getHours();
-      let isPast = h < now.getHours();
-      listHtml+=`<div class="eventCard ${isNow?'active':''}" style="opacity:${isPast?0.5:1};padding:8px" onclick="selectEvent(${idx})"><div style="display:flex;justify-content:space-between"><div><b style="color:${def.color}">${def.icon} ${def.name}</b><div style="font-size:10px;color:#aaa">${def.desc}</div><div style="font-size:10px;color:#ffd700">🏆 ${def.mainPrize}</div></div><div style="text-align:right"><div style="font-weight:800;font-size:12px;color:#ffeb3b">${formatClock(st)} - ${formatClock(en)}</div><div style="font-size:10px;color:${isNow?'#4caf50':'#666'}">${isNow?'AKTIVNÍ':isPast?'Ukončen':'Čeká'}</div><div style="font-size:9px;color:#888">${def.duration/60000}min</div></div></div></div>`;
+      let isActiveNow = st <= now && en > now;
+      let isNow = isActiveNow && cur.isActive && cur.def.id===def.id;
+      let isPast = en < now;
+      listHtml+=`<div class="eventCard ${isNow?'active':''}" style="opacity:${isPast?0.5:1};padding:8px;cursor:pointer" onclick="selectEvent(${idx}, ${h})"><div style="display:flex;justify-content:space-between"><div><b style="color:${def.color}">${def.icon} ${def.name}</b><div style="font-size:10px;color:#aaa">${def.desc}</div><div style="font-size:10px;color:#ffd700">🏆 ${def.mainPrize}</div></div><div style="text-align:right"><div style="font-weight:800;font-size:12px;color:#ffeb3b">${formatClock(st)} - ${formatClock(en)}</div><div style="font-size:10px;color:${isNow?'#4caf50':isPast?'#f44336':'#666'}">${isNow?'AKTIVNÍ':isPast?'Ukončen':'Čeká'}</div><div style="font-size:9px;color:#888">${def.duration/60000}min</div></div></div></div>`;
     }
     listDiv.innerHTML=listHtml;
   } else {
@@ -8339,11 +8352,11 @@ function buyMysteryAllBox(){
   saveGame(); renderInventory(); updateHUD(); if(typeof renderGoldShop==='function') renderGoldShop(); else renderShop(); showToast("🎁 Koupil si Mystery Box za 40 cihel!",3);
 }
 function buyMysteryBoxEquip(){
-  if(typeof goldBricks === 'undefined' || goldBricks < 50){ showToast("Nemáš dost zlatých cihel! Potřebuješ 50 cihel"); return; }
-  goldBricks -= 50;
+  if(typeof goldBricks === 'undefined' || goldBricks < 40){ showToast("Nemáš dost zlatých cihel! Potřebuješ 40 cihel"); return; }
+  goldBricks -= 40;
   let existing=inventory.find(it=>it.isMysteryEquipBox);
-  if(existing){ existing.count=(existing.count||1)+1; } else { inventory.push({isMysteryEquipBox:true, id:Date.now()+Math.random(), name:"Mystery box vybavení", count:1, price:50, icon:MYSTERY_BOX_EQUIP.icon}); }
-  saveGame(); renderInventory(); updateHUD(); if(typeof renderGoldShop==='function') renderGoldShop(); else renderShop(); showToast("🎁 Koupil si Mystery box vybavení za 50 cihel!",3);
+  if(existing){ existing.count=(existing.count||1)+1; } else { inventory.push({isMysteryEquipBox:true, id:Date.now()+Math.random(), name:"Mystery box vybavení", count:1, price:40, icon:MYSTERY_BOX_EQUIP.icon}); }
+  saveGame(); renderInventory(); updateHUD(); if(typeof renderGoldShop==='function') renderGoldShop(); else renderShop(); showToast("🎁 Koupil si Mystery box vybavení za 40 cihel!",3);
 }
 function buyMysteryBoxEquipLegendary(){ showToast("❌ Mystery Box legendární lze získat pouze v eventech!"); return; }
 function buyMasterMysteryBox(){ showToast("❌ Master Mystery Box lze získat pouze v eventech!"); return; }
