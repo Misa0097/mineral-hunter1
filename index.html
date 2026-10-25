@@ -4651,67 +4651,279 @@ fireMapEntries.forEach(function(entry){
   }catch(e){ console.error('renderInv', e); }
 }
 
-// === FIX: optimalizovaný renderInventory s ochranou proti sekání ===
+
+// === FINAL FIX V7 - RYCHLÝ BATOH + BULK BEZ CONFIRM BLOKU ===
 let _invLock = false;
 let _invQueued = false;
 let _invLast = 0;
-function renderInventory(){
-  const now = Date.now();
-  if(_invLock){ _invQueued=true; return; }
-  if(now - _invLast < 90){
-    if(!_invQueued){
-      _invQueued=true;
-      setTimeout(()=>{ _invQueued=false; renderInventory(); }, 110);
-    }
-    return;
-  }
-  _invLock=true;
-  _invLast=now;
+
+function updateBulkCounts(){
   try{
-    // Použij DocumentFragment pro rychlejší vykreslení
-    const listEl = document.getElementById('inventoryList');
-    if(listEl){
-      // Dočasně odpojíme, aby nevznikalo překreslování při každém append
-      const frag = document.createDocumentFragment();
-      // Zavoláme orig, ale necháme ho kreslit do fragu? Orig kreslí přímo do listEl, takže ho necháme a jen zamezíme reflow
-      _origRenderInventory();
-    } else {
-      _origRenderInventory();
-    }
-  }catch(e){ console.error('renderInventory fix err', e); _origRenderInventory(); }
-  finally{
-    _invLock=false;
-    if(_invQueued){
-      _invQueued=false;
-      requestAnimationFrame(()=>renderInventory());
-    }
-  }
+    const bulk=document.getElementById('bulkMineralActions');
+    if(!bulk) return;
+    const mineralCount=inventory.filter(it=>it && typeof it.type==='number').length;
+    const rawCount=inventory.filter(it=>it && typeof it.type==='number' && it.raw).length;
+    const polishedCount=mineralCount-rawCount;
+    const equipCount=inventory.filter(it=>it && it.isEquipment && it.tier!==4).length;
+        const redCount=inventory.filter(it=>it && it.isEquipment && it.tier===4).length;
+    const span=bulk.querySelector('#bulkCountText');
+    if(span) span.textContent=mineralCount+'x kameny'+(equipCount?' + '+equipCount+'x výbava':'');
+    const bRaw=bulk.querySelector('[data-bulk="raw"]');
+    const bPol=bulk.querySelector('[data-bulk="polished"]');
+    const bAll=bulk.querySelector('[data-bulk="all"]');
+    const bPolish=bulk.querySelector('[data-bulk="polishAll"]');
+    const bEquip=bulk.querySelector('[data-bulk="equip"]');
+    if(bRaw) bRaw.textContent='📦 Surové ('+rawCount+'x)';
+    if(bPol) bPol.textContent='💎 Vybroušené ('+polishedCount+'x)';
+    if(bAll) bAll.textContent='Prodat kameny ('+mineralCount+'x)';
+    if(bPolish) bPolish.textContent='✨ Vybrousit vše ('+rawCount+'x)';
+    if(bEquip) bEquip.textContent='🎒 Prodat výbavu ('+equipCount+'x)';
+    bulk.style.display=(mineralCount===0 && equipCount===0)?'none':'block';
+  }catch(e){ console.error(e); }
 }
 
-// FIX: zamezení dvojkliku na tlačítka
-(function(){
-  let lastClick=0;
-  document.addEventListener('click', function(e){
-    const btn = e.target.closest('.actionButton');
-    if(!btn) return;
-    const now=Date.now();
-    if(btn.dataset.locked==='1'){ e.preventDefault(); e.stopPropagation(); return; }
-    if(now - lastClick < 250){ e.preventDefault(); e.stopPropagation(); return; }
-    lastClick=now;
-    btn.dataset.locked='1';
-    btn.style.pointerEvents='none';
-    btn.style.opacity='0.6';
-    setTimeout(()=>{
-      btn.dataset.locked='0';
-      btn.style.pointerEvents='';
-      btn.style.opacity='';
-    }, 350);
-  }, true);
-})();
+function safeSellFast(id){
+  const idx=findIdx(id);
+  if(idx===-1){ showToast('❌ Nenalezeno'); return; }
+  const item=inventory[idx];
+  const price=item.price|0;
+  money+=price;
+  if(typeof item.type==='number') found=Math.max(0,found-1);
+  inventory.splice(idx,1);
+  try{
+    const btn=document.querySelector('[data-sell-min-id="'+id+'"]');
+    if(btn){ const row=btn.closest('.item'); if(row){ row.style.opacity='0'; setTimeout(()=>{ row.remove(); updateBulkCounts(); }, 120); } }
+  }catch(e){}
+  saveGame(); updateHUD();
+  showToast('💰 Prodáno za '+price.toLocaleString('cs-CZ')+' Kč', 2);
+  updateBulkCounts();
+  if(inventory.filter(it=>it && typeof it.type==='number').length===0){
+    setTimeout(()=>renderInventory(), 300);
+  }
+}
+function safePolishFast(id){
+  const idx=findIdx(id);
+  if(idx===-1){ showToast('❌ Nenalezeno'); return; }
+  const item=inventory[idx];
+  if(!item.raw){ showToast('⚠️ Už vybroušený'); return; }
+  const cost=getPolishCost(item)|0;
+  if(money < cost){
+    showToast('💸 Nemáš na výbrus! Potřebuješ '+cost.toLocaleString('cs-CZ')+' Kč, máš '+money.toLocaleString('cs-CZ')+' Kč', 3);
+    return;
+  }
+  money-=cost;
+  const chance=(55 + item.purity*0.60 - (item.cracks||0)*7);
+  let msg='';
+  if(Math.random()*100>chance){
+    item.cracks=(item.cracks||0)+1;
+    item.purity=Math.max(5,item.purity-10-(Math.random()*15|0));
+    if(item.cracks>=3 || Math.random()<0.3){ item.damaged=true; item.price=Math.max(1,item.price*0.3|0); msg='💔 Poškozeno! Cena klesla na '+item.price+' Kč'; }
+    else{ msg='⚠️ Prasklina! ('+item.cracks+'x) Zkus znovu'; }
+  }else{
+    const q=Math.max(15,Math.floor(item.purity*0.78+Math.random()*28));
+    item.raw=false; item.quality=q|0; item.polished=true;
+    item.price=Math.max(item.price*2,(item.price*(2+Math.min(q,100)/48 + Math.max(0,q-100)/120 + item.weight/9))|0);
+    msg='✨ Vybroušeno na '+q+'% | nová cena '+item.price+' Kč';
+  }
+  saveGame(); renderInventory(); updateHUD();
+  showToast(msg, 2.5);
+}
 
-// FIX: uložit před zavřením
-window.addEventListener('beforeunload', ()=>{ try{ saveGame(); }catch(e){} });
-window.addEventListener('pagehide', ()=>{ try{ saveGame(); }catch(e){} });
+function safeSell(id){ safeSellFast(id); }
+function safePolish(id){ safePolishFast(id); }
+
+// BULK - BEZ confirm() které blokuje na mobilu, rovnou prodá + hláška
+function sellAllMinerals(filter){
+  filter=filter||'all';
+  let indices=[];
+  for(let i=inventory.length-1;i>=0;i--){
+    let it=inventory[i];
+    if(!it) continue;
+    if(it.isTool || it.isEquipment || it.isChanger || it.isAuraCapeChanger || it.isSpecialChanger || it.isFeed || it.isEnergyDrink || it.isSuperEnergyDrink || it.isMysteryBox || it.isMysteryAllBox || it.isMysteryFeedBox || it.isMysteryEquipBox || it.isMysteryEquipBoxLegendary || it.isMasterMysteryBox || it.isFireMap || it.isIceMap || it.isVIPItem || it.isForgeParchment) continue;
+    if(typeof it.type!=='number') continue;
+    if(filter==='raw' && !it.raw) continue;
+    if(filter==='polished' && it.raw) continue;
+    indices.push(i);
+  }
+  if(indices.length===0){
+    showToast(filter==='raw' ? '❌ Žádné surové' : filter==='polished' ? '❌ Žádné vybroušené' : '❌ Žádné kameny', 2);
+    return;
+  }
+  let total=0;
+  for(let idx of indices) total+=inventory[idx].price|0;
+  // rovnou prodat - žádné confirm aby to nezamrzalo
+  indices.sort((a,b)=>b-a);
+  for(let idx of indices) inventory.splice(idx,1);
+  money+=total;
+  found=Math.max(0, found-indices.length);
+  saveGame(); renderInventory(); updateHUD();
+  showToast('💰 Prodáno '+indices.length+'x za '+total.toLocaleString('cs-CZ')+' Kč', 3.5);
+}
+function sellAllRaw(){
+  let indices=[];
+  for(let i=0;i<inventory.length;i++){ let it=inventory[i]; if(it && typeof it.type==='number' && it.raw) indices.push(i); }
+  if(indices.length===0){ showToast('❌ Žádné surové kameny', 2); return; }
+  let total=0; for(let idx of indices) total+=inventory[idx].price|0;
+  indices.sort((a,b)=>b-a);
+  for(let idx of indices) inventory.splice(idx,1);
+  money+=total; found=Math.max(0,found-indices.length);
+  saveGame(); renderInventory(); updateHUD();
+  showToast('💰 Prodáno '+indices.length+'x surových za '+total.toLocaleString('cs-CZ')+' Kč', 3.5);
+}
+function sellAllPolished(){
+  let indices=[];
+  for(let i=0;i<inventory.length;i++){ let it=inventory[i]; if(it && typeof it.type==='number' && !it.raw) indices.push(i); }
+  if(indices.length===0){ showToast('❌ Žádné vybroušené kameny', 2); return; }
+  let total=0; for(let idx of indices) total+=inventory[idx].price|0;
+  indices.sort((a,b)=>b-a);
+  for(let idx of indices) inventory.splice(idx,1);
+  money+=total; found=Math.max(0,found-indices.length);
+  saveGame(); renderInventory(); updateHUD();
+  showToast('💰 Prodáno '+indices.length+'x vybroušených za '+total.toLocaleString('cs-CZ')+' Kč', 3.5);
+}
+function polishAllMinerals(){
+  let rawIndices=[];
+  for(let i=0;i<inventory.length;i++){ let it=inventory[i]; if(it && typeof it.type==='number' && it.raw) rawIndices.push(i); }
+  if(rawIndices.length===0){ showToast('❌ Žádné surové k vybroušení', 2); return; }
+  let totalCost=0;
+  for(let idx of rawIndices) totalCost+=getPolishCost(inventory[idx])|0;
+  if(money < totalCost){
+    showToast('💸 Nemáš na hromadný výbrus! Potřebuješ '+totalCost.toLocaleString('cs-CZ')+' Kč, máš '+money.toLocaleString('cs-CZ')+' Kč', 4);
+    return;
+  }
+  let ok=0, crack=0, dmg=0;
+  for(let k=rawIndices.length-1;k>=0;k--){
+    let idx=rawIndices[k];
+    if(idx>=inventory.length) continue;
+    let item=inventory[idx];
+    if(!item || !item.raw) continue;
+    let c=getPolishCost(item)|0;
+    if(money < c) break;
+    money-=c;
+    const chance=(55 + item.purity*0.60 - (item.cracks||0)*7);
+    if(Math.random()*100>chance){
+      item.cracks=(item.cracks||0)+1;
+      item.purity=Math.max(5,item.purity-10-(Math.random()*15|0));
+      if(item.cracks>=3 || Math.random()<0.3){ item.damaged=true; item.price=Math.max(1,item.price*0.3|0); dmg++; }
+      else{ crack++; }
+    }else{
+      const q=Math.max(15,Math.floor(item.purity*0.78+Math.random()*28));
+      item.raw=false; item.quality=q|0; item.polished=true;
+      item.price=Math.max(item.price*2,(item.price*(2+Math.min(q,100)/48 + Math.max(0,q-100)/120 + item.weight/9))|0);
+      ok++;
+    }
+  }
+  saveGame(); renderInventory(); updateHUD();
+  showToast('✨ Výbrus: '+ok+'x ok, '+crack+'x prasklo, '+dmg+'x poškozeno', 4);
+}
+
+function sellAllEquipment(){
+  let indices=[];
+  for(let i=inventory.length-1;i>=0;i--){
+    let it=inventory[i];
+    if(!it || !it.isEquipment) continue;
+    if(it.tier===4) continue; // červené - neprodávat hromadně
+    try{ if(Object.values(equipped).some(eq=>eq && eq.id===it.id)) continue; }catch(e){}
+    indices.push(i);
+  }
+  if(indices.length===0){
+    const hasRed = inventory.some(it=>it && it.isEquipment && it.tier===4);
+    if(hasRed) showToast('❌ Máš jen červené legendární (5x) - ty prodej zvlášť', 3);
+    else showToast('❌ Žádná volná výbava k prodeji', 2);
+    return;
+  }
+  let totalBricks=0;
+  for(let idx of indices){
+    let it=inventory[idx];
+    if(it) totalBricks+=(it.tier+1);
+  }
+  // bez confirm aby nezamrzalo
+  indices.sort((a,b)=>b-a);
+  for(let idx of indices) inventory.splice(idx,1);
+  goldBricks+=totalBricks;
+  saveGame(); renderInventory(); updateHUD();
+  showToast('🧱 Prodáno '+indices.length+'x výbavy za '+totalBricks+' cihel (bílá 1, zelená 2, žlutá 3, oranžová 4)', 4);
+}
+
+
+window.sellAllMinerals=sellAllMinerals;
+window.sellAllRaw=sellAllRaw;
+window.sellAllPolished=sellAllPolished;
+window.polishAllMinerals=polishAllMinerals;
+window.sellAllEquipment=sellAllEquipment;
+window.safeSell=safeSell;
+window.safePolish=safePolish;
+
+function renderInventory(){
+  const now=Date.now();
+  if(_invLock){ _invQueued=true; return; }
+  if(now - _invLast < 80){
+    if(!_invQueued){ _invQueued=true; setTimeout(()=>{ _invQueued=false; renderInventory(); }, 110); }
+    return;
+  }
+  _invLock=true; _invLast=now;
+  try{
+    _origRenderInventory();
+    setTimeout(()=>{
+      try{
+        const list=document.getElementById('inventoryList');
+        if(!list) return;
+        const old=document.getElementById('bulkMineralActions');
+        if(old) old.remove();
+        const mineralCount=inventory.filter(it=>it && typeof it.type==='number').length;
+        const rawCount=inventory.filter(it=>it && typeof it.type==='number' && it.raw).length;
+        const equipCount=inventory.filter(it=>it && it.isEquipment && it.tier!==4).length;
+        const redCount=inventory.filter(it=>it && it.isEquipment && it.tier===4).length;
+        if(mineralCount===0 && equipCount===0) return;
+        const div=document.createElement('div');
+        div.id='bulkMineralActions';
+        div.style.cssText='background:#1e2a1e;border:1px solid #2f4a2f;border-radius:8px;margin:0 0 8px 0;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,0.3)';
+        div.innerHTML=`
+          <div id="bulkToggle" style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;cursor:pointer;user-select:none;background:rgba(255,255,255,0.04)">
+            <div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#9ab09d">
+              <span>⚙️ Hromadné akce</span>
+              <span id="bulkCountText" style="background:#2a3a2a;border:1px solid #3a5a3a;border-radius:10px;padding:1px 6px;font-size:10px;color:#8bc34a">${mineralCount}x kameny${equipCount ? ' + '+equipCount+'x výbava' : ''}${redCount ? ' ('+redCount+'x červená zvlášť)' : ''}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:10px;color:#6a8a6a">rozbalit</span>
+              <span id="bulkArrow" style="font-size:12px;transition:transform 0.2s;display:inline-block">▼</span>
+            </div>
+          </div>
+          <div id="bulkContent" style="display:none;padding:8px;gap:5px;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,0.06);background:rgba(0,0,0,0.15)">
+            <div style="width:100%;display:flex;gap:5px;flex-wrap:wrap">
+              <button data-bulk="raw" class="actionButton" onclick="sellAllRaw()" style="flex:1;min-width:80px;background:#3a3028;border-color:#5a4a3a;color:#d7c4b0;padding:6px;font-size:10px">📦 Surové (${rawCount}x)</button>
+              <button data-bulk="polished" class="actionButton" onclick="sellAllPolished()" style="flex:1;min-width:80px;background:#3a3328;border-color:#5a4d3a;color:#d7c4b0;padding:6px;font-size:10px">💎 Vybroušené (${mineralCount-rawCount}x)</button>
+              <button data-bulk="all" class="actionButton" onclick="sellAllMinerals('all')" style="flex:1;min-width:80px;background:#3d2e22;border-color:#6b4a2a;color:#d7b07a;padding:6px;font-size:10px;font-weight:800">Prodat kameny (${mineralCount}x)</button>
+            </div>
+            <div style="width:100%;display:flex;gap:5px;flex-wrap:wrap;margin-top:5px">
+              <button data-bulk="polishAll" class="actionButton polishButton" onclick="polishAllMinerals()" style="flex:1;background:#2a344a;border-color:#4a5a7a;color:#a8c0e0;padding:6px;font-size:10px">✨ Vybrousit vše (${rawCount}x)</button>
+              ${equipCount>0 ? `<button data-bulk="equip" class="actionButton" onclick="sellAllEquipment()" style="flex:1;background:#3d2e1a;border-color:#8d6e30;color:#ffd54f;padding:6px;font-size:10px">💲 Výbavu za cihly (${equipCount}x)</button>` : ''}
+            </div>
+          </div>
+        `;
+        list.prepend(div);
+        const toggle=document.getElementById('bulkToggle');
+        const content=document.getElementById('bulkContent');
+        const arrow=document.getElementById('bulkArrow');
+        if(toggle && content){
+          let isOpen=localStorage.getItem('bulkOpen')==='1';
+          if(isOpen){ content.style.display='flex'; arrow.style.transform='rotate(180deg)'; }
+          toggle.onclick=()=>{
+            const open=content.style.display!=='none';
+            if(open){ content.style.display='none'; arrow.style.transform='rotate(0deg)'; localStorage.setItem('bulkOpen','0'); }
+            else{ content.style.display='flex'; arrow.style.transform='rotate(180deg)'; localStorage.setItem('bulkOpen','1'); }
+          };
+        }
+      }catch(e){ console.error(e); }
+    }, 30);
+  }catch(e){ console.error(e); try{ _origRenderInventory(); }catch(e2){} }
+  finally{ _invLock=false; if(_invQueued){ _invQueued=false; requestAnimationFrame(()=>renderInventory()); } }
+}
+
+(function(){
+  window.addEventListener('beforeunload', ()=>{ try{ saveGame(); }catch(e){} });
+  window.addEventListener('pagehide', ()=>{ try{ saveGame(); }catch(e){} });
+})();
 
 
 
