@@ -7735,6 +7735,8 @@ async function handleNickEntry(raw){
     localStorage.setItem("mineralHunterLastNick", nick);
     document.getElementById("nickPanel").classList.remove("open");
     showToast("🔰 Vítej "+nick+"!",2);
+    // Vyzvedni nevybrané odměny za eventy i po odhlášení
+    setTimeout(()=>{ try{ claimPendingEventRewards(); claimPendingWeeklyRewards(); checkWeeklyTournamentEnd(); }catch(e){} }, 2000);
     let remote=null;
     try{ remote=await loadPlayerFromFirebase(nick); }catch(e){}
     if(remote && remote.saveData){
@@ -8066,19 +8068,181 @@ function addRewardItem(rewardKey, count){
 }
 function giveEventRewards(eventDef, leaderboard){
   if(!leaderboard || leaderboard.length===0) return;
+  console.log("🏆 Rozdávám odměny za event", eventDef.name, leaderboard.slice(0,3));
   leaderboard.slice(0,3).forEach((entry, idx)=>{
     let keys = eventDef.rewardKeys[idx];
     if(!keys) return;
-    if(entry.nick===currentNick){ keys.forEach(k=>{ addRewardItem(k,1); }); showToast(`🏆 Event ${eventDef.name} - ${idx+1}. místo!`,4); }
+    // Vždy ulož do Firebase jako nevybranou odměnu
     try{
       if(typeof db!=='undefined' && db){
         let weekly = getWeeklyPeriod(); let points = idx===0?3:idx===1?2:1;
         db.ref(`weeklyScores/${weekly.weekId}/${entry.nick}`).transaction(cur=>{ return (cur||0)+points; });
-        db.ref(`eventRewards/${entry.nick}/${Date.now()}`).set({event:eventDef.id, place:idx+1, rewards:keys, timestamp:Date.now()});
+        // Ulož odměnu jako nevybranou
+        let rewardId = Date.now() + '_' + idx + '_' + entry.nick;
+        db.ref(`eventRewards/${entry.nick}/${rewardId}`).set({event:eventDef.id, eventName:eventDef.name, place:idx+1, rewards:keys, timestamp:Date.now(), claimed:false});
+        // Taky ulož do pending pro offline režim
+        db.ref(`pendingRewards/${entry.nick}/${rewardId}`).set({type:'event', event:eventDef.id, eventName:eventDef.name, place:idx+1, rewards:keys, timestamp:Date.now()});
+      } else {
+        // Fallback localStorage když není Firebase
+        let pending = JSON.parse(localStorage.getItem('pendingEventRewards')||'[]');
+        pending.push({nick:entry.nick, event:eventDef.id, eventName:eventDef.name, place:idx+1, rewards:keys, timestamp:Date.now()});
+        localStorage.setItem('pendingEventRewards', JSON.stringify(pending));
+      }
+    }catch(e){ console.error("Reward save error", e); }
+    // Pokud je to aktuální hráč, dej hned
+    if(entry.nick===currentNick){
+      keys.forEach(k=>{ addRewardItem(k,1); });
+      showToast(`🏆 Event ${eventDef.name} - ${idx+1}. místo! Odměna v batohu!`,5);
+      // Označ jako vybranou v Firebase
+      try{
+        if(typeof db!=='undefined' && db){
+          setTimeout(()=>{
+            db.ref(`eventRewards/${entry.nick}`).once('value').then(snap=>{
+              snap.forEach(ch=>{
+                let v=ch.val();
+                if(v && v.event===eventDef.id && !v.claimed && Math.abs(v.timestamp - Date.now()) < 60000){
+                  db.ref(`eventRewards/${entry.nick}/${ch.key}`).update({claimed:true});
+                }
+              });
+            });
+          }, 1000);
+        }
+      }catch(e){}
+    }
+  });
+  // Vždy ulož i pro aktuálního hráče do pending kdyby se odhlásil
+  saveGame();
+}
+
+// === NOVÝ SYSTÉM VYZVEDÁVÁNÍ ODMĚN I PO ODHLÁŠENÍ ===
+function claimPendingEventRewards(){
+  if(!currentNick) return;
+  try{
+    if(typeof db!=='undefined' && db){
+      db.ref(`eventRewards/${currentNick}`).once('value').then(snap=>{
+        let claimedCount=0;
+        snap.forEach(ch=>{
+          let data=ch.val();
+          if(!data) return;
+          if(data.claimed) return; // už vybrané
+          // Dej odměny
+          if(data.rewards && Array.isArray(data.rewards)){
+            data.rewards.forEach(k=>{ addRewardItem(k,1); });
+            claimedCount++;
+            showToast(`🎁 Vyzvednuta odměna za ${data.eventName||data.event} - ${data.place}. místo!`,4);
+          }
+          // Označ jako vybranou
+          db.ref(`eventRewards/${currentNick}/${ch.key}`).update({claimed:true, claimedAt:Date.now()});
+        });
+        if(claimedCount>0){
+          showToast(`🏆 Vyzvednuto ${claimedCount}x odměn za eventy!`,4);
+          saveGame(); renderInventory(); updateHUD();
+        }
+      });
+      // Taky pendingRewards
+      db.ref(`pendingRewards/${currentNick}`).once('value').then(snap=>{
+        snap.forEach(ch=>{
+          let data=ch.val();
+          if(data && data.rewards){
+            data.rewards.forEach(k=>{ addRewardItem(k,1); });
+            showToast(`🎁 Vyzvednuta odměna: ${data.eventName}`,3);
+          }
+          db.ref(`pendingRewards/${currentNick}/${ch.key}`).remove();
+        });
+      });
+    }
+    // LocalStorage fallback
+    let pending = JSON.parse(localStorage.getItem('pendingEventRewards')||'[]');
+    let myPending = pending.filter(p=>p.nick===currentNick);
+    if(myPending.length>0){
+      myPending.forEach(p=>{
+        p.rewards.forEach(k=>{ addRewardItem(k,1); });
+        showToast(`🎁 Vyzvednuta offline odměna za ${p.eventName} - ${p.place}. místo!`,4);
+      });
+      let remaining = pending.filter(p=>p.nick!==currentNick);
+      localStorage.setItem('pendingEventRewards', JSON.stringify(remaining));
+      saveGame();
+    }
+  }catch(e){ console.error("Claim error", e); }
+}
+
+function giveWeeklyRewards(leaderboard, weekId){
+  if(!leaderboard || leaderboard.length===0) return;
+  console.log("🏆 Týdenní odměny", leaderboard.slice(0,3));
+  // Odměny podle popisu: 5x Master, 5x Leg, 5x Mystery
+  let weeklyRewardSets = [
+    ['master','master','master','master','master'], // 1. místo 5x Master
+    ['mystery_equip_leg','mystery_equip_leg','mystery_equip_leg','mystery_equip_leg','mystery_equip_leg'], // 2. místo 5x Leg
+    ['mystery','mystery','mystery','mystery','mystery'] // 3. místo 5x Mystery
+  ];
+  leaderboard.slice(0,3).forEach((entry, idx)=>{
+    let keys = weeklyRewardSets[idx];
+    if(!keys) return;
+    try{
+      if(typeof db!=='undefined' && db){
+        let rewardId = 'weekly_' + weekId + '_' + idx + '_' + entry.nick;
+        db.ref(`weeklyRewards/${entry.nick}/${rewardId}`).set({weekId:weekId, place:idx+1, rewards:keys, timestamp:Date.now(), claimed:false});
+        db.ref(`pendingRewards/${entry.nick}/${rewardId}`).set({type:'weekly', weekId:weekId, place:idx+1, rewards:keys, timestamp:Date.now()});
       }
     }catch(e){}
+    if(entry.nick===currentNick){
+      keys.forEach(k=>{ addRewardItem(k,1); });
+      showToast(`🏆 Týdenní turnaj - ${idx+1}. místo! 5x odměna!`,5);
+    }
   });
 }
+
+function claimPendingWeeklyRewards(){
+  if(!currentNick) return;
+  try{
+    if(typeof db!=='undefined' && db){
+      db.ref(`weeklyRewards/${currentNick}`).once('value').then(snap=>{
+        let count=0;
+        snap.forEach(ch=>{
+          let data=ch.val();
+          if(!data || data.claimed) return;
+          if(data.rewards){
+            data.rewards.forEach(k=>{ addRewardItem(k,1); });
+            count++;
+            showToast(`🏆 Týdenní liga - ${data.place}. místo - 5x odměna vyzvednuta!`,4);
+          }
+          db.ref(`weeklyRewards/${currentNick}/${ch.key}`).update({claimed:true, claimedAt:Date.now()});
+        });
+        if(count>0){ saveGame(); renderInventory(); updateHUD(); }
+      });
+    }
+  }catch(e){}
+}
+
+function checkWeeklyTournamentEnd(){
+  try{
+    let wp=getWeeklyPeriod();
+    let now=new Date();
+    // Zkontroluj jestli skončil týden (je po konci)
+    // Uložíme poslední zkontrolovaný týden
+    let lastCheckedWeek = localStorage.getItem('lastWeeklyCheck');
+    let currentWeekId = wp.weekId;
+    // Pokud je teď po konci týdne a ještě jsme nerozdali odměny
+    // Pro zjednodušení: když je sobota 21:00+ a týden se změnil, rozdej odměny za minulý týden
+    // Tohle by měl dělat server, ale pro teď client-side
+    if(typeof db!=='undefined' && db){
+      // Zkus načíst minulý týden
+      let lastWeekKey = localStorage.getItem('lastWeekId');
+      if(lastWeekKey && lastWeekKey!==currentWeekId){
+        // Minulý týden skončil, rozdej odměny
+        db.ref(`weeklyScores/${lastWeekKey}`).once('value').then(snap=>{
+          let arr=[]; snap.forEach(ch=>{ arr.push({nick:ch.key, score:ch.val()||0}); }); arr.sort((a,b)=>b.score-a.score);
+          if(arr.length>0){
+            giveWeeklyRewards(arr, lastWeekKey);
+            showToast("🏆 Týdenní turnaj ukončen - odměny rozdány!",5);
+          }
+        });
+      }
+      localStorage.setItem('lastWeekId', currentWeekId);
+    }
+  }catch(e){ console.error(e); }
+}
+
 function incrementEventScore(amount){
   if(!activeEventData) return;
   amount=amount||1; myEventScore+=amount;
@@ -8329,6 +8493,9 @@ function closeEventPanel(){
 setInterval(checkEventSchedule, 1000);
 setTimeout(checkEventSchedule, 1500);
 setInterval(()=>{ if(document.getElementById('eventPanel')?.classList.contains('open')) renderEventPanel(); }, 1000);
+setInterval(()=>{ try{ checkWeeklyTournamentEnd(); }catch(e){} }, 60000); // kontrola týdne každou minutu
+setInterval(()=>{ try{ if(currentNick) { claimPendingEventRewards(); claimPendingWeeklyRewards(); } }catch(e){} }, 30000); // kontrola odměn každých 30s
+
 
 window.openEventPanel = openEventPanel;
 window.closeEventPanel = closeEventPanel;
@@ -8340,6 +8507,10 @@ window.onEventGoldBrickFound = onEventGoldBrickFound;
 window.onEventMysteryEquipFound = onEventMysteryEquipFound;
 window.onEventEquipFound = onEventEquipFound;
 window.onEventFeedFound = onEventFeedFound;
+window.claimPendingEventRewards = claimPendingEventRewards;
+window.claimPendingWeeklyRewards = claimPendingWeeklyRewards;
+window.giveWeeklyRewards = giveWeeklyRewards;
+window.checkWeeklyTournamentEnd = checkWeeklyTournamentEnd;
 </script>
 
 <script>
