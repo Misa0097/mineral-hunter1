@@ -6304,7 +6304,7 @@ function loadGame(){
      inventory.length=0;
      s.inventory.forEach(it=>{
        // FIX: rozsireny whitelist - aby nemizely cihly, mystery boxy, atd po odhlaseni
-       if(it && (typeof it.type==="number" || it.isTool || it.isEquipment || it.isChanger || it.isAuraCapeChanger || it.isSpecialChanger || it.isFeed || it.isFireMap || it.isIceMap || it.isVIPItem || it.isEnergyDrink || it.isSuperEnergyDrink || it.isMysteryFeedBox || it.isMysteryBox || it.isCape || it.isAura || it.isBlueAura || it.isPinkAura || it.isVoidAura || it.isElectricAura || it.isForgeParchment)){
+       if(it && (typeof it.type==="number" || it.isTool || it.isEquipment || it.isChanger || it.isAuraCapeChanger || it.isSpecialChanger || it.isFeed || it.isFireMap || it.isIceMap || it.isVIPItem || it.isEnergyDrink || it.isSuperEnergyDrink || it.isMysteryFeedBox || it.isMysteryBox || it.isMysteryAllBox || it.isMysteryEquipBox || it.isMysteryEquipBoxLegendary || it.isMasterMysteryBox || it.isMysteryBoxAll || it.isMysteryAll || it.isCape || it.isAura || it.isBlueAura || it.isPinkAura || it.isVoidAura || it.isElectricAura || it.isForgeParchment || it.isGoldenAura)){
          if(!it.id) it.id=nextToolId();
          inventory.push(it);
        } else if(it && it.id){
@@ -7747,10 +7747,20 @@ function applySaveData(save){
     if(!save) return;
     money=save.money??money;
     found=save.found??found;
+    if(save.goldBricks!==undefined) goldBricks=save.goldBricks??goldBricks;
     if(save.vipEndTime!==undefined) vipEndTime=save.vipEndTime;
     if(Array.isArray(save.inventory)){
       inventory.length=0;
-      save.inventory.forEach(it=>{ if(it && (typeof it.type==="number" || it.isTool || it.isEquipment || it.isChanger || it.isAuraCapeChanger || it.isSpecialChanger || it.isFeed || it.isFireMap || it.isIceMap || it.isVIPItem || it.isEnergyDrink || it.isSuperEnergyDrink)){ if(!it.id) it.id=nextToolId(); inventory.push(it); } });
+      save.inventory.forEach(it=>{ 
+        if(!it) return;
+        // FIX: whitelist musí obsahovat všechny Mystery Boxy a odměny z eventů
+        if(it && (typeof it.type==="number" || it.isTool || it.isEquipment || it.isChanger || it.isAuraCapeChanger || it.isSpecialChanger || it.isFeed || it.isFireMap || it.isIceMap || it.isVIPItem || it.isEnergyDrink || it.isSuperEnergyDrink || it.isMysteryBox || it.isMysteryAllBox || it.isMysteryFeedBox || it.isMysteryEquipBox || it.isMysteryEquipBoxLegendary || it.isMasterMysteryBox || it.isMysteryBoxAll || it.isMysteryAll || it.isCape || it.isAura || it.isBlueAura || it.isPinkAura || it.isVoidAura || it.isElectricAura || it.isForgeParchment || it.isGoldenAura)){
+          if(!it.id) it.id=nextToolId(); inventory.push(it);
+        } else if(it.id){
+          // Fallback - cokoliv s ID zachovej (ochrana proti ztrátě)
+          if(!it.id) it.id=nextToolId(); inventory.push(it);
+        }
+      });
     }
     if(Array.isArray(save.petsOwned)) petsOwned=save.petsOwned;
     if(save.activePetId) activePetId=save.activePetId;
