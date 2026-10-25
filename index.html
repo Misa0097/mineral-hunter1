@@ -7041,12 +7041,13 @@ function setupMultiplayerPresence(){
               isPink: !!equipped.aura.isPinkAura,
               isVoid: !!equipped.aura.isVoidAura,
               isElectric: !!equipped.aura.isElectricAura,
-              isGolden: !equipped.aura.isBlueAura && !equipped.aura.isPinkAura && !equipped.aura.isVoidAura && !equipped.aura.isElectricAura,
+              isGolden: !!equipped.aura.isGoldenAura || (!equipped.aura.isBlueAura && !equipped.aura.isPinkAura && !equipped.aura.isVoidAura && !equipped.aura.isElectricAura),
               name: equipped.aura.name,
-              auraId: equipped.aura.auraId || (equipped.aura.isBlueAura ? 'blue' : 'golden')
+              auraId: equipped.aura.auraId || (equipped.aura.isBlueAura ? 'blue' : equipped.aura.isPinkAura ? 'pink' : equipped.aura.isVoidAura ? 'void' : equipped.aura.isElectricAura ? 'electric' : 'golden'),
+              level: equipped.aura.level||1
             };
           }
-        }catch(e){}
+        }catch(e){ console.error("auraData setup", e); }
         let capeData = null;
         try{
           if(equipped && equipped.cape && equipped.cape.capeId){
@@ -7168,7 +7169,7 @@ function drawOtherPlayers(cam){
           }
         }
       }catch(e){}
-      // === AURY V MULTIPLAYERU - VŠECHNY TYPY ===
+      // === AURY V MULTIPLAYERU - VŠECHNY TYPY + FALLBACK ===
       try{
         if(op.aura){
           let auraImg = null;
@@ -7177,6 +7178,7 @@ function drawOtherPlayers(cam){
           let isPink = op.aura.isPink;
           let isVoid = op.aura.isVoid;
           let isElectric = op.aura.isElectric;
+          let isGolden = op.aura.isGolden;
           if(isBlue){
             try{ preloadBlueAuraImages(); auraImg = getBlueAuraFrame(); shadowColor = "#00BFFF"; }catch(e){}
           } else if(isPink){
@@ -7188,28 +7190,40 @@ function drawOtherPlayers(cam){
           } else {
             try{ preloadAuraImages(); auraImg = getAuraFrame(); shadowColor = "#FF4500"; }catch(e){}
           }
-          if(auraImg && auraImg.complete){
-            let auraSize = 96 + Math.sin(Date.now()*0.005)*4;
-            let auraW = auraSize;
-            // ohnivá a modrá mají být kruh
-            if(isBlue || (!isPink && !isVoid && !isElectric)){
-              auraW = auraSize;
-            }
+          let auraSize = 96 + Math.sin(Date.now()*0.005)*4;
+          if(auraImg && auraImg.complete && auraImg.naturalWidth>0){
             ctx.save();
-            ctx.globalAlpha = 0.75;
+            ctx.globalAlpha = 0.78;
             ctx.shadowColor = shadowColor;
-            ctx.shadowBlur = 12;
-            ctx.drawImage(auraImg, sx - auraW/2, sy - auraSize/2 + 8 + bob*0.5, auraW, auraSize);
+            ctx.shadowBlur = 14;
+            ctx.drawImage(auraImg, sx - auraSize/2, sy - auraSize/2 + 8 + bob*0.5, auraSize, auraSize);
+            ctx.restore();
+          } else {
+            // Fallback - barevný glow když se nenačte obrázek
+            ctx.save();
+            ctx.globalCompositeOperation='lighter';
+            ctx.shadowColor = shadowColor;
+            ctx.shadowBlur = 20;
+            ctx.globalAlpha = 0.5 + Math.sin(Date.now()*0.004)*0.1;
+            ctx.fillStyle = shadowColor;
+            ctx.beginPath();
+            ctx.arc(sx, sy+4+bob*0.5, auraSize/2.2, 0, Math.PI*2);
+            ctx.fill();
+            ctx.fillStyle = shadowColor + '66';
+            ctx.beginPath();
+            ctx.arc(sx, sy+4+bob*0.5, auraSize/1.5, 0, Math.PI*2);
+            ctx.fill();
             ctx.restore();
           }
         }
-      }catch(e){}
-      // === PLÁŠTĚ V MULTIPLAYERU ===
+      }catch(e){ console.error("aura multiplayer", e); }
+      // === PLÁŠTĚ V MULTIPLAYERU - OPRAVENO ===
       try{
         if(op.cape && op.cape.capeId){
-          preloadCapeImages();
-          let capeImg = getCapeImage(op.cape.capeId);
-          if(capeImg && capeImg.complete){
+          try{ if(typeof preloadCapeImages==='function') preloadCapeImages(); }catch(e){}
+          let capeImg = null;
+          try{ capeImg = getCapeImage(op.cape.capeId); }catch(e){}
+          if(capeImg && capeImg.complete && capeImg.naturalWidth>0){
             let capeW = 38;
             let capeH = 44;
             let baseX = sx;
@@ -7223,9 +7237,16 @@ function drawOtherPlayers(cam){
             ctx.arc(0, -9, 2.2, 0, Math.PI*2);
             ctx.fill();
             ctx.restore();
+          } else {
+            // Fallback obrys pláště
+            ctx.save();
+            ctx.globalAlpha = 0.7;
+            ctx.fillStyle = "#444";
+            ctx.fillRect(sx-14, sy-12+bob*0.3, 28, 32);
+            ctx.restore();
           }
         }
-      }catch(e){}
+      }catch(e){ console.error("cape multiplayer", e); }
       // Pokud kope, ikona
       
       
@@ -8030,16 +8051,21 @@ function formatFull(date){ return date.toLocaleDateString('cs-CZ')+" "+formatClo
 function sendSystemChat(msg, isEvent){ try{ if(typeof db!=='undefined' && db){ db.ref("chat").push({nick:"Game", message:msg, timestamp:Date.now(), type:isEvent?"event":"system"}); } }catch(e){} }
 function getWeeklyPeriod(){
   let now=new Date();
-  let today2100=new Date(now); today2100.setHours(21,0,0,0);
-  let start = new Date(today2100);
+  // Najdi poslední sobotu 21:00 jako start týdne
+  let start = new Date(now);
+  start.setHours(21,0,0,0);
+  let day = start.getDay(); // 0=Ne, 6=So
+  // Kolik dní zpět do minulé soboty?
+  let daysSinceSat = (day - 6 + 7) % 7;
+  // Pokud je dnes sobota a ještě není 21:00, vezmi minulou sobotu
+  if(day===6 && now.getHours()<21){
+    daysSinceSat = 7;
+  }
+  start.setDate(start.getDate() - daysSinceSat);
+  // Konec je příští sobota 21:00
   let end = new Date(start);
-  let day = end.getDay();
-  let daysToSat = (6 - day + 7) % 7;
-  if(daysToSat===0){ daysToSat=7; }
-  end.setDate(start.getDate()+daysToSat);
-  end.setHours(21,0,0,0);
-  if(end <= start) end.setDate(end.getDate()+7);
-  let weekId = start.getFullYear()+"-"+String(start.getMonth()+1).padStart(2,'0')+"-"+String(start.getDate()).padStart(2,'0');
+  end.setDate(end.getDate() + 7);
+  let weekId = start.getFullYear()+"-"+String(start.getMonth()+1).padStart(2,'0')+"-"+String(start.getDate()).padStart(2,'0')+"_SAT21";
   return {start, end, weekId};
 }
 function addRewardItem(rewardKey, count){
@@ -8088,45 +8114,36 @@ function giveEventRewards(eventDef, leaderboard){
   leaderboard.slice(0,3).forEach((entry, idx)=>{
     let keys = eventDef.rewardKeys[idx];
     if(!keys) return;
-    // Vždy ulož do Firebase jako nevybranou odměnu
+    let points = idx===0?3:idx===1?2:1;
     try{
       if(typeof db!=='undefined' && db){
-        let weekly = getWeeklyPeriod(); let points = idx===0?3:idx===1?2:1;
+        let weekly = getWeeklyPeriod();
         db.ref(`weeklyScores/${weekly.weekId}/${entry.nick}`).transaction(cur=>{ return (cur||0)+points; });
-        // Ulož odměnu jako nevybranou
+        // Ulož odměnu
         let rewardId = Date.now() + '_' + idx + '_' + entry.nick;
-        db.ref(`eventRewards/${entry.nick}/${rewardId}`).set({event:eventDef.id, eventName:eventDef.name, place:idx+1, rewards:keys, timestamp:Date.now(), claimed:false});
-        // Taky ulož do pending pro offline režim
-        db.ref(`pendingRewards/${entry.nick}/${rewardId}`).set({type:'event', event:eventDef.id, eventName:eventDef.name, place:idx+1, rewards:keys, timestamp:Date.now()});
+        if(entry.nick===currentNick){
+          // Pro aktuálního hráče - hned dej a označ jako vybranou
+          keys.forEach(k=>{ addRewardItem(k,1); });
+          showToast(`🏆 Event ${eventDef.name} - ${idx+1}. místo!`,5);
+          db.ref(`eventRewards/${entry.nick}/${rewardId}`).set({event:eventDef.id, eventName:eventDef.name, place:idx+1, rewards:keys, timestamp:Date.now(), claimed:true, claimedAt:Date.now()});
+        } else {
+          // Pro offline hráče - nevybraná
+          db.ref(`eventRewards/${entry.nick}/${rewardId}`).set({event:eventDef.id, eventName:eventDef.name, place:idx+1, rewards:keys, timestamp:Date.now(), claimed:false});
+          db.ref(`pendingRewards/${entry.nick}/${rewardId}`).set({type:'event', event:eventDef.id, eventName:eventDef.name, place:idx+1, rewards:keys, timestamp:Date.now()});
+        }
       } else {
-        // Fallback localStorage když není Firebase
-        let pending = JSON.parse(localStorage.getItem('pendingEventRewards')||'[]');
-        pending.push({nick:entry.nick, event:eventDef.id, eventName:eventDef.name, place:idx+1, rewards:keys, timestamp:Date.now()});
-        localStorage.setItem('pendingEventRewards', JSON.stringify(pending));
+        // Bez Firebase - jen aktuálnímu hráči
+        if(entry.nick===currentNick){
+          keys.forEach(k=>{ addRewardItem(k,1); });
+          showToast(`🏆 Event ${eventDef.name} - ${idx+1}. místo! Odměna v batohu!`,5);
+        } else {
+          let pending = JSON.parse(localStorage.getItem('pendingEventRewards')||'[]');
+          pending.push({nick:entry.nick, event:eventDef.id, eventName:eventDef.name, place:idx+1, rewards:keys, timestamp:Date.now()});
+          localStorage.setItem('pendingEventRewards', JSON.stringify(pending));
+        }
       }
     }catch(e){ console.error("Reward save error", e); }
-    // Pokud je to aktuální hráč, dej hned
-    if(entry.nick===currentNick){
-      keys.forEach(k=>{ addRewardItem(k,1); });
-      showToast(`🏆 Event ${eventDef.name} - ${idx+1}. místo! Odměna v batohu!`,5);
-      // Označ jako vybranou v Firebase
-      try{
-        if(typeof db!=='undefined' && db){
-          setTimeout(()=>{
-            db.ref(`eventRewards/${entry.nick}`).once('value').then(snap=>{
-              snap.forEach(ch=>{
-                let v=ch.val();
-                if(v && v.event===eventDef.id && !v.claimed && Math.abs(v.timestamp - Date.now()) < 60000){
-                  db.ref(`eventRewards/${entry.nick}/${ch.key}`).update({claimed:true});
-                }
-              });
-            });
-          }, 1000);
-        }
-      }catch(e){}
-    }
   });
-  // Vždy ulož i pro aktuálního hráče do pending kdyby se odhlásil
   saveGame();
 }
 
@@ -8286,6 +8303,39 @@ function fetchWeeklyLeaderboard(cb){
     }else cb([], wp);
   }catch(e){ cb([], getWeeklyPeriod()); }
 }
+function openWeeklyDetail(){
+  let weekly=getWeeklyPeriod();
+  fetchWeeklyLeaderboard((arr)=>{
+    let div=document.getElementById('eventSelectedDetail');
+    if(!div) return;
+    let remainW = weekly.end - new Date();
+    let days=Math.floor(remainW/(24*3600*1000));
+    let hours=Math.floor((remainW%(24*3600*1000))/3600000);
+    let html=`<div class="eventDetail" style="border-left:4px solid #ffd700">
+      <div style="font-size:16px;font-weight:900;color:#ffd700">🏆 Týdenní liga - detail</div>
+      <div style="color:#ffeb3b;margin-top:4px">⏰ ${formatFull(weekly.start)} - ${formatFull(weekly.end)} | Zbývá ${days}d ${hours}h</div>
+      <div style="font-size:12px;color:#ddd;margin-top:8px">Body získáš za umístění v eventech: 1. místo = 3 body, 2. místo = 2 body, 3. místo = 1 bod<br>Odměny na konci týdne (So 21:00):<br>
+      <b style="color:#ffd700">1. místo: 5x Master Mystery Box</b><br>
+      <b style="color:#ab47bc">2. místo: 5x Mystery Box legendární</b><br>
+      <b style="color:#29b6f6">3. místo: 5x Mystery Box</b></div>
+      <div style="margin-top:10px"><button onclick="clearSelectedEvent()" style="background:#333;border:1px solid #555;color:#aaa;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:11px">✕ Zavřít detail</button></div>
+      <div style="margin-top:12px"><h3 style="margin:10px 0 6px;font-size:13px;color:#fff">🏆 Žebříček týdenní ligy</h3>`;
+    if(arr.length===0) html+='<div>Zatím žádné body</div>';
+    else arr.forEach((e,i)=>{
+      let isMe=e.nick===currentNick;
+      let medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}.`;
+      html+=`<div class="eventLeaderRow" style="${isMe?'border:1px solid #4caf50;background:#1a2e1a':''}"><div>${medal} ${e.nick} ${isMe?'(TY)':''}</div><div style="font-weight:900;color:#ffd700">${e.score} bodů</div></div>`;
+    });
+    html+='</div></div>';
+    div.innerHTML=html;
+    // Skryj rozvrh když je detail otevřen
+    let listDiv=document.getElementById('eventList');
+    if(listDiv) listDiv.innerHTML='<div style="font-size:11px;color:#aaa;text-align:center;padding:10px">Detail týdenní ligy otevřen nahoře - zavři detail pro zobrazení rozvrhu</div>';
+    let weeklyLeadDiv=document.getElementById('weeklyLeaderboard');
+    if(weeklyLeadDiv) weeklyLeadDiv.innerHTML='';
+  });
+}
+
 let selectedEventHour = null;
 function selectEvent(idx, hour){
   selectedEventDef = EVENT_DEFS[idx];
@@ -8422,14 +8472,22 @@ function renderEventPanel(){
     let remainW = weekly.end - now;
     let days=Math.floor(remainW/(24*3600*1000));
     let hours=Math.floor((remainW%(24*3600*1000))/3600000);
-    weeklyInfoDiv.innerHTML=`<b style="color:#ffd700">Od ${formatFull(weekly.start)} do ${formatFull(weekly.end)}</b><br>Zbývá: ${days}d ${hours}h | Body: 3/2/1 | Odměny: 5x Master, 5x Leg, 5x Mystery`;
+    let minutes=Math.floor((remainW%(3600000))/60000);
+    weeklyInfoDiv.innerHTML=`<div style="cursor:pointer" onclick="openWeeklyDetail()"><b style="color:#ffd700">Od ${formatFull(weekly.start)} do ${formatFull(weekly.end)}</b><br>Zbývá: ${days}d ${hours}h ${minutes}m | Body: 3/2/1 | Odměny: 5x Master, 5x Leg, 5x Mystery<br><span style="color:#4caf50;font-size:10px">👉 Klikni pro detail žebříčku + odměny</span></div>`;
   }
   if(weeklyLeadDiv && !selectedEventDef){
     weeklyLeadDiv.innerHTML='<div style="font-size:11px;color:#aaa">Načítám týdenní ligu...</div>';
     fetchWeeklyLeaderboard((arr)=>{
-      let wh='<h4 style="margin:6px 0;color:#ffd700">🏆 Týdenní liga</h4>';
-      if(arr.length===0) wh+='<div>Zatím žádné body</div>';
-      else arr.slice(0,20).forEach((e,i)=>{ wh+=`<div class="eventLeaderRow"><div>${i+1}. ${e.nick}</div><div style="font-weight:900;color:#ffd700">${e.score} bodů</div></div>`; });
+      let wh='<div style="cursor:pointer" onclick="openWeeklyDetail()"><h4 style="margin:6px 0;color:#ffd700">🏆 Týdenní liga (klikni pro detail)</h4>';
+      if(arr.length===0) wh+='<div>Zatím žádné body - vyhraj eventy!</div>';
+      else {
+        arr.slice(0,10).forEach((e,i)=>{ 
+          let isMe=e.nick===currentNick;
+          wh+=`<div class="eventLeaderRow" style="${isMe?'border:1px solid #4caf50;background:#1a2e1a':''}"><div>${i+1}. ${e.nick} ${isMe?'(TY)':''}</div><div style="font-weight:900;color:#ffd700">${e.score} bodů</div></div>`; 
+        });
+        if(arr.length>10) wh+=`<div style="font-size:10px;color:#aaa;text-align:center;margin-top:4px">...a dalších ${arr.length-10} hráčů - klikni pro celý žebříček</div>`;
+      }
+      wh+='</div>';
       weeklyLeadDiv.innerHTML=wh;
     });
   }
@@ -8517,6 +8575,7 @@ window.openEventPanel = openEventPanel;
 window.closeEventPanel = closeEventPanel;
 window.selectEvent = selectEvent;
 window.clearSelectedEvent = clearSelectedEvent;
+window.openWeeklyDetail = openWeeklyDetail;
 window.teleportToEventMap = teleportToEventMap;
 window.onEventMineralFound = onEventMineralFound;
 window.onEventGoldBrickFound = onEventGoldBrickFound;
