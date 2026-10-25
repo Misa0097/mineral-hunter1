@@ -6788,18 +6788,18 @@ function drawPlayer(){
   const sy = player.y - cam.y;
   const bob = Math.sin(player.walkTime)*0.6;
 
-  // === AURY - vykreslení kolem hráče (Ohnivá i Modrý Plamen) ===
-    // === AURY - vykreslení kolem hráče (Ohnivá, Ledová i Třpytivá) - TŘPYTIVÁ STOUPÁ NAHORU ===
-    // === AURY - 5 AUR (Ohnivá, Ledová, Třpytivá, Temná, Bouřná) ===
-  try{
-    if(equipped && equipped.aura){
-      let isBlue = equipped.aura.isBlueAura;
-      let isPink = equipped.aura.isPinkAura;
-      let isVoid = equipped.aura.isVoidAura;
-      let isElectric = equipped.aura.isElectricAura;
+  // === AURY - vykreslení kolem hráče (5 typů) - SPOLEČNÁ FUNKCE PRO MULTIPLAYER ===
+  function renderAuraAt(sx, sy, bob, auraFlags){
+    try{
+      let isBlue = auraFlags.isBlue || auraFlags.isBlueAura;
+      let isPink = auraFlags.isPink || auraFlags.isPinkAura;
+      let isVoid = auraFlags.isVoid || auraFlags.isVoidAura;
+      let isElectric = auraFlags.isElectric || auraFlags.isElectricAura;
+      let isGolden = !isBlue && !isPink && !isVoid && !isElectric;
       if(isVoid){
-        preloadVoidAuraImages(); let auraImg=getVoidAuraFrame();
-        if(auraImg && auraImg.complete){
+        try{ if(typeof preloadVoidAuraImages==='function') preloadVoidAuraImages(); }catch(e){}
+        let auraImg=null; try{ auraImg=getVoidAuraFrame(); }catch(e){}
+        if(auraImg && auraImg.complete && auraImg.naturalWidth>0){
           let baseSize=78+Math.sin(Date.now()*0.002)*1.2; let auraW=baseSize*0.62; let yOffset=-12;
           ctx.save(); ctx.globalAlpha=0.58; ctx.shadowColor="#7B1FA2"; ctx.shadowBlur=10; ctx.drawImage(auraImg, sx-auraW/2, sy-baseSize/2+yOffset+bob*0.3, auraW, baseSize); ctx.restore();
           let rise=(Date.now()*0.018)%30; ctx.save(); ctx.globalAlpha=0.32-(rise/30)*0.22; let riseSize=baseSize*(1+rise*0.005); let riseW=riseSize*0.62; ctx.drawImage(auraImg, sx-riseW/2, sy-riseSize/2+yOffset+bob*0.3-rise*0.6, riseW, riseSize); ctx.restore();
@@ -6807,8 +6807,9 @@ function drawPlayer(){
           for(let i=0;i<5;i++){ let t=((Date.now()*0.0015+i)%1.2); if(t<0.15){ let x=sx+(Math.random()-0.5)*30; let y=sy+yOffset+(Math.random()-0.5)*30; ctx.save(); ctx.globalAlpha=(1-t/0.15)*0.8; ctx.strokeStyle="#AB47BC"; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+(Math.random()-0.5)*12, y+(Math.random()-0.5)*12); ctx.stroke(); ctx.restore(); } }
         }
       } else if(isElectric){
-        preloadElectricAuraImages(); let auraImg=getElectricAuraFrame();
-        if(auraImg && auraImg.complete){
+        try{ if(typeof preloadElectricAuraImages==='function') preloadElectricAuraImages(); }catch(e){}
+        let auraImg=null; try{ auraImg=getElectricAuraFrame(); }catch(e){}
+        if(auraImg && auraImg.complete && auraImg.naturalWidth>0){
           let baseSize=78+Math.sin(Date.now()*0.003)*1.5; let auraW=baseSize*0.62; let yOffset=-12;
           ctx.save(); ctx.globalAlpha=0.62; ctx.shadowColor="#FFEB3B"; ctx.shadowBlur=12; ctx.drawImage(auraImg, sx-auraW/2, sy-baseSize/2+yOffset+bob*0.3, auraW, baseSize); ctx.restore();
           let rise=(Date.now()*0.022)%28; ctx.save(); ctx.globalAlpha=0.35-(rise/28)*0.25; let riseSize=baseSize*(1+rise*0.006); let riseW=riseSize*0.62; ctx.drawImage(auraImg, sx-riseW/2, sy-riseSize/2+yOffset+bob*0.3-rise*0.5, riseW, riseSize); ctx.restore();
@@ -6816,20 +6817,29 @@ function drawPlayer(){
           for(let i=0;i<4;i++){ let t=((Date.now()*0.002+i*0.8)%1.8); if(t<0.12){ let x1=sx+(Math.random()-0.5)*18; let y1=sy+yOffset-15+(Math.random()-0.5)*20; let x2=x1+(Math.random()-0.5)*22; let y2=y1-10-Math.random()*18; ctx.save(); ctx.globalAlpha=(1-t/0.12)*0.95; ctx.strokeStyle=i%2==0?"#FFEB3B":"#00E5FF"; ctx.lineWidth=1.2; ctx.shadowColor=ctx.strokeStyle; ctx.shadowBlur=6; ctx.beginPath(); ctx.moveTo(x1,y1); let mx=(x1+x2)/2+(Math.random()-0.5)*8; let my=(y1+y2)/2+(Math.random()-0.5)*6; ctx.lineTo(mx,my); ctx.lineTo(x2,y2); ctx.stroke(); ctx.restore(); } }
         }
       } else if(isPink){
-        preloadPinkAuraImages(); let auraImg=getPinkAuraFrame();
-        if(auraImg && auraImg.complete){
+        try{ if(typeof preloadPinkAuraImages==='function') preloadPinkAuraImages(); }catch(e){}
+        let auraImg=null; try{ auraImg=getPinkAuraFrame(); }catch(e){}
+        if(auraImg && auraImg.complete && auraImg.naturalWidth>0){
           let baseSize=78+Math.sin(Date.now()*0.002)*1.2; let auraW=baseSize*0.62; let yOffset=-12;
           ctx.save(); ctx.globalAlpha=0.55; ctx.shadowColor="#FF69B4"; ctx.shadowBlur=10; ctx.drawImage(auraImg, sx-auraW/2, sy-baseSize/2+yOffset+bob*0.3, auraW, baseSize); ctx.restore();
           let rise=(Date.now()*0.018)%30; ctx.save(); ctx.globalAlpha=0.32-(rise/30)*0.22; let riseSize=baseSize*(1+rise*0.005); let riseW=riseSize*0.62; ctx.drawImage(auraImg, sx-riseW/2, sy-riseSize/2+yOffset+bob*0.3-rise*0.6, riseW, riseSize); ctx.restore();
           for(let i=0;i<13;i++){ let t=((Date.now()*0.0007+i*0.38)%3.0); let p=t/3.0; let y=sy+yOffset-8-p*68; let x=sx+Math.sin(p*2.4+i*0.85)*16; let a=(1-p)*0.8; let sz=(1-p*0.5)*2.5; if(a>0){ ctx.save(); ctx.globalAlpha=a; ctx.fillStyle=i%2==0?"#FFB6E0":"#FFFFFF"; ctx.shadowColor="#FF69B4"; ctx.shadowBlur=6; ctx.beginPath(); ctx.arc(x,y,sz,0,Math.PI*2); ctx.fill(); ctx.restore(); } }
         }
       } else if(isBlue){
-        preloadBlueAuraImages(); let auraImg=getBlueAuraFrame();
-        if(auraImg && auraImg.complete){ let auraSize=96+Math.sin(Date.now()*0.005)*4; let auraW=auraSize; ctx.save(); ctx.globalAlpha=0.85; ctx.shadowColor="#00BFFF"; ctx.shadowBlur=14; ctx.drawImage(auraImg, sx-auraW/2, sy-auraSize/2+8+bob*0.5, auraW, auraSize); ctx.restore(); ctx.save(); ctx.globalAlpha=0.35; ctx.drawImage(auraImg, sx-auraW*1.3/2, sy-auraSize*1.3/2+8+bob*0.5, auraW*1.3, auraSize*1.3); ctx.restore(); }
+        try{ if(typeof preloadBlueAuraImages==='function') preloadBlueAuraImages(); }catch(e){}
+        let auraImg=null; try{ auraImg=getBlueAuraFrame(); }catch(e){}
+        if(auraImg && auraImg.complete && auraImg.naturalWidth>0){ let auraSize=96+Math.sin(Date.now()*0.005)*4; let auraW=auraSize; ctx.save(); ctx.globalAlpha=0.85; ctx.shadowColor="#00BFFF"; ctx.shadowBlur=14; ctx.drawImage(auraImg, sx-auraW/2, sy-auraSize/2+8+bob*0.5, auraW, auraSize); ctx.restore(); ctx.save(); ctx.globalAlpha=0.35; ctx.drawImage(auraImg, sx-auraW*1.3/2, sy-auraSize*1.3/2+8+bob*0.5, auraW*1.3, auraSize*1.3); ctx.restore(); }
       } else {
-        preloadAuraImages(); let auraImg=getAuraFrame();
-        if(auraImg && auraImg.complete){ let auraSize=96+Math.sin(Date.now()*0.005)*4; let auraW=auraSize; ctx.save(); ctx.globalAlpha=0.85; ctx.shadowColor="#FF4500"; ctx.shadowBlur=12; ctx.drawImage(auraImg, sx-auraW/2, sy-auraSize/2+8+bob*0.5, auraW, auraSize); ctx.restore(); ctx.save(); ctx.globalAlpha=0.35; ctx.drawImage(auraImg, sx-auraW*1.3/2, sy-auraSize*1.3/2+8+bob*0.5, auraW*1.3, auraSize*1.3); ctx.restore(); }
+        try{ if(typeof preloadAuraImages==='function') preloadAuraImages(); }catch(e){}
+        let auraImg=null; try{ auraImg=getAuraFrame(); }catch(e){}
+        if(auraImg && auraImg.complete && auraImg.naturalWidth>0){ let auraSize=96+Math.sin(Date.now()*0.005)*4; let auraW=auraSize; ctx.save(); ctx.globalAlpha=0.85; ctx.shadowColor="#FF4500"; ctx.shadowBlur=12; ctx.drawImage(auraImg, sx-auraW/2, sy-auraSize/2+8+bob*0.5, auraW, auraSize); ctx.restore(); ctx.save(); ctx.globalAlpha=0.35; ctx.drawImage(auraImg, sx-auraW*1.3/2, sy-auraSize*1.3/2+8+bob*0.5, auraW*1.3, auraSize*1.3); ctx.restore(); }
       }
+    }catch(e){ console.error("renderAuraAt", e); }
+  }
+
+  try{
+    if(equipped && equipped.aura){
+      renderAuraAt(sx, sy, bob, equipped.aura);
     }
   }catch(e){}
   try{
@@ -7169,80 +7179,73 @@ function drawOtherPlayers(cam){
           }
         }
       }catch(e){}
-      // === AURY V MULTIPLAYERU - VŠECHNY TYPY + FALLBACK ===
+      // === AURY V MULTIPLAYERU - STEJNÉ JAKO U HRÁČE, PŘESNĚ PODLE KÓDU HRÁČE ===
       try{
         if(op.aura){
-          let auraImg = null;
-          let shadowColor = "#FF4500";
-          let isBlue = op.aura.isBlue;
-          let isPink = op.aura.isPink;
-          let isVoid = op.aura.isVoid;
-          let isElectric = op.aura.isElectric;
-          let isGolden = op.aura.isGolden;
-          if(isBlue){
-            try{ preloadBlueAuraImages(); auraImg = getBlueAuraFrame(); shadowColor = "#00BFFF"; }catch(e){}
-          } else if(isPink){
-            try{ if(typeof getPinkAuraFrame !== 'undefined') auraImg = getPinkAuraFrame(); else { preloadAuraImages(); auraImg = getAuraFrame(); } shadowColor = "#FF69B4"; }catch(e){}
-          } else if(isVoid){
-            try{ if(typeof getVoidAuraFrame !== 'undefined') auraImg = getVoidAuraFrame(); else { preloadAuraImages(); auraImg = getAuraFrame(); } shadowColor = "#9400D3"; }catch(e){}
-          } else if(isElectric){
-            try{ if(typeof getElectricAuraFrame !== 'undefined') auraImg = getElectricAuraFrame(); else { preloadAuraImages(); auraImg = getAuraFrame(); } shadowColor = "#FFD700"; }catch(e){}
+          // Použij stejnou funkci jako pro vlastního hráče
+          if(typeof renderAuraAt==='function'){
+            renderAuraAt(sx, sy, bob, op.aura);
           } else {
-            try{ preloadAuraImages(); auraImg = getAuraFrame(); shadowColor = "#FF4500"; }catch(e){}
-          }
-          let auraSize = 96 + Math.sin(Date.now()*0.005)*4;
-          if(auraImg && auraImg.complete && auraImg.naturalWidth>0){
-            ctx.save();
-            ctx.globalAlpha = 0.78;
-            ctx.shadowColor = shadowColor;
-            ctx.shadowBlur = 14;
-            ctx.drawImage(auraImg, sx - auraSize/2, sy - auraSize/2 + 8 + bob*0.5, auraSize, auraSize);
-            ctx.restore();
-          } else {
-            // Fallback - barevný glow když se nenačte obrázek
-            ctx.save();
-            ctx.globalCompositeOperation='lighter';
-            ctx.shadowColor = shadowColor;
-            ctx.shadowBlur = 20;
-            ctx.globalAlpha = 0.5 + Math.sin(Date.now()*0.004)*0.1;
-            ctx.fillStyle = shadowColor;
-            ctx.beginPath();
-            ctx.arc(sx, sy+4+bob*0.5, auraSize/2.2, 0, Math.PI*2);
-            ctx.fill();
-            ctx.fillStyle = shadowColor + '66';
-            ctx.beginPath();
-            ctx.arc(sx, sy+4+bob*0.5, auraSize/1.5, 0, Math.PI*2);
-            ctx.fill();
-            ctx.restore();
+            // Fallback kdyby funkce nebyla dostupná
+            let isBlue = op.aura.isBlue;
+            let isPink = op.aura.isPink;
+            let isVoid = op.aura.isVoid;
+            let isElectric = op.aura.isElectric;
+            if(isVoid){
+              try{ preloadVoidAuraImages(); }catch(e){}
+              let img=null; try{ img=getVoidAuraFrame(); }catch(e){}
+              if(img && img.complete){ let baseSize=78+Math.sin(Date.now()*0.002)*1.2; let auraW=baseSize*0.62; let yOffset=-12; ctx.save(); ctx.globalAlpha=0.58; ctx.shadowColor="#7B1FA2"; ctx.shadowBlur=10; ctx.drawImage(img, sx-auraW/2, sy-baseSize/2+yOffset+bob*0.3, auraW, baseSize); ctx.restore(); }
+            } else if(isElectric){
+              try{ preloadElectricAuraImages(); }catch(e){}
+              let img=null; try{ img=getElectricAuraFrame(); }catch(e){}
+              if(img && img.complete){ let baseSize=78+Math.sin(Date.now()*0.003)*1.5; let auraW=baseSize*0.62; let yOffset=-12; ctx.save(); ctx.globalAlpha=0.62; ctx.shadowColor="#FFEB3B"; ctx.shadowBlur=12; ctx.drawImage(img, sx-auraW/2, sy-baseSize/2+yOffset+bob*0.3, auraW, baseSize); ctx.restore(); }
+            } else if(isPink){
+              try{ preloadPinkAuraImages(); }catch(e){}
+              let img=null; try{ img=getPinkAuraFrame(); }catch(e){}
+              if(img && img.complete){ let baseSize=78+Math.sin(Date.now()*0.002)*1.2; let auraW=baseSize*0.62; let yOffset=-12; ctx.save(); ctx.globalAlpha=0.55; ctx.shadowColor="#FF69B4"; ctx.shadowBlur=10; ctx.drawImage(img, sx-auraW/2, sy-baseSize/2+yOffset+bob*0.3, auraW, baseSize); ctx.restore(); }
+            } else if(isBlue){
+              try{ preloadBlueAuraImages(); }catch(e){}
+              let img=null; try{ img=getBlueAuraFrame(); }catch(e){}
+              if(img && img.complete){ let auraSize=96+Math.sin(Date.now()*0.005)*4; ctx.save(); ctx.globalAlpha=0.85; ctx.shadowColor="#00BFFF"; ctx.shadowBlur=14; ctx.drawImage(img, sx-auraSize/2, sy-auraSize/2+8+bob*0.5, auraSize, auraSize); ctx.restore(); }
+            } else {
+              try{ preloadAuraImages(); }catch(e){}
+              let img=null; try{ img=getAuraFrame(); }catch(e){}
+              if(img && img.complete){ let auraSize=96+Math.sin(Date.now()*0.005)*4; ctx.save(); ctx.globalAlpha=0.85; ctx.shadowColor="#FF4500"; ctx.shadowBlur=12; ctx.drawImage(img, sx-auraSize/2, sy-auraSize/2+8+bob*0.5, auraSize, auraSize); ctx.restore(); }
+            }
           }
         }
       }catch(e){ console.error("aura multiplayer", e); }
-      // === PLÁŠTĚ V MULTIPLAYERU - OPRAVENO ===
+      // === PLÁŠTĚ V MULTIPLAYERU - STEJNĚ JAKO U HRÁČE (38x44, sway, wind) ===
       try{
         if(op.cape && op.cape.capeId){
           try{ if(typeof preloadCapeImages==='function') preloadCapeImages(); }catch(e){}
           let capeImg = null;
           try{ capeImg = getCapeImage(op.cape.capeId); }catch(e){}
           if(capeImg && capeImg.complete && capeImg.naturalWidth>0){
+            let capeId = op.cape.capeId;
             let capeW = 38;
             let capeH = 44;
+            // Všechny pláště stejně 38x44 jako u hráče
             let baseX = sx;
             let baseY = sy - 8 + bob*0.35;
+            let sway = Math.sin((op.walkTime||0)*1.2)*1.3;
+            let wind = Math.sin(Date.now()*0.0025 + (op.x||0)*0.008)*0.6;
             ctx.save();
             ctx.globalAlpha = 1;
-            ctx.translate(baseX, baseY);
+            ctx.translate(baseX + sway*0.2, baseY);
+            ctx.rotate((sway+wind)*0.03);
             ctx.drawImage(capeImg, -capeW/2, -12, capeW, capeH);
             ctx.fillStyle = "rgba(220,220,220,0.95)";
+            ctx.shadowColor = "rgba(0,0,0,0.3)";
+            ctx.shadowBlur = 2;
             ctx.beginPath();
             ctx.arc(0, -9, 2.2, 0, Math.PI*2);
             ctx.fill();
-            ctx.restore();
-          } else {
-            // Fallback obrys pláště
-            ctx.save();
-            ctx.globalAlpha = 0.7;
-            ctx.fillStyle = "#444";
-            ctx.fillRect(sx-14, sy-12+bob*0.3, 28, 32);
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = "rgba(0,0,0,0.15)";
+            ctx.beginPath();
+            ctx.ellipse(0, 6, capeW*0.35, 3, 0, 0, Math.PI*2);
+            ctx.fill();
             ctx.restore();
           }
         }
