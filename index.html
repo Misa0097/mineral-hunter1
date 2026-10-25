@@ -8154,9 +8154,11 @@ function addRewardItem(rewardKey, count){
     if(typeof saveGame==='function') saveGame(); if(typeof renderInventory==='function') renderInventory(); if(typeof updateHUD==='function') updateHUD();
   }catch(e){ console.error(e); }
 }
-function giveEventRewards(eventDef, leaderboard){
+function giveEventRewards(eventDef, leaderboard, instanceId){
   if(!leaderboard || leaderboard.length===0) return;
-  console.log("🏆 Rozdávám odměny za event", eventDef.name, leaderboard.slice(0,3));
+  console.log("🏆 Rozdávám odměny za event", eventDef.name, leaderboard.slice(0,3), "instance", instanceId);
+  // FIX proti 3x odměnám - použij deterministické ID podle instance eventu
+  let eventInstance = instanceId || (activeEventData ? activeEventData.instanceId : null) || (eventDef.id + '_' + Date.now());
   leaderboard.slice(0,3).forEach((entry, idx)=>{
     let keys = eventDef.rewardKeys[idx];
     if(!keys) return;
@@ -8165,27 +8167,37 @@ function giveEventRewards(eventDef, leaderboard){
       if(typeof db!=='undefined' && db){
         let weekly = getWeeklyPeriod();
         db.ref(`weeklyScores/${weekly.weekId}/${entry.nick}`).transaction(cur=>{ return (cur||0)+points; });
-        // Ulož odměnu
-        let rewardId = Date.now() + '_' + idx + '_' + entry.nick;
+        // Deterministické ID - stejný event = stejný klíč, nepřidá se 3x
+        let rewardId = eventInstance + '_place' + (idx+1) + '_' + entry.nick;
+        let rewardData = {event:eventDef.id, eventName:eventDef.name, place:idx+1, rewards:keys, timestamp:Date.now(), instanceId:eventInstance};
         if(entry.nick===currentNick){
-          // Pro aktuálního hráče - hned dej a označ jako vybranou
-          keys.forEach(k=>{ addRewardItem(k,1); });
-          showToast(`🏆 Event ${eventDef.name} - ${idx+1}. místo!`,5);
-          db.ref(`eventRewards/${entry.nick}/${rewardId}`).set({event:eventDef.id, eventName:eventDef.name, place:idx+1, rewards:keys, timestamp:Date.now(), claimed:true, claimedAt:Date.now()});
+          // Zkontroluj jestli už jsme nedostali odměnu za tuto instanci
+          db.ref(`eventRewards/${entry.nick}/${rewardId}`).once('value').then(snap=>{
+            if(snap.exists() && snap.val() && snap.val().claimed){
+              console.log("Už mám odměnu za", rewardId, "- nedávám znovu");
+              return;
+            }
+            keys.forEach(k=>{ addRewardItem(k,1); });
+            showToast(`🏆 Event ${eventDef.name} - ${idx+1}. místo!`,5);
+            db.ref(`eventRewards/${entry.nick}/${rewardId}`).set({...rewardData, claimed:true, claimedAt:Date.now()});
+            saveGame();
+          });
         } else {
-          // Pro offline hráče - nevybraná
-          db.ref(`eventRewards/${entry.nick}/${rewardId}`).set({event:eventDef.id, eventName:eventDef.name, place:idx+1, rewards:keys, timestamp:Date.now(), claimed:false});
-          db.ref(`pendingRewards/${entry.nick}/${rewardId}`).set({type:'event', event:eventDef.id, eventName:eventDef.name, place:idx+1, rewards:keys, timestamp:Date.now()});
+          // Pro ostatní - ulož jako nevybranou, ale jen pokud ještě neexistuje
+          db.ref(`eventRewards/${entry.nick}/${rewardId}`).transaction(current=>{
+            if(current && current.claimed) return; // už vybraná - nepřepisuj
+            if(current) return current; // už existuje nevybraná - nech
+            return {...rewardData, claimed:false};
+          });
+          db.ref(`pendingRewards/${entry.nick}/${rewardId}`).transaction(current=>{
+            if(current) return current;
+            return {type:'event', event:eventDef.id, eventName:eventDef.name, place:idx+1, rewards:keys, timestamp:Date.now(), instanceId:eventInstance};
+          });
         }
       } else {
-        // Bez Firebase - jen aktuálnímu hráči
         if(entry.nick===currentNick){
           keys.forEach(k=>{ addRewardItem(k,1); });
           showToast(`🏆 Event ${eventDef.name} - ${idx+1}. místo! Odměna v batohu!`,5);
-        } else {
-          let pending = JSON.parse(localStorage.getItem('pendingEventRewards')||'[]');
-          pending.push({nick:entry.nick, event:eventDef.id, eventName:eventDef.name, place:idx+1, rewards:keys, timestamp:Date.now()});
-          localStorage.setItem('pendingEventRewards', JSON.stringify(pending));
         }
       }
     }catch(e){ console.error("Reward save error", e); }
@@ -8200,47 +8212,43 @@ function claimPendingEventRewards(){
     if(typeof db!=='undefined' && db){
       db.ref(`eventRewards/${currentNick}`).once('value').then(snap=>{
         let claimedCount=0;
+        let updates={};
         snap.forEach(ch=>{
           let data=ch.val();
           if(!data) return;
-          if(data.claimed) return; // už vybrané
-          // Dej odměny
+          if(data.claimed) return;
           if(data.rewards && Array.isArray(data.rewards)){
+            // Zkontroluj jestli už nemáme stejnou odměnu za stejnou instanci
             data.rewards.forEach(k=>{ addRewardItem(k,1); });
             claimedCount++;
             showToast(`🎁 Vyzvednuta odměna za ${data.eventName||data.event} - ${data.place}. místo!`,4);
+            updates[ch.key+'/claimed']=true;
+            updates[ch.key+'/claimedAt']=Date.now();
           }
-          // Označ jako vybranou
-          db.ref(`eventRewards/${currentNick}/${ch.key}`).update({claimed:true, claimedAt:Date.now()});
         });
         if(claimedCount>0){
+          db.ref(`eventRewards/${currentNick}`).update(updates);
           showToast(`🏆 Vyzvednuto ${claimedCount}x odměn za eventy!`,4);
           saveGame(); renderInventory(); updateHUD();
         }
       });
-      // Taky pendingRewards
+      // pendingRewards už nepoužíváme pro dávání, jen čistíme - odměny jsou v eventRewards
       db.ref(`pendingRewards/${currentNick}`).once('value').then(snap=>{
-        snap.forEach(ch=>{
-          let data=ch.val();
-          if(data && data.rewards){
-            data.rewards.forEach(k=>{ addRewardItem(k,1); });
-            showToast(`🎁 Vyzvednuta odměna: ${data.eventName}`,3);
-          }
-          db.ref(`pendingRewards/${currentNick}/${ch.key}`).remove();
-        });
+        if(snap.exists()){
+          // Smaž staré pending - už jsou v eventRewards
+          snap.forEach(ch=>{
+            let data=ch.val();
+            if(data && data.instanceId){
+              // Pokud existuje odpovídající eventRewards, smaž pending
+              db.ref(`eventRewards/${currentNick}/${ch.key}`).once('value').then(esnap=>{
+                if(esnap.exists()){
+                  db.ref(`pendingRewards/${currentNick}/${ch.key}`).remove();
+                }
+              });
+            }
+          });
+        }
       });
-    }
-    // LocalStorage fallback
-    let pending = JSON.parse(localStorage.getItem('pendingEventRewards')||'[]');
-    let myPending = pending.filter(p=>p.nick===currentNick);
-    if(myPending.length>0){
-      myPending.forEach(p=>{
-        p.rewards.forEach(k=>{ addRewardItem(k,1); });
-        showToast(`🎁 Vyzvednuta offline odměna za ${p.eventName} - ${p.place}. místo!`,4);
-      });
-      let remaining = pending.filter(p=>p.nick!==currentNick);
-      localStorage.setItem('pendingEventRewards', JSON.stringify(remaining));
-      saveGame();
     }
   }catch(e){ console.error("Claim error", e); }
 }
