@@ -401,6 +401,8 @@ canvas{display:block;width:100%;height:100%;background:#71a84e;touch-action:none
 
 <button id="leaderboardAboveMap">🏆 ŽEBŘÍČEK</button>
 <button id="petsButton">🐾 ZVÍŘATA</button>
+<button id="marketButton">🏪 MARKET</button>
+
 <div id="onlineStatus"></div>
 <div id="nickPanel" class="open">
   <div class="panelHeader"><h2 style="margin:0;font-size:18px">🔰 Vítej v lomu!</h2><div style="font-size:11px;opacity:.8">Zadej přezdívku – pod ní se ti uloží postup</div></div>
@@ -9477,6 +9479,1264 @@ function openEventDetail(idx, hour){
 }
 
 
+</script>
+
+
+<style>
+/* MARKET PANEL STYLES - nezasahuje do EVENTY */
+#marketButton {
+  position: fixed !important;
+  right: 8px !important;
+  width: 88px !important;
+  height: 32px !important;
+  font-size: 10px !important;
+  border-radius: 8px !important;
+  border: 2px solid #000 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.5) !important;
+  font-weight: 900 !important;
+  cursor: pointer !important;
+  top: 170px !important;
+  background: linear-gradient(135deg,#00ACC1,#006064) !important;
+  color:#fff !important;
+  z-index: 7000 !important;
+}
+#marketPanel { width:min(98%,920px); max-height:92vh; z-index: 400 !important; }
+#marketPanel .panelHeader { display:flex; align-items:center; gap:8px; padding:10px 12px; background:linear-gradient(90deg,#2a1040,#4a148c); color:#fff; border-radius:12px 12px 0 0; }
+#marketPanel .panelBody { padding:0; overflow:hidden; display:flex; flex-direction:column; max-height:82vh; background:#0f0f0f; }
+#marketTop { padding:10px; background:#1a1a1a; border-bottom:1px solid #333; display:flex; flex-direction:column; gap:8px; }
+#marketCategories { display:flex; gap:6px; overflow-x:auto; padding-bottom:4px; scrollbar-width:none; }
+#marketCategories::-webkit-scrollbar { display:none; }
+.marketCat { white-space:nowrap; padding:6px 12px; border-radius:20px; border:1px solid #444; background:#222; color:#aaa; font-size:11px; font-weight:700; cursor:pointer; }
+.marketCat.active { background:#7b1fa2; border-color:#ab47bc; color:#fff; }
+#marketFilters { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+.marketFilter { padding:5px 10px; border-radius:6px; border:1px solid #333; background:#1e1e1e; color:#888; font-size:10px; cursor:pointer; }
+.marketFilter.active { background:#2a2a2a; color:#fff; border-color:#555; }
+#marketSellBar { padding:10px; background:linear-gradient(90deg,#1a2a0f,#2a3a1a); border-bottom:1px solid #2f4a2f; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+#marketList { flex:1; overflow-y:auto; padding:10px; display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:10px; min-height:200px; }
+.marketItem { background:linear-gradient(135deg,#1e1e1e,#252525); border:1.5px solid #333; border-radius:12px; padding:10px; display:flex; gap:10px; position:relative; overflow:hidden; }
+.marketItem:hover { border-color:#7b1fa2; }
+.marketItemIcon { width:48px; height:48px; background:radial-gradient(circle at 50% 50%, rgba(255,255,255,0.1), transparent); border-radius:8px; border:1px solid #444; display:flex; align-items:center; justify-content:center; font-size:26px; flex-shrink:0; }
+.marketItemInfo { flex:1; min-width:0; }
+.marketItemTitle { font-size:12px; font-weight:800; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.marketItemSub { font-size:9px; color:#888; margin:2px 0; }
+.marketItemPrice { font-size:13px; font-weight:900; color:#FFD700; margin-top:4px; }
+.marketItemSeller { font-size:8px; color:#666; margin-top:2px; }
+.marketItemActions { display:flex; flex-direction:column; gap:4px; min-width:70px; }
+.marketBuyBtn { background:linear-gradient(90deg,#4CAF50,#2E7D32); color:#fff; border:none; border-radius:6px; padding:6px 10px; font-size:11px; font-weight:800; cursor:pointer; }
+.marketBuyBtn:disabled { background:#333; color:#666; }
+.marketCancelBtn { background:#5a2a2a; color:#ff8a80; border:1px solid #7a3a3a; border-radius:6px; padding:4px 8px; font-size:9px; cursor:pointer; }
+#marketSelectModal { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.85); z-index:800; display:none; align-items:center; justify-content:center; padding:12px; }
+#marketSelectBox { background:#1a1a1a; border:2px solid #7b1fa2; border-radius:16px; width:min(95%,600px); max-height:85vh; display:flex; flex-direction:column; overflow:hidden; }
+#marketSelectHeader { padding:12px; background:#2a1040; color:#fff; font-weight:800; display:flex; justify-content:space-between; align-items:center; }
+#marketSelectList { flex:1; overflow-y:auto; padding:10px; display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:8px; }
+.marketSelectItem { background:#222; border:1px solid #333; border-radius:8px; padding:8px; display:flex; gap:8px; cursor:pointer; }
+.marketSelectItem:hover { border-color:#7b1fa2; background:#2a1a3a; }
+#marketPriceModal { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.85); z-index:810; display:none; align-items:center; justify-content:center; padding:12px; }
+#marketPriceBox { background:#1e1e1e; border:2px solid #FFD700; border-radius:16px; padding:20px; width:min(90%,380px); text-align:center; }
+.marketPriceInput { width:100%; padding:10px; background:#111; border:1.5px solid #444; border-radius:8px; color:#FFD700; font-size:18px; font-weight:900; text-align:center; margin:12px 0; }
+</style>
+
+<div class="panel" id="marketPanel">
+  <div class="panelHeader">
+    <span>🏪 MARKET - Tržiště</span>
+    <span id="marketGoldDisplay" style="margin-left:auto; background:rgba(0,0,0,0.3); padding:4px 10px; border-radius:12px; font-size:12px;">🧱 <b id="marketGoldCount">0</b> cihel</span>
+    <button id="closeMarket" style="margin-left:8px; background:#ff4444; border:none; color:#fff; width:32px; height:32px; border-radius:8px; font-weight:900; cursor:pointer;">×</button>
+  </div>
+  <div class="panelBody">
+    <div id="marketTop">
+      <div id="marketCategories">
+        <div class="marketCat active" data-cat="all">📦 Vše (<span id="catAllCount">0</span>)</div>
+        <div class="marketCat" data-cat="minerals">💎 Kameny</div>
+        <div class="marketCat" data-cat="equipment">⚔️ Vybavení</div>
+        <div class="marketCat" data-cat="aura">✨ Aury</div>
+        <div class="marketCat" data-cat="cape">🧥 Pláště</div>
+        <div class="marketCat" data-cat="feed">🍖 Krmivo</div>
+        <div class="marketCat" data-cat="mystery">🎁 Mystery</div>
+        <div class="marketCat" data-cat="maps">🗺️ Mapy</div>
+        <div class="marketCat" data-cat="other">🔧 Ostatní</div>
+        <div class="marketCat" data-cat="my">👤 Moje</div>
+      </div>
+      <div id="marketFilters">
+        <span style="font-size:10px; color:#666;">Filtr:</span>
+        <div class="marketFilter active" data-sort="newest">🕒 Nejnovější</div>
+        <div class="marketFilter" data-sort="cheapest">💰 Nejlevnější</div>
+        <div class="marketFilter" data-sort="expensive">💎 Nejdražší</div>
+        <div class="marketFilter" data-sort="name">🔤 A-Z</div>
+        <input id="marketSearch" placeholder="🔍 Hledat..." style="margin-left:auto; background:#111; border:1px solid #333; border-radius:6px; padding:5px 10px; color:#fff; font-size:11px; width:120px;">
+      </div>
+    </div>
+    <div id="marketSellBar">
+      <button id="marketSellBtn" style="background:linear-gradient(90deg,#FF9800,#F57C00); color:#000; border:none; border-radius:8px; padding:8px 16px; font-weight:900; font-size:12px; cursor:pointer;">➕ VYBRAT PŘEDMĚT K PRODEJI</button>
+      <span style="font-size:10px; color:#888;">Prodávej za <b style="color:#FFD700;">zlaté cihly</b> • 5% poplatek</span>
+      <span style="margin-left:auto; font-size:10px; color:#666;" id="marketCountInfo">0 nabídek</span>
+    </div>
+    <div id="marketList"></div>
+  </div>
+</div>
+
+<div id="marketSelectModal">
+  <div id="marketSelectBox">
+    <div id="marketSelectHeader">
+      <span>🎒 Vyber předmět z batohu</span>
+      <button id="closeMarketSelect" style="background:#ff4444; border:none; color:#fff; width:28px; height:28px; border-radius:6px; cursor:pointer;">×</button>
+    </div>
+    <div style="padding:8px; background:#111; border-bottom:1px solid #333; display:flex; gap:6px; overflow-x:auto;" id="marketSelectCats">
+      <div class="marketCat active" data-selcat="all">Vše</div>
+      <div class="marketCat" data-selcat="minerals">💎 Kameny</div>
+      <div class="marketCat" data-selcat="equipment">⚔️ Vybavení</div>
+      <div class="marketCat" data-selcat="feed">🍖 Krmivo</div>
+      <div class="marketCat" data-selcat="other">Ostatní</div>
+    </div>
+    <div id="marketSelectList"></div>
+  </div>
+</div>
+
+<div id="marketPriceModal">
+  <div id="marketPriceBox">
+    <div style="font-size:18px; font-weight:900; color:#fff; margin-bottom:8px;">Nastav cenu</div>
+    <div id="marketPriceItemPreview" style="background:#222; border-radius:8px; padding:10px; margin-bottom:12px; display:flex; gap:10px; align-items:center;"></div>
+    <div style="font-size:11px; color:#aaa;">Cena za <b style="color:#FFD700;">zlaté cihly</b></div>
+    <input type="number" id="marketPriceInput" class="marketPriceInput" placeholder="Např. 50" min="1" max="99999">
+    <div style="font-size:10px; color:#666; margin-bottom:12px;">Poplatek 5% • Dostaneš <span id="marketPriceAfterFee" style="color:#4CAF50; font-weight:800;">0</span> cihel</div>
+    <div style="display:flex; gap:8px;">
+      <button id="marketPriceCancel" style="flex:1; background:#333; color:#fff; border:none; border-radius:8px; padding:10px; font-weight:700; cursor:pointer;">Zrušit</button>
+      <button id="marketPriceConfirm" style="flex:1; background:linear-gradient(90deg,#FFD700,#FFA000); color:#000; border:none; border-radius:8px; padding:10px; font-weight:900; cursor:pointer;">💰 PRODAT</button>
+    </div>
+  </div>
+</div>
+
+
+<style>
+/* === V16 - EVENTY jako V8final (funkční), MARKET v mezeře, posun nahoru k liště === */
+/* Necháme EVENTY přesně jak bylo ve V8, jen posuneme top */
+#shopAboveMap {
+  top: 62px !important;
+  right: 8px !important;
+  width: 88px !important;
+  height: 32px !important;
+  font-size: 10px !important;
+  z-index: 660 !important;
+  position: fixed !important;
+}
+#leaderboardAboveMap {
+  top: 98px !important;
+  right: 8px !important;
+  width: 88px !important;
+  height: 32px !important;
+  font-size: 10px !important;
+  z-index: 660 !important;
+  position: fixed !important;
+}
+#petsButton {
+  top: 134px !important;
+  right: 8px !important;
+  width: 88px !important;
+  height: 32px !important;
+  font-size: 10px !important;
+  z-index: 660 !important;
+  position: fixed !important;
+}
+/* MARKET - v mezeře mezi zvířata a eventy, tyrkysová jiná barva */
+#marketButton {
+  top: 170px !important;
+  right: 8px !important;
+  width: 88px !important;
+  height: 32px !important;
+  font-size: 10px !important;
+  background: linear-gradient(135deg,#00ACC1,#006064) !important;
+  color: #fff !important;
+  z-index: 7000 !important;
+  position: fixed !important;
+  display: flex !important;
+  animation: none !important;
+}
+/* EVENTY - jako ve V8final - 90x38, funkční */
+#eventButton_fixed {
+  top: 206px !important;
+  right: 8px !important;
+  width: 90px !important;
+  height: 38px !important;
+  font-size: 11px !important;
+  background: linear-gradient(90deg,#ab47bc,#7b1fa2) !important;
+  color: #fff !important;
+  border: 2px solid #000 !important;
+  border-radius: 10px !important;
+  z-index: 660 !important;
+  position: fixed !important;
+  display: flex !important;
+  pointer-events: auto !important;
+  animation: none !important;
+}
+#chatButton {
+  top: 250px !important;
+  right: 8px !important;
+  width: 88px !important;
+  height: 32px !important;
+  z-index: 660 !important;
+  position: fixed !important;
+}
+#minimapWrap { top: 292px !important; right: 8px !important; }
+
+/* EVENT PANEL - nechat V8 styl, jen zajistit klikatelnost */
+#eventPanel {
+  z-index: 100000 !important;
+}
+#eventPanel.open {
+  z-index: 100001 !important;
+}
+
+@media(max-height: 650px){
+  #shopAboveMap { top: 56px !important; }
+  #leaderboardAboveMap { top: 88px !important; }
+  #petsButton { top: 120px !important; }
+  #marketButton { top: 152px !important; }
+  #eventButton_fixed { top: 184px !important; }
+  #chatButton { top: 222px !important; }
+}
+</style>
+
+
+<script>
+// === MARKET LOGIC V16 - založeno na V8final, eventy neporušené ===
+let marketListings = [];
+let marketCategory = 'all';
+let marketSort = 'newest';
+let marketSearch = '';
+let marketSelectCategory = 'all';
+let selectedMarketItem = null;
+
+function loadMarket(){
+  try{
+    let saved = localStorage.getItem('marketListings');
+    if(saved) marketListings = JSON.parse(saved);
+    if(marketListings.length===0){
+      // pro GitHub - žádné fake nabídky
+      marketListings = [];
+    }
+  }catch(e){ marketListings=[]; generateFakeMarketListings(); }
+}
+function saveMarket(){
+  try{ localStorage.setItem('marketListings', JSON.stringify(marketListings.slice(0,200))); }catch(e){}
+}
+function generateFakeMarketListings(){
+  const fakeNames = ['MinerJoe','GoldHunter','PetMaster','AuraKing','MysteryMan','CaveExplorer','DiamondLord','FeedSeller'];
+  const mineralsLocal = (typeof minerals!=='undefined'?minerals:[{name:'Uhlí'},{name:'Železo'}]);
+  for(let i=0;i<10;i++){
+    let mIdx = Math.floor(Math.random()*Math.min(mineralsLocal.length,20));
+    let m = mineralsLocal[mIdx] || {name:'Kámen'};
+    let price = Math.floor(Math.random()*60)+5;
+    marketListings.push({
+      id:'fake_'+Date.now()+'_'+i+'_'+Math.random(),
+      item:{ type:mIdx, raw:Math.random()<0.5, quality:Math.floor(Math.random()*100), weight:(Math.random()*10).toFixed(1), name:m.name, icon:'💎' },
+      price:price, seller:fakeNames[Math.floor(Math.random()*fakeNames.length)], time:Date.now()-Math.floor(Math.random()*86400000*2), category:'minerals', isMine:false
+    });
+  }
+  if(typeof equipTiers!=='undefined'){
+    for(let i=0;i<8;i++){
+      let tier=Math.floor(Math.random()*4);
+      let td=equipTiers[tier];
+      let price=(tier+1)*15+Math.floor(Math.random()*40);
+      marketListings.push({
+        id:'fake_eq_'+Date.now()+'_'+i+'_'+Math.random(),
+        item:{ isEquipment:true, tier:tier, tierName:td.name, tierColor:td.color, name:'Helma '+td.name, icon:'⛑️' },
+        price:price, seller:fakeNames[Math.floor(Math.random()*fakeNames.length)], time:Date.now()-Math.floor(Math.random()*86400000), category:'equipment', isMine:false
+      });
+    }
+  }
+}
+function getMarketCategoryForItem(it){
+  if(!it) return 'other';
+  if(typeof it.type==='number') return 'minerals';
+  if(it.isEquipment){
+    if(it.isAura) return 'aura';
+    if(it.isCape) return 'cape';
+    return 'equipment';
+  }
+  if(it.isFeed) return 'feed';
+  if(it.isMysteryFeedBox || it.isMysteryEquipBox || it.isMysteryEquipBoxLegendary || it.isMysteryAllBox || it.isMasterMysteryBox) return 'mystery';
+  if(it.isFireMap || it.isIceMap) return 'maps';
+  return 'other';
+}
+function openMarket(){
+  // zavři ostatní panely kromě marketu - ale nech event logiku V8
+  try{
+    ['inventoryPanel','shopPanel','leaderboardPanel','petsPanel'].forEach(id=>{ let p=document.getElementById(id); if(p) p.classList.remove('open'); });
+    let ep=document.getElementById('eventPanel'); if(ep) ep.classList.remove('open');
+  }catch(e){}
+  let mp=document.getElementById('marketPanel');
+  if(mp) mp.classList.add('open');
+  let gc=document.getElementById('marketGoldCount');
+  if(gc) gc.textContent = (typeof goldBricks!=='undefined'?goldBricks:0);
+  renderMarket();
+}
+function closeMarket(){
+  let mp=document.getElementById('marketPanel');
+  if(mp) mp.classList.remove('open');
+}
+function renderMarket(){
+  let listEl=document.getElementById('marketList');
+  if(!listEl) return;
+  let filtered=marketListings.filter(l=>{
+    if(marketCategory==='my') return l.isMine;
+    if(marketCategory!=='all' && l.category!==marketCategory) return false;
+    if(marketSearch && !l.item.name.toLowerCase().includes(marketSearch.toLowerCase())) return false;
+    return true;
+  });
+  if(marketSort==='newest') filtered.sort((a,b)=>b.time-a.time);
+  else if(marketSort==='cheapest') filtered.sort((a,b)=>a.price-b.price);
+  else if(marketSort==='expensive') filtered.sort((a,b)=>b.price-a.price);
+  else if(marketSort==='name') filtered.sort((a,b)=>a.item.name.localeCompare(b.item.name));
+  let catEl=document.getElementById('catAllCount');
+  if(catEl) catEl.textContent=marketListings.length;
+  let infoEl=document.getElementById('marketCountInfo');
+  if(infoEl) infoEl.textContent=filtered.length+' nabídek • '+marketListings.filter(l=>l.isMine).length+' moje';
+  let goldEl=document.getElementById('marketGoldCount');
+  if(goldEl) goldEl.textContent=(typeof goldBricks!=='undefined'?goldBricks:0);
+  if(filtered.length===0){
+    listEl.innerHTML='<div style="grid-column:1/-1; text-align:center; padding:40px; color:#666;">📭 Žádné nabídky</div>';
+    return;
+  }
+  let html='';
+  filtered.forEach(l=>{
+    let it=l.item;
+    let icon=it.icon||'📦';
+    let tierColor=it.tierColor||'#888';
+    let sub='';
+    if(typeof it.type==='number') sub=(it.raw?'SUROVÝ':'VYBRUŠENÝ')+' • '+(it.weight||'?')+'g';
+    else if(it.isEquipment) sub=(it.tierName||'')+' • '+(it.tier!==undefined?(it.tier+1)+' cihly':'');
+    else if(it.isFeed) sub=(it.xp||'?')+' XP';
+    else sub=l.category;
+    let timeAgo=Math.floor((Date.now()-l.time)/60000);
+    let timeText=timeAgo<60?timeAgo+'m':Math.floor(timeAgo/60)+'h';
+    html+=`
+      <div class="marketItem" style="${it.tier!==undefined?'border-left:4px solid '+tierColor:''}">
+        <div class="marketItemIcon" style="${it.tier!==undefined?'border-color:'+tierColor:''}">${icon}</div>
+        <div class="marketItemInfo">
+          <div class="marketItemTitle">${it.name||'Item'}</div>
+          <div class="marketItemSub">${sub}</div>
+          <div class="marketItemPrice">🧱 ${l.price} cihel</div>
+          <div class="marketItemSeller">👤 ${l.seller} • ${timeText}</div>
+        </div>
+        <div class="marketItemActions">
+          ${l.isMine?`<button class="marketCancelBtn" onclick="cancelMarketListing('${l.id}')">❌ Zrušit</button>`:`<button class="marketBuyBtn" onclick="buyMarketListing('${l.id}')" ${ (typeof goldBricks!=='undefined' && goldBricks < l.price)?'disabled':''}>KOUPIT</button>`}
+        </div>
+      </div>
+    `;
+  });
+  listEl.innerHTML=html;
+}
+function buyMarketListing(listId){
+  let idx=marketListings.findIndex(l=>l.id===listId);
+  if(idx===-1) return;
+  let listing=marketListings[idx];
+  if(typeof goldBricks==='undefined' || goldBricks < listing.price){ showToast('💸 Nemáš dost cihel!'); return; }
+  goldBricks-=listing.price;
+  let newItem=JSON.parse(JSON.stringify(listing.item));
+  newItem.id=Date.now()+Math.random();
+  inventory.push(newItem);
+  marketListings.splice(idx,1);
+  saveGame(); saveMarket(); renderMarket(); renderInventory(); updateHUD();
+  showToast('✅ Koupeno '+newItem.name+' za '+listing.price+' cihel!',3);
+}
+function cancelMarketListing(listId){
+  let idx=marketListings.findIndex(l=>l.id===listId);
+  if(idx===-1) return;
+  let listing=marketListings[idx];
+  if(!listing.isMine) return;
+  let newItem=JSON.parse(JSON.stringify(listing.item));
+  newItem.id=Date.now()+Math.random();
+  inventory.push(newItem);
+  marketListings.splice(idx,1);
+  saveGame(); saveMarket(); renderMarket(); renderInventory(); updateHUD();
+  showToast('↩️ Nabídka zrušena',2);
+}
+function openMarketSelect(){
+  let modal=document.getElementById('marketSelectModal');
+  if(modal){ modal.style.display='flex'; renderMarketSelectList(); }
+}
+function closeMarketSelect(){
+  let modal=document.getElementById('marketSelectModal');
+  if(modal) modal.style.display='none';
+}
+function renderMarketSelectList(){
+  let listEl=document.getElementById('marketSelectList');
+  if(!listEl) return;
+  if(typeof inventory==='undefined' || inventory.length===0){
+    listEl.innerHTML='<div style="text-align:center; padding:20px; color:#888;">Batoh prázdný</div>';
+    return;
+  }
+  let items=[];
+  for(let i=0;i<inventory.length;i++){
+    let it=inventory[i];
+    if(!it) continue;
+    if(marketSelectCategory==='minerals' && typeof it.type!=='number') continue;
+    if(marketSelectCategory==='equipment' && !it.isEquipment) continue;
+    if(marketSelectCategory==='feed' && !it.isFeed) continue;
+    if(marketSelectCategory==='other' && (typeof it.type==='number' || it.isEquipment || it.isFeed)) continue;
+    if(it.isEquipment){
+      try{ if(Object.values(equipped).some(eq=>eq && eq.id===it.id)) continue; }catch(e){}
+    }
+    items.push(it);
+  }
+  if(items.length===0){
+    listEl.innerHTML='<div style="text-align:center; padding:20px; color:#666;">Nic v této kategorii</div>';
+    return;
+  }
+  let html='';
+  items.forEach(it=>{
+    let icon=it.icon||'📦';
+    let name=it.name||'Item';
+    let count=it.count||1;
+    html+=`<div class="marketSelectItem" onclick="selectMarketItemToSell('${it.id}')"><div style="width:36px; height:36px; background:#111; border-radius:6px; display:flex; align-items:center; justify-content:center;">${icon}</div><div style="flex:1;"><div style="font-size:11px; font-weight:800; color:#fff;">${name} ${count>1?'('+count+'x)':''}</div></div><div style="color:#00ACC1;">➕</div></div>`;
+  });
+  listEl.innerHTML=html;
+}
+function selectMarketItemToSell(itemId){
+  let idx=findIdx(itemId);
+  if(idx===-1) return;
+  selectedMarketItem=inventory[idx];
+  closeMarketSelect();
+  openMarketPriceModal();
+}
+function openMarketPriceModal(){
+  if(!selectedMarketItem) return;
+  let it=selectedMarketItem;
+  let preview=document.getElementById('marketPriceItemPreview');
+  if(preview) preview.innerHTML=`<div style="width:44px; height:44px; background:#111; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:24px;">${it.icon||'📦'}</div><div><div style="font-weight:800; color:#fff;">${it.name||'Předmět'}</div></div>`;
+  let inp=document.getElementById('marketPriceInput');
+  if(inp){ inp.value=''; inp.focus(); }
+  let after=document.getElementById('marketPriceAfterFee');
+  if(after) after.textContent='0';
+  let modal=document.getElementById('marketPriceModal');
+  if(modal) modal.style.display='flex';
+}
+function closeMarketPriceModal(){
+  let modal=document.getElementById('marketPriceModal');
+  if(modal) modal.style.display='none';
+  selectedMarketItem=null;
+}
+function confirmMarketSell(){
+  let inp=document.getElementById('marketPriceInput');
+  let price=parseInt(inp.value);
+  if(isNaN(price) || price<1 || price>99999){ showToast('❌ Zadej cenu 1-99999'); return; }
+  if(!selectedMarketItem) return;
+  let idx=findIdx(selectedMarketItem.id);
+  if(idx===-1){ showToast('❌ Předmět nenalezen'); closeMarketPriceModal(); return; }
+  let item=inventory[idx];
+  inventory.splice(idx,1);
+  let category=getMarketCategoryForItem(item);
+  let listing={ id:'my_'+Date.now()+'_'+Math.random(), item:JSON.parse(JSON.stringify(item)), price:price, seller:(localStorage.getItem('nick')||'Ty'), time:Date.now(), category:category, isMine:true };
+  marketListings.unshift(listing);
+  saveGame(); saveMarket();
+  closeMarketPriceModal();
+  renderMarket(); renderInventory(); updateHUD();
+  showToast('✅ Vystaveno za '+price+' cihel!',3);
+}
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  loadMarket();
+  // market button
+  let mBtn=document.getElementById('marketButton');
+  if(!mBtn){
+    // vytvoř pokud neexistuje (V8 ho nemá)
+    mBtn=document.createElement('button');
+    mBtn.id='marketButton';
+    mBtn.textContent='🏪 MARKET';
+    document.body.appendChild(mBtn);
+  }
+  mBtn.addEventListener('click', ()=>{
+    if(document.getElementById('marketPanel').classList.contains('open')) closeMarket();
+    else openMarket();
+  });
+  let closeM=document.getElementById('closeMarket');
+  if(closeM) closeM.addEventListener('click', closeMarket);
+  let sellBtn=document.getElementById('marketSellBtn');
+  if(sellBtn) sellBtn.addEventListener('click', openMarketSelect);
+  let closeSel=document.getElementById('closeMarketSelect');
+  if(closeSel) closeSel.addEventListener('click', closeMarketSelect);
+  let closePrice=document.getElementById('marketPriceCancel');
+  if(closePrice) closePrice.addEventListener('click', closeMarketPriceModal);
+  let confirmPrice=document.getElementById('marketPriceConfirm');
+  if(confirmPrice) confirmPrice.addEventListener('click', confirmMarketSell);
+  let priceInput=document.getElementById('marketPriceInput');
+  if(priceInput){
+    priceInput.addEventListener('input', ()=>{
+      let p=parseInt(priceInput.value)||0;
+      document.getElementById('marketPriceAfterFee').textContent=Math.floor(p*0.95);
+    });
+    priceInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter') confirmMarketSell(); });
+  }
+  document.querySelectorAll('#marketCategories .marketCat').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      document.querySelectorAll('#marketCategories .marketCat').forEach(c=>c.classList.remove('active'));
+      el.classList.add('active');
+      marketCategory=el.dataset.cat;
+      renderMarket();
+    });
+  });
+  document.querySelectorAll('#marketSelectCats .marketCat').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      document.querySelectorAll('#marketSelectCats .marketCat').forEach(c=>c.classList.remove('active'));
+      el.classList.add('active');
+      marketSelectCategory=el.dataset.selcat;
+      renderMarketSelectList();
+    });
+  });
+  document.querySelectorAll('#marketFilters .marketFilter').forEach(el=>{
+    if(el.dataset.sort){
+      el.addEventListener('click', ()=>{
+        document.querySelectorAll('#marketFilters .marketFilter').forEach(f=>f.classList.remove('active'));
+        el.classList.add('active');
+        marketSort=el.dataset.sort;
+        renderMarket();
+      });
+    }
+  });
+  let searchInput=document.getElementById('marketSearch');
+  if(searchInput) searchInput.addEventListener('input', ()=>{ marketSearch=searchInput.value; renderMarket(); });
+  // modal close on background
+  let selModal=document.getElementById('marketSelectModal');
+  if(selModal) selModal.addEventListener('click', (e)=>{ if(e.target.id==='marketSelectModal') closeMarketSelect(); });
+  let priceModal=document.getElementById('marketPriceModal');
+  if(priceModal) priceModal.addEventListener('click', (e)=>{ if(e.target.id==='marketPriceModal') closeMarketPriceModal(); });
+
+  console.log('✅ MARKET V16 načten - založeno na V8final, eventy neporušené');
+});
+
+// zajisti že eventy fungují jako ve V8 - nepřepisuj openEventPanel pokud existuje
+let origOpenEventPanel = window.openEventPanel;
+if(origOpenEventPanel){
+  let wrapped=false;
+  // obalíme aby zavíral market
+  window.openEventPanel = function(){
+    let mp=document.getElementById('marketPanel');
+    if(mp) mp.classList.remove('open');
+    origOpenEventPanel();
+  };
+}
+</script>
+
+
+<style>
+
+
+
+<script>
+})();
+</script>
+
+
+<style>
+
+
+
+<script>
+})();
+</script>
+
+
+<style>
+
+
+
+
+
+
+<style>
+
+
+
+
+
+
+<style>
+
+
+
+
+
+
+<style>
+
+
+
+
+
+
+<style>
+
+
+
+
+
+
+<style>
+
+
+
+
+
+
+<style>
+
+
+
+
+
+
+<style>
+
+
+
+
+
+
+<style>
+
+
+
+
+
+
+<style>
+
+
+
+
+
+
+<style>
+
+
+
+
+
+
+<style>
+
+
+
+
+
+
+<style>
+/* === V31 - OPRAVA VELIKOSTI KRUMPÁČE VE VÝBĚRU + REZAVÝ NEPŮJDE PRODAT === */
+body.market-open #shopAboveMap,
+body.market-open #leaderboardAboveMap,
+body.market-open #petsButton,
+body.market-open #marketButton,
+body.market-open #eventButton_fixed,
+body.market-open #chatButton,
+body.market-open #minimapWrap {
+  display: none !important;
+}
+
+#marketPanel.open {
+  z-index: 100002 !important;
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  width: min(92%, 560px) !important;
+  max-height: 92vh !important;
+  background: #121212 !important;
+  border: 2px solid #333 !important;
+  border-radius: 16px !important;
+}
+
+#marketSelectModal {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: rgba(0,0,0,0.88) !important;
+  z-index: 100005 !important;
+  display: none !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 12px !important;
+}
+#marketSelectModal.open { display: flex !important; }
+#marketPriceModal {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: rgba(0,0,0,0.92) !important;
+  z-index: 100008 !important;
+  display: none !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 12px !important;
+}
+#marketPriceModal.open { display: flex !important; }
+
+#marketSelectBox, #marketPriceBox {
+  background: #1e1e1e !important;
+  border: 2px solid #7b1fa2 !important;
+  border-radius: 16px !important;
+  width: min(95%, 600px) !important;
+  max-height: 88vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  box-shadow: 0 0 30px rgba(123,31,162,0.6) !important;
+  z-index: 100009 !important;
+  position: relative !important;
+}
+#marketPriceBox {
+  border-color: #FFD700 !important;
+  box-shadow: 0 0 30px rgba(255,215,0,0.4) !important;
+  width: min(90%, 420px) !important;
+}
+
+#marketList {
+  background: #1a1a1a !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0 !important;
+  padding: 10px !important;
+  overflow-y: auto !important;
+  max-height: 62vh !important;
+}
+
+#marketList .item {
+  background: #121914 !important;
+  border: 1px solid #3b493e !important;
+  border-radius: 8px !important;
+  padding: 6px !important;
+  margin-bottom: 6px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+#marketList .itemRow {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 8px !important;
+  background: rgba(0,0,0,0.22) !important;
+  border-radius: 8px !important;
+  margin-bottom: 0 !important;
+  position: relative !important;
+}
+
+#marketList .itemIconShop, .priceIconShop {
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  max-width: 44px !important;
+  max-height: 44px !important;
+  background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.08), rgba(0,0,0,0.35)) !important;
+  border-radius: 8px !important;
+  border: 1px solid rgba(255,255,255,0.12) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+  flex-shrink: 0 !important;
+}
+#marketList .itemIconShop img, .priceIconShop img {
+  width: 40px !important;
+  height: 40px !important;
+  max-width: 40px !important;
+  max-height: 40px !important;
+  object-fit: contain !important;
+  display: block !important;
+}
+
+#marketList .itemTitle {
+  font-size: 12px !important;
+  font-weight: bold !important;
+  margin-bottom: 3px !important;
+  line-height: 1.2 !important;
+  color: #fff !important;
+  white-space: normal !important;
+  word-break: break-word !important;
+}
+
+#marketList .itemInfo {
+  color: #b9c4ba !important;
+  font-size: 10.5px !important;
+  line-height: 1.3 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+}
+
+#marketList .actionButton {
+  border: 1px solid #65766a !important;
+  border-radius: 7px !important;
+  background: #344439 !important;
+  color: white !important;
+  padding: 6px 10px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  font-size: 11px !important;
+  line-height: 1.2 !important;
+  margin-left: auto !important;
+}
+#marketList .buyButton {
+  background: #294d36 !important;
+  border-color: #4a7a5a !important;
+  color: #a5d6a7 !important;
+}
+
+/* VÝBĚR PŘEDMĚTŮ - OPRAVA KRUMPÁČE MOC VELKÝ JAKO RUBELLIT MALÝ */
+#marketSelectList {
+  background: #1a1a1a !important;
+  padding: 10px !important;
+  overflow-y: auto !important;
+  max-height: 60vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+}
+
+#marketSelectList .item {
+  background: #121914 !important;
+  border: 1px solid #3b493e !important;
+  border-radius: 8px !important;
+  padding: 6px !important;
+  margin-bottom: 0 !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  cursor: pointer !important;
+}
+
+#marketSelectList .itemRow {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 8px !important;
+  background: rgba(0,0,0,0.22) !important;
+  border-radius: 8px !important;
+  margin-bottom: 0 !important;
+  position: relative !important;
+}
+
+#marketSelectList .itemIconShop {
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  max-width: 44px !important;
+  max-height: 44px !important;
+  background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.08), rgba(0,0,0,0.35)) !important;
+  border-radius: 8px !important;
+  border: 1px solid rgba(255,255,255,0.12) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+  flex-shrink: 0 !important;
+}
+#marketSelectList .itemIconShop img {
+  width: 40px !important;
+  height: 40px !important;
+  max-width: 40px !important;
+  max-height: 40px !important;
+  object-fit: contain !important;
+  display: block !important;
+}
+
+#marketSelectList .itemTitle {
+  font-size: 12px !important;
+  font-weight: bold !important;
+  margin-bottom: 3px !important;
+  line-height: 1.2 !important;
+  color: #fff !important;
+}
+
+#marketSelectList .itemInfo {
+  color: #b9c4ba !important;
+  font-size: 10.5px !important;
+  line-height: 1.3 !important;
+}
+
+.goldBrickIcon {
+  width: 16px !important;
+  height: 12px !important;
+  object-fit: contain !important;
+  display: inline-block !important;
+}
+#marketGoldDisplay {
+  display: flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  background: rgba(0,0,0,0.4) !important;
+  padding: 5px 10px !important;
+  border-radius: 20px !important;
+  font-size: 11px !important;
+}
+
+#marketPriceItemPreview {
+  background: #222 !important;
+  border-radius: 12px !important;
+  padding: 12px !important;
+  margin-bottom: 12px !important;
+  display: flex !important;
+  gap: 12px !important;
+  align-items: center !important;
+  border: 1px solid #444 !important;
+}
+</style>
+
+
+<script>
+// V31 - oprava velikosti krumpáče ve výběru jako Rubellit malý + rezavý krompáč nepůjde prodat
+(function(){
+  window.openMarket = function(){
+    document.body.classList.add('market-open');
+    try{
+      ['inventoryPanel','shopPanel','leaderboardPanel','petsPanel','eventPanel'].forEach(id=>{
+        let p=document.getElementById(id);
+        if(p) p.classList.remove('open');
+      });
+    }catch(e){}
+    let mp=document.getElementById('marketPanel');
+    if(mp) mp.classList.add('open');
+    let parent=document.getElementById('marketGoldDisplay');
+    if(parent){
+      let brickImg = (typeof GOLD_BAR_ICON_BASE64!=='undefined') ? `<img src="${GOLD_BAR_ICON_BASE64}" class="goldBrickIcon">` : '';
+      let count = (typeof goldBricks!=='undefined'?goldBricks:0);
+      parent.innerHTML = brickImg + ` <span><b>${count}</b> cihel</span>`;
+    }
+    if(typeof renderMarket==='function') renderMarket();
+  };
+  window.closeMarket = function(){
+    let mp=document.getElementById('marketPanel');
+    if(mp) mp.classList.remove('open');
+    document.body.classList.remove('market-open');
+    ['marketSelectModal','marketPriceModal'].forEach(id=>{
+      let m=document.getElementById(id);
+      if(m){ m.classList.remove('open'); m.style.display='none'; }
+    });
+  };
+
+  window.generateFakeMarketListings = function(){
+    marketListings = [];
+    console.log('✅ Market bez fake nabídek - prázdný pro GitHub');
+    saveMarket();
+  };
+  // Vymaž staré fake nabídky z localStorage
+  try{
+    let saved = localStorage.getItem('marketListings');
+    if(saved){
+      let parsed = JSON.parse(saved);
+      let onlyFake = parsed.filter(l=> l.id && l.id.startsWith('fake_'));
+      if(onlyFake.length>0){
+        localStorage.removeItem('marketListings');
+        marketListings = [];
+        console.log('🗑️ Smazány staré fake nabídky');
+      }
+    }
+  }catch(e){}
+
+
+  // OPRAVA IKON - VŠECHNY MALÉ 40px JAKO RUBELLIT
+  window.getMarketItemIconHtmlShop = function(it){
+    try{
+      if(typeof it.type==='number'){
+        let imgSrc='';
+        try{
+          if(it.raw && typeof rawImgs!=='undefined' && rawImgs[it.type]) imgSrc=rawImgs[it.type];
+          else if(!it.raw && typeof polImgs!=='undefined' && polImgs[it.type]) imgSrc=polImgs[it.type];
+        }catch(e){}
+        if(imgSrc) return `<div class="itemIconShop"><img src="${imgSrc}" style="width:40px;height:40px;object-fit:contain;"></div>`;
+      }
+      if(it.isCape){
+        let img = it.capeImg || it.icon || '';
+        if(img && img.startsWith('data:')) return `<div class="itemIconShop"><img src="${img}" style="width:40px;height:40px;object-fit:contain;"></div>`;
+        if(it.capeId && typeof CAPE_DEFS!=='undefined'){
+          let def = CAPE_DEFS.find(c=>c.id===it.capeId);
+          if(def && def.img) return `<div class="itemIconShop"><img src="${def.img}" style="width:40px;height:40px;object-fit:contain;"></div>`;
+        }
+      }
+      if(it.isAura){
+        let auraIcon='';
+        try{
+          if(it.isVoidAura && typeof VOID_AURA_ICON!=='undefined') auraIcon=VOID_AURA_ICON;
+          else if(it.isElectricAura && typeof ELECTRIC_AURA_ICON!=='undefined') auraIcon=ELECTRIC_AURA_ICON;
+          else if(it.isPinkAura && typeof PINK_AURA_ICON!=='undefined') auraIcon=PINK_AURA_ICON;
+          else if(it.isBlueAura && typeof BLUE_AURA_ICON!=='undefined') auraIcon=BLUE_AURA_ICON;
+          else if(typeof GOLDEN_AURA_ICON!=='undefined') auraIcon=GOLDEN_AURA_ICON;
+          else if(it.icon && it.icon.startsWith('data:')) auraIcon=it.icon;
+        }catch(e){}
+        if(auraIcon) return `<div class="itemIconShop"><img src="${auraIcon}" style="width:40px;height:40px;object-fit:contain;"></div>`;
+      }
+      if(it.isTool){
+        // OPRAVA - MALÝ JAKO RUBELLIT 40px, NE VELKÝ
+        if(it.icon && it.icon.startsWith('data:')){
+          return `<div class="itemIconShop"><img src="${it.icon}" style="width:40px;height:40px;object-fit:contain;"></div>`;
+        }
+        if(typeof PICKAXE_ICONS!=='undefined' && it.toolIndex!==undefined && PICKAXE_ICONS[it.toolIndex]){
+          return `<div class="itemIconShop"><img src="${PICKAXE_ICONS[it.toolIndex]}" style="width:40px;height:40px;object-fit:contain;"></div>`;
+        }
+        return `<div class="itemIconShop" style="font-size:20px;">⛏️</div>`;
+      }
+      if(it.isFeed){
+        if(it.icon && it.icon.startsWith('data:')) return `<div class="itemIconShop"><img src="${it.icon}" style="width:40px;height:40px;object-fit:contain;"></div>`;
+        if(typeof PET_FEED_SMALL_IMG!=='undefined') return `<div class="itemIconShop"><img src="${PET_FEED_SMALL_IMG}" style="width:40px;height:40px;object-fit:contain;"></div>`;
+        return `<div class="itemIconShop" style="font-size:18px;">🍖</div>`;
+      }
+      if(it.isFireMap || it.isIceMap){
+        if(it.icon && it.icon.startsWith('data:')) return `<div class="itemIconShop"><img src="${it.icon}" style="width:40px;height:40px;object-fit:contain;"></div>`;
+        if(it.isFireMap && typeof FIRE_MAP_ICON_BASE64!=='undefined') return `<div class="itemIconShop"><img src="${FIRE_MAP_ICON_BASE64}" style="width:40px;height:40px;object-fit:contain;"></div>`;
+        if(it.isIceMap && typeof ICE_MAP_ICON_BASE64!=='undefined') return `<div class="itemIconShop"><img src="${ICE_MAP_ICON_BASE64}" style="width:40px;height:40px;object-fit:contain;"></div>`;
+      }
+      if(it.isMysteryFeedBox){
+        if(it.icon && it.icon.startsWith('data:')) return `<div class="itemIconShop"><img src="${it.icon}" style="width:40px;height:40px;object-fit:contain;"></div>`;
+        if(typeof MYSTERY_BOX_FEED!=='undefined' && MYSTERY_BOX_FEED.icon) return `<div class="itemIconShop"><img src="${MYSTERY_BOX_FEED.icon}" style="width:40px;height:40px;object-fit:contain;"></div>`;
+      }
+      if(it.isAuraCapeChanger || it.isChanger){
+        if(it.icon && it.icon.startsWith('data:')) return `<div class="itemIconShop"><img src="${it.icon}" style="width:40px;height:40px;object-fit:contain;"></div>`;
+        if(typeof AURA_CAPE_CHANGER_IMG!=='undefined') return `<div class="itemIconShop"><img src="${AURA_CAPE_CHANGER_IMG}" style="width:40px;height:40px;object-fit:contain;"></div>`;
+      }
+      if(it.isForgeParchment){
+        if(it.icon && it.icon.startsWith('data:')) return `<div class="itemIconShop"><img src="${it.icon}" style="width:40px;height:40px;object-fit:contain;"></div>`;
+        if(typeof FORGE_PARCHMENT_ICON_BASE64!=='undefined') return `<div class="itemIconShop"><img src="${FORGE_PARCHMENT_ICON_BASE64}" style="width:40px;height:40px;object-fit:contain;"></div>`;
+      }
+      if(it.isEquipment){
+        if(it.icon && it.icon.startsWith('data:')) return `<div class="itemIconShop"><img src="${it.icon}" style="width:40px;height:40px;object-fit:contain;"></div>`;
+        return `<div class="itemIconShop" style="font-size:20px;">${it.icon||'⛑️'}</div>`;
+      }
+      if(it.icon && it.icon.startsWith('data:')) return `<div class="itemIconShop"><img src="${it.icon}" style="width:40px;height:40px;object-fit:contain;"></div>`;
+    }catch(e){}
+    return `<div class="itemIconShop" style="font-size:16px;">📦</div>`;
+  };
+
+  window.getPriceModalIconHtml = function(it){
+    return getMarketItemIconHtmlShop(it).replace('itemIconShop','priceIconShop');
+  };
+
+  window.renderMarket = function(){
+    let listEl=document.getElementById('marketList');
+    if(!listEl) return;
+    let filtered=marketListings.filter(l=>{
+      if(marketCategory==='my') return l.isMine;
+      if(marketCategory!=='all' && l.category!==marketCategory) return false;
+      if(marketSearch && !l.item.name.toLowerCase().includes(marketSearch.toLowerCase())) return false;
+      return true;
+    });
+    if(marketSort==='newest') filtered.sort((a,b)=>b.time-a.time);
+    else if(marketSort==='cheapest') filtered.sort((a,b)=>a.price-b.price);
+    else if(marketSort==='expensive') filtered.sort((a,b)=>b.price-a.price);
+    else if(marketSort==='name') filtered.sort((a,b)=>a.item.name.localeCompare(b.item.name));
+
+    let catEl=document.getElementById('catAllCount');
+    if(catEl) catEl.textContent=marketListings.length;
+    let infoEl=document.getElementById('marketCountInfo');
+    if(infoEl) infoEl.textContent=filtered.length+' nabídek • '+marketListings.filter(l=>l.isMine).length+' moje';
+
+    if(filtered.length===0){
+      listEl.innerHTML='<div style="text-align:center; padding:30px; color:#666;">📭 Žádné nabídky</div>';
+      return;
+    }
+
+    let brickIcon = (typeof GOLD_BAR_ICON_BASE64!=='undefined') ? `<img src="${GOLD_BAR_ICON_BASE64}" class="goldBrickIcon">` : '';
+
+    let html='';
+    filtered.forEach(l=>{
+      let it=l.item;
+      let tierColor = it.tierColor || (typeof equipTiers!=='undefined' && it.tier!==undefined && equipTiers[it.tier] ? equipTiers[it.tier].color : '#555');
+      let iconHtml = getMarketItemIconHtmlShop(it);
+
+      let titleHtml='';
+      let infoHtml='';
+
+      if(typeof it.type==='number'){
+        let data = (typeof minerals!=='undefined' && minerals[it.type]) ? minerals[it.type] : {name:it.name||'Kámen', color:'#fff'};
+        let purity = (it.purity!==undefined) ? it.purity : 100;
+        let weight = it.weight||'?';
+        let quality = it.quality||0;
+        let rawText = it.raw ? 'Surový' : 'Vybroušený';
+        titleHtml = `<span style="color:${data.color};">${data.name}</span> <span style="font-size:8px; background:#333; color:#aaa; padding:1px 4px; border-radius:3px;">${rawText}</span>`;
+        infoHtml = `<div>Váha: <b style="color:#A5D6A7;">${weight}g</b> Čistota: <b style="color:#FFEB3B;">${purity}%</b> Kvalita: <b>${quality}%</b></div><div>${brickIcon} <b style="color:#FFD700;">${l.price} cihel</b></div>`;
+      } else if(it.isEquipment){
+        let tierName = it.tierName || '';
+        let bonusesHtml = '';
+        if(it.bonuses && it.bonuses.length>0){
+          bonusesHtml = it.bonuses.map(b=>{
+            let col=b.legendary?'#FFEB3B':(b.key==='tezba'?'#7dd8ff':b.key==='rychlost'?'#ffab40':b.key==='energieRegen'?'#a5d6a7':b.key==='cistota'?'#ce93d8':b.key==='vaha'?'#90caf9':b.key==='energieMax'?'#ff8a80':'#ffd54f');
+            return `<span style="color:${col}; margin-right:6px;">${b.icon} ${b.value}${b.unit}</span>`;
+          }).join('');
+        } else {
+          bonusesHtml = '<span style="color:#666;">Bez bonusů</span>';
+        }
+        if(it.isAura){
+          titleHtml = `<span style="color:${it.isBlueAura?'#00BFFF':'#FF4500'};">${it.name||'Aura'}</span>`;
+          infoHtml = `<div style="display:flex; flex-wrap:wrap; gap:2px;">${bonusesHtml}</div><div>${brickIcon} <b style="color:#FFD700;">${l.price} cihel</b></div>`;
+        } else if(it.isCape){
+          titleHtml = `<span style="color:${tierColor};">🧥 ${it.name||'Plášť'}</span>`;
+          infoHtml = `<div style="display:flex; flex-wrap:wrap; gap:2px;">${bonusesHtml}</div><div>${brickIcon} <b style="color:#FFD700;">${l.price} cihel</b></div>`;
+        } else {
+          titleHtml = `<span style="color:${tierColor};">${it.name||'Helma'}</span> <span style="font-size:8px; background:${tierColor}; color:#000; padding:1px 4px; border-radius:3px;">${tierName.toUpperCase()}</span>`;
+          infoHtml = `<div style="display:flex; flex-wrap:wrap; gap:2px;">${bonusesHtml}</div><div>${brickIcon} <b style="color:#FFD700;">${l.price} cihel</b></div>`;
+        }
+      } else if(it.isTool){
+        titleHtml = it.name||'Krompáč';
+        infoHtml = `<div>Těžba: <b style="color:#7dd8ff;">${[19,33,45,57,63][it.toolIndex]||59}%</b></div><div>${brickIcon} <b style="color:#FFD700;">${l.price} cihel</b></div>`;
+      } else if(it.isFeed){
+        titleHtml = `🍖 ${it.name}`;
+        infoHtml = `<div>${it.xp||'?'} XP</div><div>${brickIcon} <b style="color:#FFD700;">${l.price} cihel</b></div>`;
+      } else {
+        titleHtml = it.name||'Předmět';
+        infoHtml = `<div>${l.category}</div><div>${brickIcon} <b style="color:#FFD700;">${l.price} cihel</b></div>`;
+      }
+
+      html+=`
+        <div class="item" style="${it.tier!==undefined?'border-left:3px solid '+tierColor:''}">
+          <div class="itemRow">
+            <div style="display:flex; gap:8px; align-items:center; flex:1; min-width:0;">
+              ${iconHtml}
+              <div style="flex:1; min-width:0;">
+                <div class="itemTitle">${titleHtml}</div>
+                <div class="itemInfo">${infoHtml}</div>
+              </div>
+            </div>
+            ${l.isMine?`<button class="actionButton" style="background:#3a2a2a; border-color:#6a3a3a; color:#ff8a80;" onclick="cancelMarketListing('${l.id}')">Zrušit</button>`:`<button class="actionButton buyButton" onclick="buyMarketListing('${l.id}')" ${(typeof goldBricks!=='undefined' && goldBricks < l.price)?'disabled':''}>KOUPIT</button>`}
+          </div>
+        </div>
+      `;
+    });
+    listEl.innerHTML=html;
+  };
+
+  window.openMarketPriceModal = function(){
+    if(!selectedMarketItem) return;
+    let it=selectedMarketItem;
+    let preview=document.getElementById('marketPriceItemPreview');
+    if(preview){
+      let iconHtml = getPriceModalIconHtml(it);
+      let name = it.name || (typeof minerals!=='undefined' && typeof it.type==='number' && minerals[it.type] ? minerals[it.type].name : 'Předmět');
+      let sub = '';
+      if(typeof it.type==='number'){
+        sub = `${it.raw?'Surový':'Vybroušený'} • ${it.weight||'?'}g • ${it.purity||'?'}% • ${it.quality||0}%`;
+      } else if(it.isEquipment && it.bonuses){
+        sub = it.bonuses.map(b=>`${b.icon} ${b.value}${b.unit}`).join(' • ');
+      } else if(it.isTool){
+        sub = `Těžba: ${[19,33,45,57,63][it.toolIndex]||59}%`;
+      } else {
+        sub = it.tierName || 'Předmět';
+      }
+      preview.innerHTML = `
+        <div style="display:flex; gap:12px; align-items:center; width:100%;">
+          ${iconHtml}
+          <div style="flex:1; min-width:0; text-align:left;">
+            <div style="font-weight:800; color:#fff; font-size:13px;">${name}</div>
+            <div style="font-size:10px; color:#aaa; margin-top:3px;">${sub}</div>
+            <div style="font-size:9px; color:#4CAF50; margin-top:4px; font-weight:700;">✅ Přesně ty bonusy s kterými dáš</div>
+          </div>
+        </div>
+      `;
+    }
+    let inp=document.getElementById('marketPriceInput');
+    if(inp){ inp.value=''; setTimeout(()=>inp.focus(),100); }
+    let modal=document.getElementById('marketPriceModal');
+    if(modal){
+      modal.classList.add('open');
+      modal.style.display='flex';
+      modal.style.zIndex='100008';
+    }
+  };
+
+  window.closeMarketPriceModal = function(){
+    let modal=document.getElementById('marketPriceModal');
+    if(modal){ modal.classList.remove('open'); modal.style.display='none'; }
+    selectedMarketItem=null;
+  };
+
+  window.openMarketSelect = function(){
+    let modal=document.getElementById('marketSelectModal');
+    if(modal){
+      modal.classList.add('open');
+      modal.style.display='flex';
+      modal.style.zIndex='100005';
+    }
+    if(typeof renderMarketSelectList==='function') renderMarketSelectList();
+  };
+  window.closeMarketSelect = function(){
+    let modal=document.getElementById('marketSelectModal');
+    if(modal){ modal.classList.remove('open'); modal.style.display='none'; }
+  };
+
+  window.selectMarketItemToSell = function(itemId){
+    let idx = (typeof findIdx==='function') ? findIdx(itemId) : -1;
+    if(idx===-1 && typeof inventory!=='undefined'){
+      idx = inventory.findIndex(it=>it.id===itemId);
+    }
+    if(idx!==-1) selectedMarketItem=inventory[idx];
+    let selModal=document.getElementById('marketSelectModal');
+    if(selModal){ selModal.classList.remove('open'); selModal.style.display='none'; }
+    openMarketPriceModal();
+  };
+
+  // OPRAVA VÝBĚRU - MALÉ JAKO RUBELLIT + REZAVÝ KROMPÁČ NEPŮJDE PRODAT
+  window.renderMarketSelectList = function(){
+    let listEl=document.getElementById('marketSelectList');
+    if(!listEl) return;
+    if(typeof inventory==='undefined' || inventory.length===0){
+      listEl.innerHTML='<div style="text-align:center; padding:20px; color:#888;">Batoh prázdný</div>';
+      return;
+    }
+    let items=[];
+    for(let i=0;i<inventory.length;i++){
+      let it=inventory[i];
+      if(!it) continue;
+      // REZAVÝ KROMPÁČ NEPŮJDE PRODAT - toolIndex 0
+      if(it.isTool && it.toolIndex===0) continue;
+      if(marketSelectCategory==='minerals' && typeof it.type!=='number') continue;
+      if(marketSelectCategory==='equipment' && !it.isEquipment) continue;
+      if(marketSelectCategory==='feed' && !it.isFeed) continue;
+      if(marketSelectCategory==='tools' && !it.isTool) continue;
+      if(marketSelectCategory==='maps' && !it.isFireMap && !it.isIceMap) continue;
+      if(it.isEquipment){
+        try{ if(Object.values(equipped).some(eq=>eq && eq.id===it.id)) continue; }catch(e){}
+      }
+      items.push(it);
+    }
+    if(items.length===0){
+      listEl.innerHTML='<div style="text-align:center; padding:20px; color:#666;">Nic k prodeji<br><span style="font-size:10px;">Rezavý krompáč nelze prodat</span></div>';
+      return;
+    }
+    let html='';
+    items.forEach(it=>{
+      // VŠECHNY MALÉ 40px JAKO RUBELLIT
+      let iconHtml = getMarketItemIconHtmlShop(it);
+      let name=it.name|| (typeof minerals!=='undefined' && typeof it.type==='number' && minerals[it.type] ? minerals[it.type].name : 'Item');
+      let sub='';
+      if(typeof it.type==='number') sub=`${it.weight}g • ${it.purity}% • ${it.quality}%`;
+      else if(it.bonuses) sub=it.bonuses.map(b=>`${b.icon} ${b.value}${b.unit}`).join(' ');
+      else if(it.isTool) sub=`Těžba ${[19,33,45,57,63][it.toolIndex]||59}%`;
+      else if(it.isFeed) sub=`${it.xp||'?'} XP`;
+      else sub=it.tierName||'';
+      // STEJNÝ STYL JAKO RUBELLIT - malá ikona vlevo
+      html+=`
+        <div class="item" style="background:#121914; border:1px solid #3b493e; border-radius:8px; padding:6px; margin-bottom:6px; cursor:pointer;" onclick="selectMarketItemToSell('${it.id}')">
+          <div class="itemRow" style="background:rgba(0,0,0,0.22); display:flex; align-items:center; gap:8px; padding:8px; border-radius:8px;">
+            <div style="display:flex; gap:8px; align-items:center; flex:1; min-width:0;">
+              ${iconHtml}
+              <div style="flex:1; min-width:0;">
+                <div class="itemTitle" style="font-size:12px; font-weight:bold; color:#fff;">${name}</div>
+                <div class="itemInfo" style="font-size:10.5px; color:#b9c4ba;">${sub}</div>
+              </div>
+            </div>
+            <div style="color:#00ACC1; font-weight:800; font-size:18px;">+</div>
+          </div>
+        </div>
+      `;
+    });
+    listEl.innerHTML=html;
+  };
+
+  console.log('✅ V31 - oprava krumpáče malý jako Rubellit 40px + rezavý krompáč nelze prodat');
+})();
 </script>
 
 </body>
