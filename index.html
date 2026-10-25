@@ -2079,7 +2079,7 @@ let voidAuraFrameIndex=0; let voidAuraFrameTimer=0; let voidAuraImgCache=[]; let
 function preloadVoidAuraImages(){ if(voidAuraImgsLoaded) return; VOID_AURA_FRAMES.forEach((src,i)=>{ let img=new Image(); img.src=src; voidAuraImgCache[i]=img; }); voidAuraImgsLoaded=true; }
 function getVoidAuraFrame(){ voidAuraFrameTimer+=0.06; if(voidAuraFrameTimer>=1){ voidAuraFrameTimer=0; voidAuraFrameIndex=(voidAuraFrameIndex+1)%VOID_AURA_FRAMES.length; } return voidAuraImgCache[voidAuraFrameIndex]||null; }
 function generateVoidAura(){ let bonuses=[]; let pool=allBonusStats.filter(s=>!s.legendary); let shuffled=[...pool].sort(()=>0.5-Math.random()); for(let i=0;i<3&&i<shuffled.length;i++){ let stat=shuffled[i]; let val=Math.floor(Math.random()*(stat.max-stat.min+1))+stat.min; bonuses.push({key:stat.key, name:stat.name, value:val, unit:stat.unit, icon:stat.icon}); } return {id:Date.now()+Math.random(), isAura:true, isEquipment:true, isVoidAura:true, equipType:"aura", tier:3, tierName:"Temná", tierColor:"#7B1FA2", tierBg:"rgba(123,31,162,0.15)", tierGlow:"0 0 12px #7B1FA2, 0 0 22px #4A148C", bonuses:bonuses, name:"Temná Prázdnota", icon:"🌑", raw:false}; }
-function buyVoidAura(){ if(goldBricks<500){ showToast("Nemáš dost cihel! 500"); return; } goldBricks-=0; let aura=generateVoidAura(); inventory.push(aura); saveGame(); renderInventory(); updateHUD(); renderGoldShop(); showToast("🌑 Temná Prázdnota koupena!",3); }
+function buyVoidAura(){ if(goldBricks<500){ showToast("Nemáš dost cihel! 500"); return; } goldBricks-=500; let aura=generateVoidAura(); inventory.push(aura); saveGame(); renderInventory(); updateHUD(); renderGoldShop(); showToast("🌑 Temná Prázdnota koupena!",3); }
 
 const ELECTRIC_AURA_FRAME_0 = "data:image/webp;base64,UklGRmQRAABXRUJQVlA4WAoAAAAQAAAARwAAfwAAQUxQSKAFAAABoEVtmyFJ+v6IaPdYa9u2bdu2bdu2bdu2bdtGR/z/d1HorIjBbURMALIUjGUOmgYyOhBMsxH86MBh0WMQRgcBWz0AP3o4/FfB6NDjak4MNxoQeZY7SihP0Pszb4Urz2Mjs28HQooLOIX/cWOE0gTdnzLyRUhpDgvSqFwCvrAOHMnIyJMQCmvHzYw0fj0UUpSg6xsqmbiZhKICNmUiGe0m+KKcf6KO8c8J4QoSDP6DRpKJWyMU5LGBJdax5zykGJGeb6l1aNy00xXjsS4T66u93uGlFIfnmvp0crhCPDZkYmPlbes5V4S49ndMmzD7ZF1fhATsw8hmU9wGoQRgxLemTZn+tgpcdoLJBx7LyOaVP88UvGTmcdgar5v2g//zSHQi94A1mdhfTa9MKgMlM4cHK2Di6WFIVu3S6efoU1aYuCx8TrV3MlWh9mq7SD6CzrWOiMZKlfPD5ePlbFYebavOjnzEv5n+qyrx2m6fj8edTNXdDJeNYLqfzKpS+2SQuDwEk/RexsjKE6+Fd1k4WWjdf5UtTDwbkBwCDvuO1gpGbj1CpHVOjvibypaqfnMWvLQMbd8wsdXG7eBb5WXBPmXL1f6bEb5FATsyto6RFw8UaYnIsMeoGZj9sWNojZeFqMzS+vZwrhUBV1jKhL+MFFedx/y/muVB5SrwlTnM8300Zpr41nCRikR6vqMyW+XKCBUF7MzIjGwnuGpE2t6ylFHiDUGkEh92oDJjs7/nhK/Cywy/quXExJ0RqnC4iMqslV92ifTPY3EmZq5cUUL/Ag7XmFvkFfD9c3IvU26mf84F1x+R3l9ouTHyMIT+eOzLxOyV73SJNOf8xH+Y5Ufl0vDNBVzGyAKT3dnR6ZoRrPGnWQlMPASQRh6zMrFM4293zAvXxI0WC6GR6zhfz2GyaFZKsmfa0TBgCyYWa32frC2+RqTrVWo5jLwJocZjQRrLVX1rLnE1ASdZLChyCwTUSniNqait6jnMYCw58YbethqPFagl0Wx15wAErMtUlNrj3U5q1i6MkZsj1KxbnN0ID3isQC1L+R4g8DIvrazEZyGAwySRVlTkyRIgMk3bG9TCdkOAx7KL38rUSK2AxBOGdwDjyy6vmjZKWoDZ0vN7wRzLLkdjycoP5pwbTsJbv0UWnXjPoHYg4Hz+X5ZyezjAY2FaaXdAAEh4m1pU5IEjXA2eZSqKdhzXR4DHtYxFJTv3qJnhEHB4YcpPe+CAgM0LM/44kRPAYxlqUcq32wDAYer/aGW9jroOTzCVFHkFfE3A/owlKRer5zATtaDEx51DXY+rGUvaFKGekwm/opai+l7Xkh1SBx7n/WFWSORBPbNKI1np8f8LSbyq16Gx+J69PqWWYDEuCISBkDqAm+dnsxL6eAow8sSJpEYwbFbslyILVN7ZKXNdPz8cal3PtXt/yFSApheXGebWmAwO9TAjSVp+fTxhYAcAh4YOCzz9wze03BKfnAyYZ1YnjeCAIXP+rJaXMU525isP7TWkqdrwEjUr4yefPP0/tQeCZidr8+Gr7H77iZFXIKDpZboxyy9mWdX+z68mEdccsOQPaszaNCb+vTw8mg/Yl4wxKU2zsGQk+f5qCOinyMInfMr6GmOyVpH84cmzVumEQ5Wd+x2w0R4//vIZa5OZVWf6+9XHH7/WFICgQh8mWMZNKTOO7F72kMsf/p0kzUhNatbAkpqqpsi3995zr9026JJKgPbBgoYzLHzJ15/9QCZjbUpqbPrbOaZbcLYutFBEnIhv92tOjDn23H6zF8j3nnrjp99JUhP/eO6z37764OPLV9t+IAD4FjQdduF26NxtAwcZusHDW173A/n32hgxwWoztgEQcU6Qo3PoWGuwBwABhgEYvN0X300uqPXeI3fxXgCBBABdsweIcyLIXIKgoQAQj9GmuNHFODtWUDggngsAANArAJ0BKkgAgAA+gTCSR6UioaE3PBowoBAJbADMVhBcPjlmP3vnUf1jzAdIsTXsoyN+ofzA/Gy9QfmJ/Zb1a/9x6i/uG+AD+Uf4f1jvUI/cf2AP279N/90vg2/sv/E/dH4Df2u///sAf//1AOE3/l/aP3m+M343nrYd+ovDfxe74eAE7b5W+gFZuamsoflwelewH+jf+h6rugv6s9gX9butx+w/sifr25n1T95OmHgoeKPZEoxotGnRZi6d/eRk+dej1ZFkBdVcaiEjLs17vD3Pm6Tk7rX1WReBOAx4Do5+8A2OKbImCMxaAQ5j0eWE2XHYhsNtT/mplTCC0NPlOFJHDEhMk4YzRFZ96T0SwmdbdVp3st/ygfYMArmFjSPXdspA4DvGfjfsaboD5aU19cRoidVe5ABxCM9b2oUHhtT99PpkrEfxfiPcxF+ZZd0mtnekAo3BFoNYxtKKqMC9hebIVYf+EYoAAP7+BtJX52/TbrHC1UX3QVdxWIj/S84W37dtUFON/e52qf/qEpQ5MS8ugUOltC8TVBYjc6wwfzzSy4Q/BVAEZ/bauFrGn6C9fDsA7CzT+B7A8fka7h2GgTrW5kk6g2ALGN+9anrVOTyjHw1WjqUOO/ZYHf5JeUkjy5fKaX+N7f/E8VDNeSxwF+Z+i+y0F+yI9VT/Msai5y4q0Gz/+E9rmTUre5IVz6WXFTwR30BKaArPKIBwBBK6aE7WHuC6eXj3PwR4/QvzvEMOJe84p6qD8TTq+myyeBHr5V7BMJNZADatqWUbbT++3Fan4HODbxBs7J4ipR+jGX/2PUW7pFGjId8S5cft4h+WBp0zIxxFpTn3mgouSkXqDE+CY2kqfktRGVIPAtYbl5Sbvlg42VC9cTdw9z6OjT9cWTlwXNEu4B8ivehZPJi4L3HnyYv6XkBt5D6ksbHfoiyFdkAxMPcX4PAIiFgx/YHAIcUHQTgI+BlRL8lLXQIOui/hWYfd/f5nPZH/ns7sUOK32qji96Sq22QDj9mzGkcRvEg83YN3/wvhubZoNHPJujgejijbr96IVMnU43Q2FK6rhzGHruWAUudmbT308GATIzRJ74be0CAGcXnthoUFd+EKJYD4H1zHU+Tor4ys/b9jhvmvrrEgwtrAPCt1CtX9294y1sfKGQEP99zHqqQSCgVWkS+T9EbaVN2p1uuKfaSdMoWOAOpGNWdj6/YmF8H+ap3vemKQKiG6WQgHoXIMRU9+rntmuyllD9i5TngaLYWVAxdS2GW/P9JYOJiHOsgme8fc2iKBZ/i4ifmOLN5baAOMNS/t4KM8v7NVm7X2epihRf8yJOBSzRsDsoMcZLbY2e45x2KDjD3cPFOGQXFw5VmXERxugwzR5briuUPq5wvu5qkhvNXR5I56muEgCno42xpVUXT6X60r3FS9oMzJjUqmtsBuCDa9vBeo/79RVtakoChG7PQZAYGUu1u/72awsgZbPOHJMPDoVn2hGxp8c6nqo9F04Q3B++vHtbhPeVqMpwENpc2Fj2mGUMzLAvhj4Awix/G2NPMdHvcusxeRnfiSzvZquNk/+Em2TxIi+bMKmv2LyjQpRX1AWkRl5n/Is92Y1MjdwYpd00Gc53acZ2+WHBW/0WwJh+Kb7dObXqM5OkPe9o9sV2rW4+QQ7szDvADxLgGqHFYI8Il7J45PSOmtYT/yFbM6Ba7BxKXgZKTts1HgW6JevKS6QC3cBCasvE7gPjSF8YmTlMc4gbT+ycF4GyBjNmQ0OAtgSnyoeyn0P6tnwi9hKwPP1HYN5UL6L1jYpJIizBpz+V+Z2hi31N+UTUXqd9z61K/bzApWh5zX5oB0XCSASeKImaZT7KG7vGPSBrfpi+TIfmUqtx0oLqTbNUHAq8YBNFw05E29nD9RqDtbh4JbYAKA0eFB94ZL6PHxxEjoSnk5n7zC4PVjTqIPvn4GYUN6w7aatLt0IVtNpsJ/E+UJHfdeD983zlTP2f5lNMEUtUzO/4/seG3+zUUp9c2sClFOjAYE/l+cIp7Nd+6E5bH85SQyOOdBfw+SgWEyRij47HFXXYD3hwan2uDGYxOpr/+EAlGDi0MJD1eQ1/UOvTSG4ce/Yhs3dhZ7CzIb2VEH6e5EC0t7UUJTWYbKSrQeZAr9AOPRdE4/1TLyjPy1jSQb7miP1kX8Ge6nsCybVoqJg/DayKr95ZUP97D1bDVFEki43H4H+g4xc/RY4luhf1QEUNs2MK0HrA/tLfZtDk7QemBO5uOOcfqHh648132v8Jqnsm5p5U37EUBTsMmnGShOt+T6F4MgWjzK4Rh6+Mem/zV6uSz2EOZbWWktvQZ8+y5m7ENAHsCsNdzGwcZGCzClCkbLFcTCfYloA2szUGxVHTZ2f3+sR9wwPJO3JXP2XDJMhuOCqdOPPOjZSUFyiLYkkNqLuJa12KtA5M3lpJcSpqz1ks3C5lcrCvDOTtl1z1ij2pOh4AVB75g8kt4L4Vtvy6SWka6n+tTiAUXUeZXsqUjdzdC2XwWhMwT53qXU50spPcdkKItUva8+Ow37GrUZNClEuSxKiVj+pbsgNfCUECVYQoKg94xhHypRvSnfUP9GxoumkNFZD0GkRjbHhGBWbGkc9k0/f80z4DMTwP8L+s+7jYi4Te3EvRL+C6QO6nPRlOeAqvm03nN/pvpXP5bCMToVDGXLuyo45HRO8a+uVGVxC37ibzjjLFI+wOuYdc3NcoD7ePg1SPVcPASXOw6Nb2B93e+QgN5NkWv9uriPtLvHoCJj9DQiZtIjEz8wQ5l4OuJqG94wIFH6tmJtVreXu+YrrgtRjRy64KKNBsAKDQgEabt6f1Dt5ughzse9GuemaP4aZNU2aJBr/+Kyjv84DhPC65DAfoNtDAdZc6sAD+8PjJ/+Fz3V9P5gu2EFVDuAcoB5vR9GbG48zuo10NGvAW8KIuj/u3G/Quo5vvmlJ8AE3I3ZikAxRd99hT+Lxi4Sx/mlJ8n1cnsDxRQFNUrMSskKmU+vIPl/HGs8YTRgTRq7PdU+m4qHg2DB1/mCmAZhKPuoYAIcPbHMxY/4/Tve5C6Ag5fz3K36TE78iuBgCMcsPaBwP17WgU5FWlb+hOFVjuNlUkt004dPy1TlESr6XC4AABc6I3CNMXZ8XL1obmFWNffRxfOlzwsuhwyPTXNwI5EiSQzpNgFakVyByHqR/DjQNYvFXz4Slwwx9FtLC6DmsyB9vnrJU+Molb15NP3VRVSO9fg6nCs6XDisN8PHkuaKLeSAI0lULXypcLwWsjRAG99hHqBXL2vHSBPVyW8xnqWAGwxWp1ogmJSxvHiJBrHDtjBmdBfzkxv45SLrvPksQxvdUr17jiBLagDihVh7nRiX6JQEzp/Q5begRcvk15v/Z4OcwKsSTBSG8omqS/5uOwckSGpfb0rM6h1aXPDzwryHBVGfBc+4Vd+KR4duU9NL4bCwGDD7mbIUkzcIpioYvj19YrAqrn24AZTtu/+uYbn/064x0/Pg20pDRvjRC6LCEiEKl9TTFOZOmYR2Zun2p672J5nNeRcVgP+3BUwBXqIDZazE62g/fa+3/6nUEjllOKFGD+pydpxWU4Xz/NhGIHOoP/ZYbgI6GVLeECJYB5MZ5zrZp4Lnw5LYGYUENx2GFdOvzWMT9OQevD+HNeQPaV0IqVI2IcfmItOF5FRcZhJN8ueWV1MClHfRxgeYvE9lrJyjOxcuBElJYuaE7e2y7qVfmyTsRKiDrE5prsZ1HXL86oaAGpSwXuCxz0ad+Vx94L3qtx2O+EJk7rFszTKUTCvVlvznkq3YNvKcSDaHMvhSS2fJSo8pZReVDhsO0RP84k83mhqldsJKJS+tR3pIxxgFUWwMPVwGksxcTL+jKmOJP3UNyyCxNE20cy1f+D2gNmR9Dx5pVu/68KYCJTbt7iMzCHKsDPCtmb7eOKzltoBrCi//ksp//9WYlAWz4WBd73uwAAA=";
 const ELECTRIC_AURA_FRAME_1 = "data:image/webp;base64,UklGRoYRAABXRUJQVlA4WAoAAAAQAAAARwAAfwAAQUxQSKsFAAABoEXbdmHbmmsle59zbd9n27Zt27Zt27Zt27Zt2zgnyZof28nDb0RMAHLsNwEE/4CCSVeF+ydQzLU//D+BwwY3/DN47PW5iPwjnMch+CdQ3Mc14csTdH3Gy+HKU8wT+Z5H+R7HsodLii9Oq/exh9fBlaaYhjTrmQpamMceFhh4IHxh3biSgZFPeS1M9A0mMnIFuKIcZo1GMtilxV3MQDLx80GQggRDv6eRZORK4gtymJ3G2sBr4EqqXMlYx9LP08IV42RmGusnXj1apRicY7GB2S+jVAtRGfezWRO/bwgpxOEqRjaOfP6Yahkq0/cma8LSt5t6LUEVDzCy2cjr4aQAYEmLbD7yLGh+MnP3S2yFidu5anbdpy4XjK1Gex1d2TmczdCSxe9XR99qXiJDf6S1xMi3hvfvk5GqdGMXRrYx8ChIRhCg/1eW2mHxp7nF5SMYvfg5TGxr4KnQbESGvk4a2xvtMXRn47AYQ2SbzT6eokuykYl6aG3jL5OL5iLYKCW2PdnC8LmMGfAFO/JGP2gWMni2XRjZwcQH+kEzEAw4+1uzTrCXZ/fLQGTwcey0pZ+OmFS0Ux7rMFiHaPzzUrhOOZwTAztuiVvBdQjyAVPnmPj5cJWOqEz2Ky0DJjuuC9IRnM/EHM2+O9aJtE908PuWB42924hrXwW7MjLTwEcgbXNY+J1kuTD9MT9cm1Tm+5HGfHifF2mP0ycYmNM3I9AeL4umwIyNv8/eJsWNjDkx8QDVdqhf2Zh34ifdkNZEqh+b5cUUlhPXmsMxKTLzyEegLSnG/U3LzeyvSaGtOCzBxOwDd4FvxcsRDPklfjNOpAXFY4z5MXJF+OYcVuqNLMFuF9eU+L7vMpVAxgmhzVSwMwOLjDzGd0sjwbzvp1SGpT/XBKSeyohfmVio8YtrJofW8TiUgcUauZC6GkHfLy2VE+1K1HeYn4kF22+Pzy1ao9cwlsTE81ABFBMbrSSLH84vCnhsx8iSI5eHA+BwG0NRyRZRBwiG/0QrKtou4gGHOWgsOvGbWSoChyWZymLkYXBwWKo4hjQnnMPS/wA8DN5hsfKSPQl1mIVWHJ+FKCb8m1ZY4EXw4isfMhUWuTk8Fht8LWNhgTujgkk2v6IZ6yki2QZTd80i833O1IhWgvH7yebFhMfvbSw88v7JJwCe4t+lBR4BALtYT2nGDZ0HJvidVljkFQAUjzAWlmytlYdAcX9x/Pt0rguPExgKi3bCIkPgsWNxiV/1hzgsb6m4NweoOMxOKyzyCRUIRnxHK+0RKOBwnYWyAo+CBzw2ZSzKLEwLBRRj/zIrKfByOABwOJKhpJgWrSc68DnGcmK63y/gBQA89v/Jyglcf+D0qONkvtt/KSbxmD6Chlrd4nHGMiz9NAZAVz3oyGeZyujlDoL+B4wRAdBnFBb4ObHIxMu8TnXpElAA2uecJa9jLCLGu+esVnaYGYoazEIGWgmB607UBUBRV7HGF0wsMPLRvsCocSr1oBix1OLf0HIzftH3xAMO3XqUNIICOIkht/jRsweSP3oImpSuylXZGZ/5gz12GjwaKpYbAdzGmBlJ60k/TiHaCOhyw47/05h9CpFrw6FZwVx/pmgxpnwsxURyK3g0rbLS86wbQkyWg5Hkj6cvhjYOWvGBrx5++BvWWkidSvzi2cMXGghoawLMMnxG7Hn+lhe820syhhBT21Lk5QvufMABCziPNkp1BR3tAMBPPu9mz7I2WQophEizmhRCiClE8uWdDtp+yYkGoYPqvQOq67uNDzzuuvfZMJIhsckPPlgF8P3RdgdBrWifSQX7PzjTmGN7Htlj/T3OuoNf/k722Ntb7HXFWTfuu83AvhN4Raau6+KfhwFTVAFg+g2GLnfqW+RqAKoTIWsB0AV1gHe+ogAw5MjHZ/XeAd6JSDaNVVDrRD3qiyJ7QYvipeZ/OABWUDggtAsAAPAqAJ0BKkgAgAA+gTKRR6UjIaE3PBrooBAJbADPXDABDITqv+O2QqfPJF5s8g3qE8wDnDeYj9lv1r93H/k+ob9sPYG/kX9V/+3tWeoZ6BXlrfur8HX9t/4v7j+1n//+sA2wDgR8X/xiRrcb9iMfrI7gBXGezxAButfZXor/2Xin+k+hT0WtCH117A/6+9FH7EX7AOi/gPGxDwGfqJquM9Hk+g4FfZxrG0CO/fzoP5MvR0WZqTBIo4KW0cct3H/tF/362JLr3i9v/g1wsFY/lykZAiFGYbEZI9eYKqk/6IYNy5jReh2ml15b91cZo/0TkmPE3T9H7OhaVN3oxHk2Mb2Uz0r2DbqILZD9qvdJomWmqoX7SGDh0cRyl/26J6gS/Jz+tCi4HG/nkuDR1OlI8P39enCK9BRvSFF+BJMaNAKEyVeSlWDAzJU1TKH6O+4iCSrA4yB0XLG8Uumtftu5AYAA/v4G09/0Jebcy0J1prmrCH/3Kfny6PbA54kBaJH2EjJ/+mMPZR5w1/aFlfzTGy/LRZe42dfO+5/dSvNTswZieR5clw/iWJtEZonNdx/qJfL8WMtcqPI7z2srBglnMc/a3En0XO70jcIPv3tYlrCO7IO9LR3LFr1f/c1xpAADCyc2x8rZQAQIbjDomw2qc/lgbwu41+4j7riaKvFctnLbG/4g1oPaV6I3uKNh8sjyJpAfeRtKPVlkB4/WaxT8XTPg+zoWNdxxIdSxV1tCf79Yx6Jm+5JXFL0YfZj3RsYzIq4exj7+QVhRKBNwhNrhxAgI1HBhSvXhoOv0aYjLf9nEGNqgMz6/wF3xlnEkmjiRzQJOOQPJRNyfr5D3nsuxKHSCkw7GT3McDZIhPm3ri7ESXcwadZ/TMdDwJF4bXISIHGrJcxP8mDXI3KsgLRiUgg6jZMFTAkhoNvQoBs1+SPyVPmH2RkW9/czHhut4nt3OpnDNWkz4V/0ylfAl4gt4ffO5jtvVuypX+ea0sFeQBRC4KRB0slTWiAMdOIIN/OH9HtFwmB5IlTSPuDoXPSttn/PHFX8bfgyLizWIt1FXMYVW22g0+LMaI5r3d+aKGLCuzmr7+cNA4WcWip7Sn0leLCdtglPudMEjWX9M54bx53W7xu4GqSo8vFjWvqIZjolYF5OdYcMdH62s60NEd5GSaphb6Gv73iCEWzgS/3IMB0kKd6xgAcU55/svkU9cLl2Bsj97zFRb6r9ocbhLitnGUw6BiVGCApzh3n7LVLlbfChiLIL6ioWZKVgyt81o3R3m3SC3/JPCh5Pw8cc+xLSuPtLCwC64PiG1BAFR0kPEwZGrpE9lBOAVnj1rQZ8vnWZOV4t6OIToVvhPNz71WZWvywjJj5dZOpGyjvw6HGM0ocP86ROtmZNIooBoMYvcUR1w6I2++pI8iNgpIiVn33hFEeb/I7+xVZAqGaSeSbJ7G/+yyJ1O9cVg3e9i7Py2recNOnaRAsb/s83df2oz9X9qjFl0gn5b3CIR2KR+D7ZJXsWDMy6FdilV0/ajFoSFRipxdmfX0zMyDmYrH+ISbF9n6J/cL36UvqRip/m34MD8EO5P2dvjmdNx3+RNQI11FZ99erazRs40NOCorJIu7FroWclawH8Jrj8TzJwq9Ltcfe0hZmeeBGJFbjuv5ckjtmallk9/tdp4qr3RIfoST6QU4lfjQLCS9kAIHMh7kqp9ZI9t+Q5LV5p9K2gPx/0gDnZc8K/aA8hjvMfSSc0f1QKLHfxFu+bmfCBkdEHd53rIIVBVRNyCajJNA92f72kqeEuLSAKSYy1LTz+Ac1yqlLu6o5z8/VnoyZOz+A6aFAdv4CYFOZgV+wFzSwaVmZiVBW0XYeXquiNOnTnffuu2/XpjbLckIPVD1gPPgzlxV3zqs50JwfKoRmV4c3iMDlqa4dwro+1NWYrzWNqpU2Ok08M5zV82pAs7NMV7yORuVxbx+97ls4HfteD2YNjdR4ZyNvazjkrZ6kn9Fc6RbkKB9q1Qj3y18TMpr3p7rQ9c24RUvdr1kZer5DZ1q+cEFPrDJmUKMjqnPY+Qd8smhVpuTHHeBtD3iS/8bQSLdLZa6htw9qZ/boOcWsottx9qGcBr5doGiHrLfmGsiZD9c2yKOq1bg3E2nhNuUlzw5tYo1DjLw/UGdBRAlvsA5kMpi2dv/ozEm40s9PSlCvpvdnIZpRFM8+RkHu2Jfp5wLaU4fMb2Bf0evVTRR+p1eFNMTLqenAzI50qS345SlMTaHLCwgdc0coUTTl/UHAWGvacN6UhP25dfow1coC4tl4VmiGt5eZP+kzWYOPYU/9y0A6r+7VnVUY+m62Ybu4/j2FH7LCirHJDQY1Z2k+krW+Nipaa2s2woalapMn+7fRdnO60clq/WcP9H72raR3woiMO13K4QtfSPdAU6V5HN8Hs3C4qFL4/JhldnVy1LMmdp3dNRbjd0UhN41tF4uj0gwWzMaUCYqODtyCrb4Z9DVzEfjcO2AwE7det1dHddFIAAGkCh7GFozx7+2C7UzN9NhYzsYfo+rTKXNGhQdBPKxbitIhdtDEPCDfXvCFYZ3z86OTztUQNscV+XL2giVv7gB3XMNQg9gkoLyAadSDV1x6kNEiOf5fEu8ChR6+dTGl1LCSqfEZd6bWAZQrMXmfkcRgiMgtNosz6rxFdXG+0I+NpneudfsRg5e7tQ6Id4lUEC4IBl2AKfgW4612zA/SYhucV1Y1yMDM5eRlGVvx5HlcY1K6T/9XBSvACFz6PAXKv3SVJPDdkIxyEvcFAKbXBzl+gPp788A3I40ifjfA+QkVLLabnXRwYpxeEGlaf2vfcZx0Jal30jUHnUp5OEvzwnmhn+5Zrd1Tdhu+PQ84Qskquz59JE9iD4KOU+V9VHfZiiyDoc8bHWzqveG68H2ziotf8FqHvgfMzXOkc/S9yLSVsae0+OES9wE/GHQ5geYzdm6Bv8j2xzRL7BqV1CxaMvmOYov/zYQBmdsW6NGAvN6sm1ibY0MkqbVXazYVG0kdbtu9fdUk4qqqDSD3X5QI83bc5fMKAjkqgHDgvFmV4m1tf9emUo0RNiamBdUTykItO2EOZC/99kYE/fWmEzNPvK5nSg8Pbn0jq2VQKuDV9GYRWDUHYrVOPvCH29LdDJYSZl+rNNijoojxAYSJ6ITC2CP9gd0qfPqlvvbN38wufrAUlvpZmhspiOpBQ5+s9MLnWQNUh6V7BcptfcgQ1Dp/9z2a7nVFJ/1X5mhsj5v16wbk71mI8fDVn8MxlZTwp4aULUYEtXYmVDVO9vuOPvrTRX21NCKQp2bRGhJKLjOa4T5FFZGpeXz09XFUFopJZLKeOlixyrFzsmCWAPV6wafNY/DxpBZqQC2pWjdN9Rps236POXx/uqkPMF4/pYv/nOBGiEPw9Ct95drFhaiUENl19u8zzQPUXteys6/D4q+YyCktOBQUyqxzzi1Bki80QGhJCbYG9GPbNqlEJ373kcdv+dpjV8V6i30+WOBavM6gXlWPYkp1xYgpuUA7pYb5DW37v4dTee42Sl8+dcpZsWBO3IgnlFFkx9X/p0Yc9YftURFpkZBwq+FBIUCdwTm+M90xoKdr2E6GnA7Xb0MUcoBZf93x6TmGYagdB+/Is0hJf/9CId+0V82cI/88tEqjT3cb+JerrJK3rRDFv6jhTWKnaLdkhYH7RSg1sBcKqpdWqi9kvF7KgxdKxigU7f0hxHmjmxT/hAJJ+Pp6RmhsODvzGf1lp+LworilKHHcQ4056ikheFs/DjsotAQffDGuNudwxvsHrk0RVy+qTbySawTG+RjcpUvhBP3b3CyiromrdpS5JQhLfYHf8wHwYYyX9Bhd9xz8UnFqFB9LqbRMbeCgc33sZ888X8gt38rjwwhVeUOih2A0J3Iud3ZCWnRsheHgBl/5cngKQJQ3lzRcjviAFpUJmpPuJxhJWpuj0G4mNQLwt8013n/jlb//9sFF1eUWX2NlLEDyMdppGAAAAA";
@@ -2104,7 +2104,7 @@ function buyDiamondPickaxeGold(){
   showToast("💎 Diamantový krumpáč koupen za "+price+" cihel!",3);
 }
 
-function buyElectricAura(){ if(goldBricks<500){ showToast("Nemáš dost cihel! 500"); return; } goldBricks-=0; let aura=generateElectricAura(); inventory.push(aura); saveGame(); renderInventory(); updateHUD(); renderGoldShop(); showToast("⚡ Elektrická Bouře koupena!",3); }
+function buyElectricAura(){ if(goldBricks<500){ showToast("Nemáš dost cihel! 500"); return; } goldBricks-=500; let aura=generateElectricAura(); inventory.push(aura); saveGame(); renderInventory(); updateHUD(); renderGoldShop(); showToast("⚡ Elektrická Bouře koupena!",3); }
 
 
 
@@ -4135,7 +4135,7 @@ function sellToolFromInventory(invIdx){
 }
 
 // --- BAREVNÉ RENDROVÁNÍ S VLASTNOSTMI (původní logika) ---
-function renderInventory(){
+function _origRenderInventory(){
   try{
     const getSize=(w,minW,maxW)=>{ const r=Math.max(0,Math.min(1,(w-minW)/Math.max(1,(maxW-minW)))); return 24+r*14; };
     const getColorByPercent=(p)=>{
@@ -4650,6 +4650,70 @@ fireMapEntries.forEach(function(entry){
 
   }catch(e){ console.error('renderInv', e); }
 }
+
+// === FIX: optimalizovaný renderInventory s ochranou proti sekání ===
+let _invLock = false;
+let _invQueued = false;
+let _invLast = 0;
+function renderInventory(){
+  const now = Date.now();
+  if(_invLock){ _invQueued=true; return; }
+  if(now - _invLast < 90){
+    if(!_invQueued){
+      _invQueued=true;
+      setTimeout(()=>{ _invQueued=false; renderInventory(); }, 110);
+    }
+    return;
+  }
+  _invLock=true;
+  _invLast=now;
+  try{
+    // Použij DocumentFragment pro rychlejší vykreslení
+    const listEl = document.getElementById('inventoryList');
+    if(listEl){
+      // Dočasně odpojíme, aby nevznikalo překreslování při každém append
+      const frag = document.createDocumentFragment();
+      // Zavoláme orig, ale necháme ho kreslit do fragu? Orig kreslí přímo do listEl, takže ho necháme a jen zamezíme reflow
+      _origRenderInventory();
+    } else {
+      _origRenderInventory();
+    }
+  }catch(e){ console.error('renderInventory fix err', e); _origRenderInventory(); }
+  finally{
+    _invLock=false;
+    if(_invQueued){
+      _invQueued=false;
+      requestAnimationFrame(()=>renderInventory());
+    }
+  }
+}
+
+// FIX: zamezení dvojkliku na tlačítka
+(function(){
+  let lastClick=0;
+  document.addEventListener('click', function(e){
+    const btn = e.target.closest('.actionButton');
+    if(!btn) return;
+    const now=Date.now();
+    if(btn.dataset.locked==='1'){ e.preventDefault(); e.stopPropagation(); return; }
+    if(now - lastClick < 250){ e.preventDefault(); e.stopPropagation(); return; }
+    lastClick=now;
+    btn.dataset.locked='1';
+    btn.style.pointerEvents='none';
+    btn.style.opacity='0.6';
+    setTimeout(()=>{
+      btn.dataset.locked='0';
+      btn.style.pointerEvents='';
+      btn.style.opacity='';
+    }, 350);
+  }, true);
+})();
+
+// FIX: uložit před zavřením
+window.addEventListener('beforeunload', ()=>{ try{ saveGame(); }catch(e){} });
+window.addEventListener('pagehide', ()=>{ try{ saveGame(); }catch(e){} });
+
+
 
 
 
@@ -7929,7 +7993,7 @@ async function savePlayerToFirebase(isFull=true){
       lastSeenISO: new Date().toISOString()
     };
     if(isFull){
-      let save={money,found,inventory,equipped,petsOwned,activePetId,player:{tool:player.tool,baseMaxEnergy:player.baseMaxEnergy,energyUpgrades:player.energyUpgrades,maxEnergy:player.maxEnergy,energy:player.energy,x:player.x,y:player.y},dug:world.map(row=>row.map(c=>c.dug)),emptyDigs,museum,museumSize,museumExpansionLevel,vipEndTime};
+      let save={money,found,goldBricks,pickaxeLegacyLevels:player.pickaxeLegacyLevels||[0,0,0,0,0],inventory,equipped,petsOwned,activePetId,museum,museumSize,museumExpansionLevel,museumLastCollected,museumPending,player:{tool:player.tool,baseMaxEnergy:player.baseMaxEnergy,energyUpgrades:player.energyUpgrades,maxEnergy:player.maxEnergy,energy:player.energy,x:player.x,y:player.y},dug:world.map(row=>row.map(c=>c.dug)),emptyDigs,vipEndTime,fireMapEndTime,iceMapEndTime,isFireMapActive,isIceMapActive};
       payload.saveData=save;
     }
     await db.ref("players/"+currentNick).update(payload);
@@ -8006,7 +8070,7 @@ saveGame = function(){
   _origSaveGame();
   if(currentNick){
     try{
-      const save={money,found,inventory,equipped,petsOwned,activePetId,player:{tool:player.tool,baseMaxEnergy:player.baseMaxEnergy,energyUpgrades:player.energyUpgrades,maxEnergy:player.maxEnergy,energy:player.energy,x:player.x,y:player.y},dug:world.map(row=>row.map(c=>c.dug)),emptyDigs,museum,museumSize,museumExpansionLevel};
+      const save={money,found,goldBricks,pickaxeLegacyLevels:player.pickaxeLegacyLevels||[0,0,0,0,0],inventory,equipped,petsOwned,activePetId,museum,museumSize,museumExpansionLevel,museumLastCollected,museumPending,player:{tool:player.tool,baseMaxEnergy:player.baseMaxEnergy,energyUpgrades:player.energyUpgrades,maxEnergy:player.maxEnergy,energy:player.energy,x:player.x,y:player.y},dug:world.map(row=>row.map(c=>c.dug)),emptyDigs,vipEndTime,fireMapEndTime,iceMapEndTime,isFireMapActive,isIceMapActive};
       localStorage.setItem("mineralHunterSave_"+currentNick, JSON.stringify(save));
     }catch(e){}
     savePlayerToFirebase(true);
