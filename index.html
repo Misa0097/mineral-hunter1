@@ -6051,7 +6051,8 @@ function dig(){
              saveGame();
              updateHUD();
              renderInventory();
-             showToast("💰 Zlatá cihla! +1 cihla do zůstatku!",3);
+             // Ulož že padla cihla pro hlášku po minerálu
+             window._foundGoldBrickThisDig = true;
              if(typeof onEventGoldBrickFound==='function') onEventGoldBrickFound();
            }
          }
@@ -6064,7 +6065,7 @@ function dig(){
              saveGame();
              updateHUD();
              renderInventory();
-             showToast("🏴‍☠️ Mystery Box vybavení! +1 do batohu!",3);
+             window._foundMysteryBoxThisDig = true;
              if(typeof onEventMysteryEquipFound==='function') onEventMysteryEquipFound();
            }
          }
@@ -6088,7 +6089,22 @@ function dig(){
      }catch(e){ console.error(e); }
 
      const data=minerals[mineral.type];
-     showToast("🪨 Surový "+data.name+" "+mineral.weight+"g Čistota "+mineral.purity+"%",2.4);
+     if(window._foundGoldBrickThisDig && window._foundMysteryBoxThisDig){
+       showToast("🪨 "+data.name+" "+mineral.weight+"g | 💰 Našel si zl. cihlu! + 🏴‍☠️ Mystery Box!",3.5);
+       setTimeout(()=>{ showToast("💰 Našel si zlatou cihlu! +1 cihla + 🏴‍☠️ Mystery Box!",3); }, 3600);
+       window._foundGoldBrickThisDig = false;
+       window._foundMysteryBoxThisDig = false;
+     } else if(window._foundGoldBrickThisDig){
+       showToast("🪨 "+data.name+" "+mineral.weight+"g | 💰 Našel si zl. cihlu! +1 cihla!",3.5);
+       setTimeout(()=>{ showToast("💰 Našel si zl. cihlu! +1 cihla do zůstatku!",3); }, 3600);
+       window._foundGoldBrickThisDig = false;
+     } else if(window._foundMysteryBoxThisDig){
+       showToast("🪨 "+data.name+" "+mineral.weight+"g | 🏴‍☠️ Našel si Mystery Box!",3.5);
+       setTimeout(()=>{ showToast("🏴‍☠️ Našel si Mystery Box vybavení! +1 do batohu!",3); }, 3600);
+       window._foundMysteryBoxThisDig = false;
+     } else {
+       showToast("🪨 Surový "+data.name+" "+mineral.weight+"g Čistota "+mineral.purity+"%",2.4);
+     }
      try{
        let legCnt=countLegendaryStatsForMineral(mineral);
        if(legCnt>=3){
