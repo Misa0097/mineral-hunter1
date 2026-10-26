@@ -10936,47 +10936,52 @@ body.panel-open #minimapWrap {
 </script>
 
 
-<style id="fix-minimal-v4">
-/* Mystery boxy vždy nad batohem */
+<style id="fix-v6">
+/* Panely nad ikonami */
+#craftPanel, #kovarnaPanel, #shopPanel, #inventoryPanel, #petsPanel, #leaderboardPanel, #eventPanel, #museumPanel, #equipPanel, #marketPanel {
+  z-index: 110000 !important;
+}
+#craftPanel.open, #kovarnaPanel.open, #shopPanel.open, #inventoryPanel.open, #petsPanel.open, #leaderboardPanel.open, #eventPanel.open, #museumPanel.open, #equipPanel.open, #marketPanel.open {
+  z-index: 110000 !important;
+}
+#marketSelectModal, #marketPriceModal { z-index: 120000 !important; }
 #mysteryOpenBox { z-index: 210000 !important; position: fixed !important; left: 50% !important; top: 50% !important; transform: translate(-50%,-50%) !important; }
 #mysteryResultBox { z-index: 210001 !important; position: fixed !important; left: 50% !important; top: 50% !important; transform: translate(-50%,-50%) !important; }
 #mysteryAnimBox { z-index: 210000 !important; }
-#changerModal, #changerResultModal, #forgeAnimModal { z-index: 200000 !important; }
-#marketSelectModal, #marketPriceModal { z-index: 120000 !important; }
+#changerModal { z-index: 200000 !important; position: fixed !important; left: 50% !important; top: 50% !important; transform: translate(-50%,-50%) !important; width: min(96%, 520px) !important; }
+#changerResultModal { z-index: 200001 !important; position: fixed !important; left: 50% !important; top: 50% !important; transform: translate(-50%,-50%) !important; }
+#forgeAnimModal { z-index: 200000 !important; }
 
-/* Boční ikony nikdy úplně nezmizí - jen zeslabí */
+/* Boční ikony schovat když panel otevřený */
 body.panel-open #shopAboveMap,
 body.panel-open #leaderboardAboveMap,
 body.panel-open #petsButton,
 body.panel-open #marketButton,
 body.panel-open #eventButton_fixed,
 body.panel-open #chatButton,
-body.panel-open #minimapWrap,
 body.market-open #shopAboveMap,
 body.market-open #leaderboardAboveMap,
 body.market-open #petsButton,
 body.market-open #marketButton,
 body.market-open #eventButton_fixed,
-body.market-open #chatButton,
-body.market-open #minimapWrap {
-  display: flex !important;
-  opacity: 0.18 !important;
-  pointer-events: none !important;
+body.market-open #chatButton {
+  display: none !important;
 }
-
-/* Muzeum a výbava nad ikonami */
-#museumPanel, #equipPanel { z-index: 110000 !important; }
 #toast { z-index: 250000 !important; }
+
+/* Market quantity selector */
+#marketQtyWrap { display: flex; align-items: center; gap: 8px; margin: 10px 0; background: #1a1a1a; border-radius: 8px; padding: 8px; }
+#marketQtyWrap input { width: 80px; padding: 6px; background: #111; border: 1px solid #444; border-radius: 6px; color: #fff; text-align: center; font-weight: 800; }
+#marketQtyWrap button { width: 36px; height: 32px; background: #333; border: 1px solid #555; border-radius: 6px; color: #fff; font-weight: 900; cursor: pointer; }
 </style>
 
-<script id="fix-minimal-js-v4">
+<script id="fix-v6-js">
 (function(){
-  // --- 1. Robustní obnova bočních ikon ---
   function isAnyPanelOpen(){
     if(document.querySelector('.panel.open')) return true;
     if(document.getElementById('marketPanel')?.classList.contains('open')) return true;
     if(document.getElementById('marketSelectModal')?.classList.contains('open')) return true;
-    if(document.getElementById('marketPriceModal')?.classList.contains('open')) return true;
+    if(document.getElementById('marketPriceModal')?.style.display==='flex') return true;
     if(document.getElementById('changerModal')?.classList.contains('open')) return true;
     if(document.getElementById('changerResultModal')?.classList.contains('open')) return true;
     if(document.getElementById('forgeAnimModal')?.style.display==='flex') return true;
@@ -10990,6 +10995,8 @@ body.market-open #minimapWrap {
       document.body.classList.remove('market-open');
     }
   };
+
+  // okamžitá obnova + pojistka
   setInterval(()=>{
     if(!isAnyPanelOpen()){
       if(document.body.classList.contains('panel-open') || document.body.classList.contains('market-open')){
@@ -10997,83 +11004,125 @@ body.market-open #minimapWrap {
         document.body.classList.remove('market-open');
       }
     }
-  }, 1000);
+  }, 700);
 
-  // --- 2. Oprava muzeum a výbava aby přidávaly panel-open ---
-  function wrapSimple(openName, closeName){
-    let o = window[openName];
-    let c = window[closeName];
-    if(!o || o._v4) return;
-    window[openName] = function(){
-      try{ o.apply(this, arguments); }catch(e){ try{o();}catch(e2){} }
-      document.body.classList.add('panel-open');
-    };
-    window[openName]._v4 = true;
-    if(c && !c._v4){
-      let origC = c;
-      window[closeName] = function(){
-        try{ origC.apply(this, arguments); }catch(e){ try{origC();}catch(e2){} }
-        setTimeout(()=>{ window.forceRestoreSideIcons(); },150);
-      };
-      window[closeName]._v4 = true;
-    }
-  }
-  setTimeout(()=>{
-    wrapSimple('openMuseum','closeMuseum');
-    wrapSimple('openEquip','closeEquip');
-    // Pro jistotu i batoh a ostatní aby se vždy obnovily ikony
-    ['openInventory','closeInventory','openShop','closeShop','openPets','closePets','openLeaderboard','closeLeaderboard','openEvent','closeEvent'].forEach((name,i)=>{
-      if(i%2===0){
-        let openN=name;
-        let closeN=name.replace('open','close');
-        // close už má wrapper z V43, jen přidáme restore
-        let origClose = window[closeN];
-        if(origClose && !origClose._v4restore){
-          let oc = origClose;
-          window[closeN] = function(){
-            try{ oc.apply(this, arguments); }catch(e){}
-            setTimeout(()=>{ window.forceRestoreSideIcons(); },120);
-            setTimeout(()=>{ window.forceRestoreSideIcons(); },400);
-          };
-          window[closeN]._v4restore = true;
-        }
+  function wrapAll(){
+    const pairs = [
+      ['openMuseum','closeMuseum'],
+      ['openEquip','closeEquip'],
+      ['openInventory','closeInventory'],
+      ['openShop','closeShop'],
+      ['openCraft','closeCraft'],
+      ['openKovarna','closeKovarna'],
+      ['openPets','closePets'],
+      ['openLeaderboard','closeLeaderboard'],
+      ['openEvent','closeEvent']
+    ];
+    pairs.forEach(([oName,cName])=>{
+      let o = window[oName];
+      let c = window[cName];
+      if(o && !o._v6){
+        let origO = o;
+        window[oName] = function(){
+          try{ origO.apply(this, arguments); }catch(e){ try{origO();}catch(e2){} }
+          document.body.classList.add('panel-open');
+        };
+        window[oName]._v6=true;
+      }
+      if(c && !c._v6){
+        let origC = c;
+        window[cName] = function(){
+          try{ origC.apply(this, arguments); }catch(e){ try{origC();}catch(e2){} }
+          // OKAMŽITĚ zkontroluj - bez delay
+          window.forceRestoreSideIcons();
+          setTimeout(()=>{ window.forceRestoreSideIcons(); }, 80);
+          setTimeout(()=>{ window.forceRestoreSideIcons(); }, 300);
+        };
+        window[cName]._v6=true;
       }
     });
-    // market close
-    if(window.closeMarket && !window.closeMarket._v4){
-      let oc = window.closeMarket;
-      window.closeMarket = function(){
-        try{ oc.apply(this, arguments); }catch(e){}
-        setTimeout(()=>{ window.forceRestoreSideIcons(); },150);
+    if(window.openMarket && !window.openMarket._v6){
+      let om = window.openMarket;
+      window.openMarket = function(){
+        try{ om.apply(this, arguments); }catch(e){}
+        document.body.classList.add('market-open');
+        document.body.classList.add('panel-open');
       };
-      window.closeMarket._v4 = true;
+      window.openMarket._v6=true;
     }
-  }, 1000);
+    if(window.closeMarket && !window.closeMarket._v6){
+      let cm = window.closeMarket;
+      window.closeMarket = function(){
+        try{ cm.apply(this, arguments); }catch(e){}
+        window.forceRestoreSideIcons();
+        setTimeout(()=>{ window.forceRestoreSideIcons(); }, 80);
+      };
+      window.closeMarket._v6=true;
+    }
+  }
+  setTimeout(wrapAll, 600);
+  setTimeout(wrapAll, 1800);
 
-  // --- 3. Market s bonusy jako v batohu ---
-  function getBonusHtml(bonuses){
-    if(!bonuses || !Array.isArray(bonuses) || bonuses.length===0) return '';
-    let html='';
+  // Mystery / měniče nad batohem - hlídání
+  const obs = new MutationObserver((muts)=>{
+    muts.forEach(m=>{
+      m.addedNodes.forEach(n=>{
+        if(!(n instanceof HTMLElement)) return;
+        if(n.id==='mysteryOpenBox'){ n.style.zIndex='210000'; n.style.position='fixed'; n.style.left='50%'; n.style.top='50%'; n.style.transform='translate(-50%,-50%)'; }
+        if(n.id==='mysteryResultBox'){ n.style.zIndex='210001'; n.style.position='fixed'; n.style.left='50%'; n.style.top='50%'; n.style.transform='translate(-50%,-50%)'; }
+        if(n.id==='forgeAnimModal'){ n.style.zIndex='200000'; }
+        if(n.id==='changerModal'){ n.style.zIndex='200000'; n.style.position='fixed'; n.style.left='50%'; n.style.top='50%'; n.style.transform='translate(-50%,-50%)'; }
+        if(n.id==='changerResultModal'){ n.style.zIndex='200001'; n.style.position='fixed'; n.style.left='50%'; n.style.top='50%'; n.style.transform='translate(-50%,-50%)'; }
+      });
+      m.removedNodes.forEach(n=>{
+        if(n instanceof HTMLElement){
+          window.forceRestoreSideIcons();
+        }
+      });
+    });
+  });
+  obs.observe(document.body, {childList:true, subtree:true});
+
+  // --- Market s barvami jako v batohu ---
+  function getColorByPercentLocal(p){
+    p=Math.max(0,Math.min(100,p));
+    if(p<=30) return {c:'#9E9E9E', glow:'none', w:'400'};
+    if(p<=55) return {c:'#FFFFFF', glow:'none', w:'500'};
+    if(p<=65) return {c:'#A5D6A7', glow:'none', w:'600'};
+    if(p<=75) return {c:'#FF9800', glow:'none', w:'700'};
+    if(p<=90) return {c:'#FFEB3B', glow:'0 0 6px #FFEB3B', w:'800'};
+    return {c:'#FF1744', glow:'0 0 6px #FF1744', w:'900'};
+  }
+  function getColorPriceAbsLocal(price){
+    if(price<=150) return {c:'#9E9E9E', glow:'none', w:'400'};
+    if(price<=400) return {c:'#FFFFFF', glow:'none', w:'500'};
+    if(price<=700) return {c:'#A5D6A7', glow:'none', w:'600'};
+    if(price<=1000) return {c:'#FF9800', glow:'none', w:'700'};
+    if(price<=1500) return {c:'#FFEB3B', glow:'0 0 6px #FFEB3B', w:'800'};
+    return {c:'#FF1744', glow:'0 0 6px #FF1744', w:'900'};
+  }
+  function getBonusHtmlLocal(bonuses){
+    if(!bonuses || !bonuses.length) return '';
+    let h='';
     for(let b of bonuses){
       let col = b.legendary ? '#FFEB3B' : (b.key==='tezba'?'#7dd8ff':b.key==='rychlost'?'#ffab40':b.key==='energieRegen'?'#a5d6a7':b.key==='cistota'?'#ce93d8':b.key==='vaha'?'#90caf9':b.key==='energieMax'?'#ff8a80':'#ffd54f');
-      let isMax = (typeof isBonusMax==='function') ? isBonusMax(b) : false;
-      let maxTag = isMax ? ' <span style="color:#ff4444;font-weight:900;font-size:8px">(MAX)</span>' : '';
-      html+=`<span style="color:${col};margin-right:4px;font-size:9px;white-space:nowrap">${b.icon||'★'} ${b.value}${b.unit||'%'}${maxTag}</span>`;
+      let isMax = (typeof isBonusMax==='function' && isBonusMax(b)) ? ' <span style="color:#ff4444;font-weight:900;font-size:8px">(MAX)</span>' : '';
+      h+=`<span style="color:${col};margin-right:4px;font-size:9px;white-space:nowrap">${b.icon||'★'} ${b.value}${b.unit||'%'}${isMax}</span>`;
     }
-    return html;
+    return h;
   }
-  function fixedRenderMarket(){
+
+  window.fixedRenderMarketV6 = function(){
     try{
       let listEl=document.getElementById('marketList');
       if(!listEl) return;
       let myNick = localStorage.getItem('nick')|| (typeof currentNick!=='undefined'?currentNick:'');
-      let now = Date.now();
-      let twelveHours = 12*60*60*1000;
-      let activeListings = (typeof marketListings!=='undefined'?marketListings:[]).filter(l=> (now - (l.time||0)) < twelveHours );
-      let filtered=activeListings.filter(l=>{
-        let isMine = l.isMine || (l.seller && myNick && l.seller===myNick);
+      let now=Date.now();
+      let active = (typeof marketListings!=='undefined'?marketListings:[]).filter(l=> (now-(l.time||0)) < 12*60*60*1000);
+      let filtered = active.filter(l=>{
+        let mine = l.isMine || l.seller===myNick;
         if(typeof marketCategory!=='undefined'){
-          if(marketCategory==='my') return isMine;
+          if(marketCategory==='my') return mine;
           if(marketCategory!=='all' && l.category!==marketCategory) return false;
         }
         if(typeof marketSearch!=='undefined' && marketSearch && l.item && l.item.name && !l.item.name.toLowerCase().includes(marketSearch.toLowerCase())) return false;
@@ -11086,163 +11135,207 @@ body.market-open #minimapWrap {
         else if(marketSort==='name') filtered.sort((a,b)=>a.item.name.localeCompare(b.item.name));
       }
       let catEl=document.getElementById('catAllCount');
-      if(catEl) catEl.textContent=activeListings.length;
+      if(catEl) catEl.textContent=active.length;
       let infoEl=document.getElementById('marketCountInfo');
-      let myCount = activeListings.filter(l=> l.isMine || (l.seller && myNick && l.seller===myNick)).length;
-      if(infoEl) infoEl.textContent=filtered.length+' nabídek • '+myCount+' moje • expiruje po 12h';
+      let myCount = active.filter(l=> l.isMine || l.seller===myNick).length;
+      if(infoEl) infoEl.textContent=filtered.length+' nabídek • '+myCount+' moje • 12h exp';
       if(filtered.length===0){
-        listEl.innerHTML='<div style="grid-column:1/-1; text-align:center; padding:30px; color:#666;">📭 Market prázdný<br><span style="font-size:10px;">Žádné nabídky</span></div>';
+        listEl.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:30px;color:#666">📭 Market prázdný</div>';
         return;
       }
-      let brickIcon = (typeof GOLD_BAR_ICON_BASE64!=='undefined') ? `<img src="${GOLD_BAR_ICON_BASE64}" class="goldBrickIcon" style="width:14px;height:14px;vertical-align:middle">` : '🧱';
+      let brick = (typeof GOLD_BAR_ICON_BASE64!=='undefined') ? `<img src="${GOLD_BAR_ICON_BASE64}" style="width:14px;height:14px;vertical-align:middle">` : '🧱';
       let html='';
       filtered.forEach(l=>{
         let it=l.item;
-        let isMine = l.isMine || (l.seller && myNick && l.seller===myNick);
-        let iconHtml = (typeof getMarketItemIconHtmlShop==='function') ? getMarketItemIconHtmlShop(it) : `<div class="itemIconShop">${it.icon||'📦'}</div>`;
-        let age = now - (l.time||0);
-        let hoursLeft = Math.max(0, 12 - Math.floor(age/(60*60*1000)));
-        let titleHtml=''; let infoHtml=''; let tierStyle='';
+        let mine = l.isMine || l.seller===myNick;
+        let iconHtml = (typeof getMarketItemIconHtmlShop==='function') ? getMarketItemIconHtmlShop(it) : `<div style="width:44px;height:44px;background:#222;border-radius:8px;display:flex;align-items:center;justify-content:center">${it.icon||'📦'}</div>`;
+        let hoursLeft = Math.max(0, 12 - Math.floor((now-(l.time||0))/(60*60*1000)));
+        let title='', info='', tierStyle='';
         if(typeof it.type==='number'){
-          let data = (typeof minerals!=='undefined' && minerals[it.type]) ? minerals[it.type] : {name:it.name||'Kámen', color:'#fff'};
-          let countText = it.count && it.count>1 ? ` <span style="background:#FF6B00; color:#fff; padding:1px 4px; border-radius:4px; font-size:8px;">${it.count}x</span>` : '';
-          titleHtml = `<span style="color:${data.color};font-weight:800">${data.name}</span>${countText}`;
-          infoHtml = `<div style="font-size:10px;color:#aaa">${it.raw?'Surový':'Vybroušený'} • ${it.weight||'?'}g • ${it.purity||'?'}% čistota</div><div style="font-size:10px;margin-top:2px">${brickIcon} <b style="color:#FFD700;">${l.price}</b> • ${l.seller||'Hráč'} • ${hoursLeft}h</div>`;
+          let data = (typeof minerals!=='undefined' && minerals[it.type]) ? minerals[it.type] : {name:it.name||'Kámen', color:'#fff', minWeight:1, maxWeight:100};
+          let countBadge = it.count && it.count>1 ? ` <span style="background:#FF6B00;color:#fff;padding:1px 4px;border-radius:4px;font-size:8px">${it.count}x</span>` : '';
+          let isRaw = it.raw;
+          let weightPct = Math.round(((it.weight - data.minWeight)/Math.max(1,(data.maxWeight - data.minWeight)))*100);
+          let colW = getColorByPercentLocal(Math.max(0,Math.min(100,weightPct)));
+          let colP = getColorByPercentLocal(it.purity||0);
+          let colQ = isRaw ? {c:'#616161', glow:'none', w:'400'} : getColorByPercentLocal(it.quality||0);
+          let colPrice = getColorPriceAbsLocal(it.price||0);
+          let badgeRaw = isRaw ? '<span style="background:#3d2e1e;color:#d7b07a;border:1px solid #6b4a26;border-radius:4px;padding:1px 4px;font-size:8px;font-weight:700">SUROVÝ</span>' : '<span style="background:#1e3a2e;color:#7ad1a5;border:1px solid #3d6b52;border-radius:4px;padding:1px 4px;font-size:8px;font-weight:700">VYBRUŠENÝ</span>';
+          let crackBadge = (it.cracks>0) ? `<span style="background:#3a1e1e;color:#e8a0a0;border:1px solid #6b3a3a;border-radius:4px;padding:1px 4px;font-size:8px;margin-left:4px">PRASKLINY: ${it.cracks}</span>` : '';
+          let godBadge='';
+          try{ let cnt=(typeof countLegendaryStatsForMineral==='function')?countLegendaryStatsForMineral(it):0; if(cnt>=3) godBadge='<span style="background:linear-gradient(90deg,#ff0000,#ff6a00);color:#fff;border:1px solid #ffeb3b;border-radius:4px;padding:1px 4px;font-size:8px;margin-left:4px">GOD '+cnt+'/4</span>'; }catch(e){}
+          title = `<span style="color:${data.color};font-weight:800">${data.name}</span>${countBadge} ${badgeRaw}${crackBadge}${godBadge} ${mine?'<span style="background:#4CAF50;color:#fff;font-size:7px;padding:1px 3px;border-radius:3px">MOJE</span>':''}`;
+          info = `<div style="font-size:10px;line-height:1.4">Váha:<span style="color:${colW.c};text-shadow:${colW.glow};font-weight:${colW.w};margin-left:4px">${it.weight}g</span> (${weightPct}%) | Kval:<span style="color:${colQ.c};text-shadow:${colQ.glow};font-weight:${colQ.w};margin-left:4px">${isRaw?'0%':it.quality+'%'}</span> | Čist:<span style="color:${colP.c};text-shadow:${colP.glow};font-weight:${colP.w};margin-left:4px">${it.purity}%</span><br>Hodn:<span style="color:${colPrice.c};text-shadow:${colPrice.glow};font-weight:${colPrice.w};margin-left:4px">${it.price} Kč</span> • ${brick} <b style="color:#FFD700">${l.price}</b> • ${l.seller||'Hráč'} • ${hoursLeft}h</div>`;
         } else if(it.isEquipment || it.isCape || it.isAura){
-          let tier = (typeof equipTiers!=='undefined' && it.tier!==undefined && equipTiers[it.tier]) ? equipTiers[it.tier] : {color:'#aaa', name:'', bg:'', glow:'none'};
-          let countText = it.count && it.count>1 ? ` <span style="background:#FF6B00; color:#fff; padding:1px 4px; border-radius:4px; font-size:8px;">${it.count}x</span>` : '';
+          let tier = (typeof equipTiers!=='undefined' && it.tier!==undefined && equipTiers[it.tier]) ? equipTiers[it.tier] : {color:'#aaa', name:'', bg:''};
+          let countBadge = it.count && it.count>1 ? ` <span style="background:#FF6B00;color:#fff;padding:1px 4px;border-radius:4px;font-size:8px">${it.count}x</span>` : '';
           let tierBadge = tier.name ? `<span style="font-size:7px;background:${tier.color};color:#000;padding:1px 4px;border-radius:3px;margin-left:4px">${tier.name.toUpperCase()}</span>` : '';
-          titleHtml = `${it.name||'Vybavení'}${countText} ${tierBadge} ${isMine?'<span style="background:#4CAF50; color:#fff; font-size:7px; padding:1px 3px; border-radius:3px;">MOJE</span>':''}`;
-          let bonusHtml = getBonusHtml(it.bonuses);
-          infoHtml = `<div style="margin:3px 0; line-height:1.4">${bonusHtml||'<span style="font-size:9px;color:#666">bez bonusů</span>'}</div><div style="font-size:10px;color:#aaa">${l.category||'equipment'} • ${brickIcon} <b style="color:#FFD700;">${l.price}</b> • ${l.seller||'Hráč'} • ${hoursLeft}h</div>`;
+          title = `${it.name||'Vybavení'}${countBadge} ${tierBadge} ${mine?'<span style="background:#4CAF50;color:#fff;font-size:7px;padding:1px 3px;border-radius:3px">MOJE</span>':''}`;
+          let bonusHtml = getBonusHtmlLocal(it.bonuses);
+          info = `<div style="margin:3px 0;line-height:1.4">${bonusHtml||'<span style="font-size:9px;color:#666">bez bonusů</span>'}</div><div style="font-size:10px;color:#aaa">${l.category||'equipment'} • ${brick} <b style="color:#FFD700">${l.price}</b> • ${l.seller||'Hráč'} • ${hoursLeft}h</div>`;
           tierStyle = `border-left:4px solid ${tier.color};`;
         } else {
-          let countText = it.count && it.count>1 ? ` <span style="background:#FF6B00; color:#fff; padding:1px 4px; border-radius:4px; font-size:8px;">${it.count}x</span>` : '';
-          let bonusHtml = it.bonuses ? getBonusHtml(it.bonuses) : '';
-          titleHtml = (it.name||'Předmět')+countText+ (isMine?'<span style="background:#4CAF50; color:#fff; font-size:7px; padding:1px 3px; border-radius:3px;margin-left:4px">MOJE</span>':'');
-          if(bonusHtml) infoHtml = `<div style="margin:2px 0">${bonusHtml}</div><div style="font-size:10px;color:#aaa">${l.category||'other'} • ${brickIcon} <b style="color:#FFD700;">${l.price}</b> • ${l.seller||'Hráč'} • ${hoursLeft}h</div>`;
-          else infoHtml = `<div style="font-size:10px;color:#aaa">${l.category||'other'}</div><div style="font-size:10px">${brickIcon} <b style="color:#FFD700;">${l.price}</b> • ${l.seller||'Hráč'} • ${hoursLeft}h</div>`;
+          let countBadge = it.count && it.count>1 ? ` <span style="background:#FF6B00;color:#fff;padding:1px 4px;border-radius:4px;font-size:8px">${it.count}x</span>` : '';
+          let bonusHtml = it.bonuses ? getBonusHtmlLocal(it.bonuses) : '';
+          title = (it.name||'Předmět')+countBadge+ (mine?'<span style="background:#4CAF50;color:#fff;font-size:7px;padding:1px 3px;border-radius:3px;margin-left:4px">MOJE</span>':'');
+          if(bonusHtml) info = `<div style="margin:2px 0">${bonusHtml}</div><div style="font-size:10px;color:#aaa">${l.category||'other'} • ${brick} <b style="color:#FFD700">${l.price}</b> • ${l.seller||'Hráč'} • ${hoursLeft}h</div>`;
+          else info = `<div style="font-size:10px;color:#aaa">${l.category||'other'}</div><div style="font-size:10px">${brick} <b style="color:#FFD700">${l.price}</b> • ${l.seller||'Hráč'} • ${hoursLeft}h</div>`;
         }
-        let buttonHtml = isMine ? `<button class="actionButton" style="background:#3a2a2a; border:1px solid #6a3a3a; color:#ff8a80; padding:6px 10px; border-radius:6px; font-size:11px; font-weight:800; cursor:pointer" onclick="cancelMarketListing('${l.id}')">ZRUŠIT</button>` : `<button class="actionButton buyButton" style="background:linear-gradient(90deg,#4CAF50,#2E7D32); color:#fff; border:none; border-radius:6px; padding:6px 12px; font-size:11px; font-weight:800; cursor:pointer" onclick="buyMarketListing('${l.id}')">KOUPIT</button>`;
-        html+=`<div class="item" style="${tierStyle} background:linear-gradient(135deg,#1e1e1e,#252525); border:1.5px solid #333; border-radius:12px; padding:8px; margin-bottom:8px"><div class="itemRow" style="display:flex; align-items:center; gap:10px; background:rgba(0,0,0,0.2); border-radius:8px; padding:6px"><div style="display:flex; gap:8px; align-items:center; flex:1; min-width:0;">${iconHtml}<div style="flex:1; min-width:0;"><div class="itemTitle" style="font-size:12px; font-weight:800; color:#fff; line-height:1.2">${titleHtml}</div><div class="itemInfo" style="margin-top:3px">${infoHtml}</div></div></div>${buttonHtml}</div></div>`;
+        let btn = mine ? `<button class="actionButton" style="background:#3a2a2a;border:1px solid #6a3a3a;color:#ff8a80;padding:6px 10px;border-radius:6px;font-size:11px;font-weight:800;cursor:pointer" onclick="cancelMarketListing('${l.id}')">ZRUŠIT</button>` : `<button class="actionButton buyButton" style="background:linear-gradient(90deg,#4CAF50,#2E7D32);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-weight:800;cursor:pointer" onclick="buyMarketListing('${l.id}')">KOUPIT</button>`;
+        html+=`<div class="item" style="${tierStyle}background:linear-gradient(135deg,#1e1e1e,#252525);border:1.5px solid #333;border-radius:12px;padding:8px;margin-bottom:8px"><div class="itemRow" style="display:flex;align-items:center;gap:10px;background:rgba(0,0,0,0.2);border-radius:8px;padding:6px"><div style="display:flex;gap:8px;align-items:center;flex:1;min-width:0">${iconHtml}<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:800;color:#fff;line-height:1.2">${title}</div><div style="margin-top:3px">${info}</div></div></div>${btn}</div></div>`;
       });
       listEl.innerHTML=html;
-    }catch(e){ console.error('fixedRenderMarket error', e); }
-  }
-  setTimeout(()=>{ window.renderMarket = fixedRenderMarket; }, 1000);
+    }catch(e){ console.error('market render err', e); }
+  };
+  setTimeout(()=>{ window.renderMarket = window.fixedRenderMarketV6; }, 900);
 
-  // Mystery boxy nad batohem
-  const obs = new MutationObserver((muts)=>{
-    muts.forEach(m=>{
-      m.addedNodes.forEach(node=>{
-        if(!(node instanceof HTMLElement)) return;
-        if(node.id==='mysteryOpenBox'){ node.style.zIndex='210000'; }
-        if(node.id==='mysteryResultBox'){ node.style.zIndex='210001'; }
-        if(node.id==='forgeAnimModal'){ node.style.zIndex='200000'; }
-        if(node.id==='changerModal' || node.id==='changerResultModal'){ node.style.zIndex='200000'; }
-      });
-    });
-  });
-  obs.observe(document.body, {childList:true, subtree:true});
+  // --- Prodej více kusů ---
+  window._marketQty = 1;
+  function updateQtyDisplay(){
+    let qtyInput = document.getElementById('marketQtyInput');
+    let qty = parseInt(qtyInput?.value||1);
+    window._marketQty = qty;
+  }
+  function patchPriceModal(){
+    let origOpen = window.openMarketPriceModal;
+    if(!origOpen || origOpen._v6qty) return;
+    window.openMarketPriceModal = function(){
+      try{ origOpen.apply(this, arguments); }catch(e){ try{origOpen();}catch(e2){} }
+      setTimeout(()=>{
+        let it = window.selectedMarketItem || (typeof selectedMarketItem!=='undefined'?selectedMarketItem:null);
+        if(!it) return;
+        let preview = document.getElementById('marketPriceItemPreview');
+        let box = document.getElementById('marketPriceBox');
+        if(!box) return;
+        let existing = document.getElementById('marketQtyWrap');
+        if(existing) existing.remove();
+        if(it.count && it.count>1){
+          let wrap = document.createElement('div');
+          wrap.id='marketQtyWrap';
+          wrap.innerHTML = `
+            <div style="flex:1;font-size:11px;color:#aaa">Máš <b style="color:#fff">${it.count}x</b> • Kolik prodat?</div>
+            <button id="qtyMinus">-</button>
+            <input type="number" id="marketQtyInput" min="1" max="${it.count}" value="${it.count}">
+            <button id="qtyPlus">+</button>
+            <span style="font-size:10px;color:#888">/ ${it.count}</span>
+          `;
+          let priceInput = document.getElementById('marketPriceInput');
+          if(priceInput) priceInput.parentNode.insertBefore(wrap, priceInput);
+          let qtyInput = document.getElementById('marketQtyInput');
+          document.getElementById('qtyMinus').onclick = ()=>{ let v=Math.max(1, (parseInt(qtyInput.value)||1)-1); qtyInput.value=v; window._marketQty=v; };
+          document.getElementById('qtyPlus').onclick = ()=>{ let v=Math.min(it.count, (parseInt(qtyInput.value)||1)+1); qtyInput.value=v; window._marketQty=v; };
+          qtyInput.oninput = ()=>{ let v=Math.max(1, Math.min(it.count, parseInt(qtyInput.value)||1)); qtyInput.value=v; window._marketQty=v; };
+          window._marketQty = it.count;
+        } else {
+          window._marketQty = 1;
+        }
+      }, 30);
+    };
+    window.openMarketPriceModal._v6qty = true;
+
+    let origConfirm = window.confirmMarketSell;
+    if(origConfirm && !origConfirm._v6qty){
+      window.confirmMarketSell = function(){
+        try{
+          let inp=document.getElementById('marketPriceInput');
+          let price=parseInt(inp.value);
+          if(isNaN(price) || price<1 || price>99999){ showToast('❌ Zadej cenu 1-99999'); return; }
+          let it = window.selectedMarketItem || (typeof selectedMarketItem!=='undefined'?selectedMarketItem:null);
+          if(!it) return;
+          let qty = window._marketQty || 1;
+          if(it.count && qty>it.count) qty=it.count;
+          let idx=findIdx(it.id);
+          if(idx===-1){ showToast('❌ Předmět nenalezen'); if(window.closeMarketPriceModal) closeMarketPriceModal(); return; }
+          let item=inventory[idx];
+          let category=getMarketCategoryForItem(item);
+          if(item.count && item.count>1 && qty < item.count){
+            // prodej části stacku
+            let sellItem = JSON.parse(JSON.stringify(item));
+            sellItem.count = qty;
+            // pokud má id, udělej nové id pro listing aby se nepletlo
+            sellItem.id = sellItem.id + '_sell_'+Date.now();
+            item.count = item.count - qty;
+            let listing={ id:'my_'+Date.now()+'_'+Math.random(), item:sellItem, price:price, seller:(localStorage.getItem('nick')||'Ty'), time:Date.now(), category:category, isMine:true };
+            marketListings.unshift(listing);
+          } else {
+            // celý item nebo celý stack
+            inventory.splice(idx,1);
+            let listing={ id:'my_'+Date.now()+'_'+Math.random(), item:JSON.parse(JSON.stringify(item)), price:price, seller:(localStorage.getItem('nick')||'Ty'), time:Date.now(), category:category, isMine:true };
+            marketListings.unshift(listing);
+          }
+          saveGame(); saveMarket();
+          if(window.closeMarketPriceModal) closeMarketPriceModal();
+          renderMarket(); renderInventory(); updateHUD();
+          showToast('✅ Vystaveno '+qty+'x za '+price+' cihel!',3);
+        }catch(e){
+          console.error('confirm sell err', e);
+          showToast('❌ Chyba při prodeji');
+        }
+      };
+      window.confirmMarketSell._v6qty=true;
+    }
+  }
+  setTimeout(patchPriceModal, 1000);
+  setTimeout(patchPriceModal, 2500);
 })();
 </script>
 
-<script id="fix-feeds-v4">
+<script id="fix-feeds-v6">
 (function(){
-  function waitForGame(){
-    if(typeof getActivePet==='undefined' || typeof findIdx==='undefined' || typeof getXPForLevel==='undefined'){
-      setTimeout(waitForGame, 500); return;
-    }
-    window.useInstantFeedById = function(feedId){
-      let idx = findIdx(feedId);
-      if(idx===-1){ showToast("❌ Krmivo nenalezeno"); return; }
-      let item = inventory[idx];
-      if(!item || !item.isFeed) return;
-      let xpVal = item.xp || 0;
-      if(item.feedType && typeof getFeedDefById==='function'){
-        let def = getFeedDefById(item.feedType);
-        if(def && def.xp) xpVal = def.xp;
+  function wait(){
+    if(typeof getActivePet==='undefined' || typeof findIdx==='undefined' || typeof getXPForLevel==='undefined'){ setTimeout(wait,500); return; }
+    window.useInstantFeedById = function(id){
+      let idx=findIdx(id); if(idx===-1) return;
+      let item=inventory[idx]; if(!item) return;
+      let xp=item.xp||0;
+      if(item.feedType && typeof getFeedDefById==='function'){ let d=getFeedDefById(item.feedType); if(d) xp=d.xp; }
+      if(xp<=0){
+        let n=item.name||''; if(n.includes('150')) xp=150; else if(n.includes('280')) xp=280; else if(n.includes('420')) xp=420; else if(n.includes('650')) xp=650; else if(n.includes('800')) xp=800; else if(n.includes('1000')) xp=1000; else if(n.includes('1500')) xp=1500; else if(n.includes('2000')) xp=2000; else xp=150;
       }
-      if(xpVal<=0){
-        let n=item.name||'';
-        if(n.includes('150')) xpVal=150;
-        else if(n.includes('280')) xpVal=280;
-        else if(n.includes('420')) xpVal=420;
-        else if(n.includes('650')) xpVal=650;
-        else if(n.includes('800')) xpVal=800;
-        else if(n.includes('1000')) xpVal=1000;
-        else if(n.includes('1500')) xpVal=1500;
-        else if(n.includes('2000')) xpVal=2000;
-        else xpVal=150;
-      }
-      let pet = getActivePet();
-      if(!pet){ showToast("❌ Nemáš aktivního mazlíčka! Vyber v ZVÍŘATA 🐾",2.5); return; }
+      let pet=getActivePet(); if(!pet){ showToast("❌ Nemáš mazlíčka! Vyber v ZVÍŘATA 🐾",2.5); return; }
       if((item.count||1)>1) item.count--; else inventory.splice(idx,1);
-      pet.xp = (pet.xp||0) + xpVal;
-      let oldLevel = pet.level;
-      let leveled=false, gained=0;
-      while(pet.level < 100){
-        let need = getXPForLevel(pet.level);
-        if(pet.xp >= need){ pet.xp -= need; pet.level++; leveled=true; gained++; } else break;
-      }
+      pet.xp=(pet.xp||0)+xp;
+      let old=pet.level, lvl=false;
+      while(pet.level<100){ let need=getXPForLevel(pet.level); if(pet.xp>=need){ pet.xp-=need; pet.level++; lvl=true; } else break; }
       try{ saveGame(); renderInventory(); renderPetsPanel(); updateHUD(); }catch(e){}
-      if(leveled) showToast("🎉 "+pet.name+" LEVEL UP! "+oldLevel+" → "+pet.level+"! +"+xpVal+"xp 🐾",3);
-      else showToast("🍖 "+pet.name+" +"+xpVal+"xp ("+pet.xp+"/"+getXPForLevel(pet.level)+"xp) 🐾",2);
+      if(lvl) showToast("🎉 "+pet.name+" LEVEL UP! "+old+" → "+pet.level+"! +"+xp+"xp 🐾",3);
+      else showToast("🍖 "+pet.name+" +"+xp+"xp ("+pet.xp+"/"+getXPForLevel(pet.level)+"xp) 🐾",2);
     };
     window.useSuperFeedInstant = function(id){ return window.useInstantFeedById(id); };
-    window.useNewInstantFeed = function(id){ return window.useInstantFeedById(id); };
-
-    function patchFeedButtons(){
+    window.useNewInstantFeed = window.useInstantFeedById;
+    function patchBtns(){
       document.querySelectorAll('[data-feed-instant-id]').forEach(btn=>{
         btn.removeAttribute('onclick');
-        if(btn._v4) return;
-        let nb = btn.cloneNode(true); nb._v4=true;
-        btn.parentNode.replaceChild(nb, btn);
+        if(btn._v6) return;
+        let nb=btn.cloneNode(true); nb._v6=true;
+        btn.parentNode.replaceChild(nb,btn);
         nb.addEventListener('click', function(e){
           e.preventDefault(); e.stopPropagation();
-          if(this._last && Date.now()-this._last < 400) return;
-          this._last = Date.now();
+          if(this._last && Date.now()-this._last<400) return;
+          this._last=Date.now();
           window.useInstantFeedById(this.getAttribute('data-feed-instant-id'));
-        }, true);
-      });
-      document.querySelectorAll('[data-feed-use-id]').forEach(btn=>{
-        btn.removeAttribute('onclick');
-        if(btn._v4) return;
-        let nb = btn.cloneNode(true); nb._v4=true;
-        btn.parentNode.replaceChild(nb, btn);
-        nb.addEventListener('click', function(e){
-          e.preventDefault(); e.stopPropagation();
-          if(this._last && Date.now()-this._last < 400) return;
-          this._last = Date.now();
-          if(typeof feedPetWithItem==='function') feedPetWithItem(this.getAttribute('data-feed-use-id'));
         }, true);
       });
     }
     function wrapRI(){
-      if(typeof window.renderInventory==='undefined'){ setTimeout(wrapRI,500); return; }
-      if(window.renderInventory._v4) return;
-      let orig = window.renderInventory;
-      window.renderInventory = function(){
-        let r = orig.apply(this, arguments);
-        setTimeout(patchFeedButtons, 50);
-        return r;
-      };
-      window.renderInventory._v4=true;
+      if(!window.renderInventory) { setTimeout(wrapRI,500); return; }
+      if(window.renderInventory._v6) return;
+      let orig=window.renderInventory;
+      window.renderInventory=function(){ let r=orig.apply(this, arguments); setTimeout(patchBtns,50); return r; };
+      window.renderInventory._v6=true;
     }
     setTimeout(wrapRI,1000);
-    setTimeout(patchFeedButtons,1200);
-    let origF = window.feedPetWithItem;
-    if(origF && !origF._v4){
-      window.feedPetWithItem = function(id){
-        let idx=findIdx(id);
-        let it=inventory[idx];
+    let origF=window.feedPetWithItem;
+    if(origF && !origF._v6){
+      window.feedPetWithItem=function(id){
+        let idx=findIdx(id); let it=inventory[idx];
         if(it && it.instant) return window.useInstantFeedById(id);
         return origF.apply(this, arguments);
       };
-      window.feedPetWithItem._v4=true;
+      window.feedPetWithItem._v6=true;
     }
   }
-  waitForGame();
+  wait();
 })();
 </script>
 
