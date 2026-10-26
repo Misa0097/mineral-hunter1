@@ -10936,93 +10936,15 @@ body.panel-open #minimapWrap {
 </script>
 
 
-<style id="fix-all-overlays-v2">
-.panel, #marketPanel, #shopPanel, #craftPanel, #kovarnaPanel, #equipPanel, #museumPanel, #petsPanel, #eventPanel, #leaderboardPanel, #nickPanel, #chatPanel, #goldShopPanel {
-  position: fixed !important;
-  left: 50% !important;
-  top: 50% !important;
-  transform: translate(-50%,-50%) !important;
-  z-index: 110000 !important;
-  max-height: 90vh !important;
-  width: min(92%, 560px) !important;
-}
-#inventoryPanel {
-  position: fixed !important;
-  left: 50% !important;
-  top: 50% !important;
-  transform: translate(-50%,-50%) !important;
-  z-index: 110000 !important;
-}
-#marketPanel {
-  width: min(98%, 920px) !important;
-  z-index: 110000 !important;
-}
-.panel.open, #marketPanel.open, #shopPanel.open, #craftPanel.open, #kovarnaPanel.open, #equipPanel.open, #museumPanel.open, #petsPanel.open, #eventPanel.open, #leaderboardPanel.open, #inventoryPanel.open, #goldShopPanel.open {
-  z-index: 110000 !important;
-  display: block !important;
-  position: fixed !important;
-  left: 50% !important;
-  top: 50% !important;
-  transform: translate(-50%,-50%) !important;
-}
-#marketSelectModal, #marketPriceModal {
-  position: fixed !important;
-  inset: 0 !important;
-  z-index: 120000 !important;
-  background: rgba(0,0,0,0.88) !important;
-}
-#marketSelectModal.open, #marketPriceModal.open {
-  z-index: 120000 !important;
-  display: flex !important;
-}
-#marketSelectBox, #marketPriceBox {
-  z-index: 120001 !important;
-}
-#changerModal, #changerResultModal, #forgeAnimModal {
-  position: fixed !important;
-  z-index: 200000 !important;
-}
-#changerModal {
-  left: 50% !important;
-  top: 50% !important;
-  transform: translate(-50%,-50%) !important;
-  width: min(96%, 520px) !important;
-  max-height: 88vh !important;
-}
-#changerResultModal {
-  left: 50% !important;
-  top: 50% !important;
-  transform: translate(-50%,-50%) !important;
-  width: min(96%, 480px) !important;
-}
-#changerModal.open, #changerResultModal.open {
-  z-index: 200000 !important;
-  display: block !important;
-}
-#forgeAnimModal {
-  inset: 0 !important;
-  z-index: 200000 !important;
-}
-#mysteryOpenBox, #mysteryResultBox, #mysteryAnimBox, #mysteryAnimStyles {
-  z-index: 210000 !important;
-}
-#mysteryOpenBox {
-  position: fixed !important;
-  left: 50% !important;
-  top: 50% !important;
-  transform: translate(-50%,-50%) !important;
-  z-index: 210000 !important;
-}
-#mysteryResultBox {
-  position: fixed !important;
-  left: 50% !important;
-  top: 50% !important;
-  transform: translate(-50%,-50%) !important;
-  z-index: 210001 !important;
-}
-#shopAboveMap, #leaderboardAboveMap, #petsButton, #marketButton, #eventButton_fixed, #chatButton, #minimapWrap, #onlineStatus, #vipMapIcon, #fireMapTimer, #iceMapTimer {
-  z-index: 5000 !important;
-}
+<style id="fix-minimal-v4">
+/* Mystery boxy vždy nad batohem */
+#mysteryOpenBox { z-index: 210000 !important; position: fixed !important; left: 50% !important; top: 50% !important; transform: translate(-50%,-50%) !important; }
+#mysteryResultBox { z-index: 210001 !important; position: fixed !important; left: 50% !important; top: 50% !important; transform: translate(-50%,-50%) !important; }
+#mysteryAnimBox { z-index: 210000 !important; }
+#changerModal, #changerResultModal, #forgeAnimModal { z-index: 200000 !important; }
+#marketSelectModal, #marketPriceModal { z-index: 120000 !important; }
+
+/* Boční ikony nikdy úplně nezmizí - jen zeslabí */
 body.panel-open #shopAboveMap,
 body.panel-open #leaderboardAboveMap,
 body.panel-open #petsButton,
@@ -11037,137 +10959,98 @@ body.market-open #marketButton,
 body.market-open #eventButton_fixed,
 body.market-open #chatButton,
 body.market-open #minimapWrap {
-  z-index: 4000 !important;
-  opacity: 0.2 !important;
+  display: flex !important;
+  opacity: 0.18 !important;
   pointer-events: none !important;
 }
-body.panel-open #onlineStatus {
-  z-index: 4000 !important;
-}
-#toast {
-  z-index: 250000 !important;
-  position: fixed !important;
-  left: 50% !important;
-  top: 16px !important;
-  transform: translateX(-50%) !important;
-}
-.marketItemWithBonus {
-  background: linear-gradient(135deg,#1e1e1e,#252525) !important;
-  border: 1.5px solid #333 !important;
-  border-radius: 12px !important;
-  padding: 10px !important;
-}
-.itemIconShop, .priceIconShop {
-  width: 48px !important;
-  height: 48px !important;
-  background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.1), transparent) !important;
-  border-radius: 8px !important;
-  border: 1px solid #444 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  font-size: 26px !important;
-  flex-shrink: 0 !important;
-  position: relative !important;
-  overflow: hidden !important;
-}
-.itemIconShop img, .priceIconShop img {
-  width: 38px !important;
-  height: 38px !important;
-  object-fit: contain !important;
-}
-.itemCountBadge {
-  position: absolute !important;
-  bottom: 1px !important;
-  right: 1px !important;
-  background: #FF6B00 !important;
-  color: #fff !important;
-  font-size: 7px !important;
-  padding: 1px 3px !important;
-  border-radius: 3px !important;
-  font-weight: 900 !important;
-}
+
+/* Muzeum a výbava nad ikonami */
+#museumPanel, #equipPanel { z-index: 110000 !important; }
+#toast { z-index: 250000 !important; }
 </style>
 
-<script id="fix-all-logic-v2">
+<script id="fix-minimal-js-v4">
 (function(){
-  function ensurePanelWrap(){
-    function wrap(nameOpen, nameClose, panelId){
-      try{
-        let origO = window[nameOpen];
-        let origC = window[nameClose];
-        if(!origO) return;
-        if(origO._fixedWrapped) return;
-        window[nameOpen] = function(){
-          try{ origO.apply(this, arguments); }catch(e){ try{origO();}catch(e2){} }
-          document.body.classList.add('panel-open');
-          let p=document.getElementById(panelId);
-          if(p){
-            p.style.zIndex='110000';
-            p.style.position='fixed';
-            p.style.left='50%';
-            p.style.top='50%';
-            p.style.transform='translate(-50%,-50%)';
-          }
-        };
-        window[nameOpen]._fixedWrapped = true;
-        if(origC && !origC._fixedWrapped){
-          window[nameClose] = function(){
-            try{ origC.apply(this, arguments); }catch(e){ try{origC();}catch(e2){} }
-            setTimeout(()=>{
-              let anyOpen = document.querySelector('.panel.open') || document.getElementById('marketPanel')?.classList.contains('open');
-              if(!anyOpen){
-                document.body.classList.remove('panel-open');
-                document.body.classList.remove('market-open');
-              }
-            },60);
-          };
-          window[nameClose]._fixedWrapped = true;
-        }
-      }catch(e){ console.error('wrap fail', nameOpen, e); }
-    }
-    wrap('openMuseum','closeMuseum','museumPanel');
-    wrap('openEquip','closeEquip','equipPanel');
-    wrap('openInventory','closeInventory','inventoryPanel');
-    wrap('openShop','closeShop','shopPanel');
-    wrap('openCraft','closeCraft','craftPanel');
-    wrap('openPets','closePets','petsPanel');
-    wrap('openLeaderboard','closeLeaderboard','leaderboardPanel');
-    wrap('openEvent','closeEvent','eventPanel');
-    if(window.openKovarna) wrap('openKovarna','closeKovarna','kovarnaPanel');
+  // --- 1. Robustní obnova bočních ikon ---
+  function isAnyPanelOpen(){
+    if(document.querySelector('.panel.open')) return true;
+    if(document.getElementById('marketPanel')?.classList.contains('open')) return true;
+    if(document.getElementById('marketSelectModal')?.classList.contains('open')) return true;
+    if(document.getElementById('marketPriceModal')?.classList.contains('open')) return true;
+    if(document.getElementById('changerModal')?.classList.contains('open')) return true;
+    if(document.getElementById('changerResultModal')?.classList.contains('open')) return true;
+    if(document.getElementById('forgeAnimModal')?.style.display==='flex') return true;
+    if(document.getElementById('mysteryOpenBox')) return true;
+    if(document.getElementById('mysteryResultBox')) return true;
+    return false;
   }
-  setTimeout(ensurePanelWrap, 800);
-  setTimeout(ensurePanelWrap, 2000);
+  window.forceRestoreSideIcons = function(){
+    if(!isAnyPanelOpen()){
+      document.body.classList.remove('panel-open');
+      document.body.classList.remove('market-open');
+    }
+  };
+  setInterval(()=>{
+    if(!isAnyPanelOpen()){
+      if(document.body.classList.contains('panel-open') || document.body.classList.contains('market-open')){
+        document.body.classList.remove('panel-open');
+        document.body.classList.remove('market-open');
+      }
+    }
+  }, 1000);
 
-  const observer = new MutationObserver((mutations)=>{
-    mutations.forEach(m=>{
-      m.addedNodes.forEach(node=>{
-        if(!(node instanceof HTMLElement)) return;
-        if(node.id==='mysteryOpenBox'){
-          node.style.zIndex='210000';
-          node.style.position='fixed';
-          node.style.left='50%';
-          node.style.top='50%';
-          node.style.transform='translate(-50%,-50%)';
+  // --- 2. Oprava muzeum a výbava aby přidávaly panel-open ---
+  function wrapSimple(openName, closeName){
+    let o = window[openName];
+    let c = window[closeName];
+    if(!o || o._v4) return;
+    window[openName] = function(){
+      try{ o.apply(this, arguments); }catch(e){ try{o();}catch(e2){} }
+      document.body.classList.add('panel-open');
+    };
+    window[openName]._v4 = true;
+    if(c && !c._v4){
+      let origC = c;
+      window[closeName] = function(){
+        try{ origC.apply(this, arguments); }catch(e){ try{origC();}catch(e2){} }
+        setTimeout(()=>{ window.forceRestoreSideIcons(); },150);
+      };
+      window[closeName]._v4 = true;
+    }
+  }
+  setTimeout(()=>{
+    wrapSimple('openMuseum','closeMuseum');
+    wrapSimple('openEquip','closeEquip');
+    // Pro jistotu i batoh a ostatní aby se vždy obnovily ikony
+    ['openInventory','closeInventory','openShop','closeShop','openPets','closePets','openLeaderboard','closeLeaderboard','openEvent','closeEvent'].forEach((name,i)=>{
+      if(i%2===0){
+        let openN=name;
+        let closeN=name.replace('open','close');
+        // close už má wrapper z V43, jen přidáme restore
+        let origClose = window[closeN];
+        if(origClose && !origClose._v4restore){
+          let oc = origClose;
+          window[closeN] = function(){
+            try{ oc.apply(this, arguments); }catch(e){}
+            setTimeout(()=>{ window.forceRestoreSideIcons(); },120);
+            setTimeout(()=>{ window.forceRestoreSideIcons(); },400);
+          };
+          window[closeN]._v4restore = true;
         }
-        if(node.id==='mysteryResultBox'){
-          node.style.zIndex='210001';
-          node.style.position='fixed';
-          node.style.left='50%';
-          node.style.top='50%';
-          node.style.transform='translate(-50%,-50%)';
-        }
-        if(node.id==='forgeAnimModal'){
-          node.style.zIndex='200000';
-        }
-        if(node.id==='changerModal' || node.id==='changerResultModal'){
-          node.style.zIndex='200000';
-        }
-      });
+      }
     });
-  });
-  observer.observe(document.body, {childList:true, subtree:true});
+    // market close
+    if(window.closeMarket && !window.closeMarket._v4){
+      let oc = window.closeMarket;
+      window.closeMarket = function(){
+        try{ oc.apply(this, arguments); }catch(e){}
+        setTimeout(()=>{ window.forceRestoreSideIcons(); },150);
+      };
+      window.closeMarket._v4 = true;
+    }
+  }, 1000);
 
+  // --- 3. Market s bonusy jako v batohu ---
   function getBonusHtml(bonuses){
     if(!bonuses || !Array.isArray(bonuses) || bonuses.length===0) return '';
     let html='';
@@ -11175,385 +11058,190 @@ body.panel-open #onlineStatus {
       let col = b.legendary ? '#FFEB3B' : (b.key==='tezba'?'#7dd8ff':b.key==='rychlost'?'#ffab40':b.key==='energieRegen'?'#a5d6a7':b.key==='cistota'?'#ce93d8':b.key==='vaha'?'#90caf9':b.key==='energieMax'?'#ff8a80':'#ffd54f');
       let isMax = (typeof isBonusMax==='function') ? isBonusMax(b) : false;
       let maxTag = isMax ? ' <span style="color:#ff4444;font-weight:900;font-size:8px">(MAX)</span>' : '';
-      html+=`<span style="color:${col};margin-right:5px;font-size:9px;white-space:nowrap">${b.icon||'★'} ${b.value}${b.unit||'%'}${maxTag}</span>`;
+      html+=`<span style="color:${col};margin-right:4px;font-size:9px;white-space:nowrap">${b.icon||'★'} ${b.value}${b.unit||'%'}${maxTag}</span>`;
     }
     return html;
   }
-
   function fixedRenderMarket(){
-    let listEl=document.getElementById('marketList');
-    if(!listEl) return;
-    let myNick = localStorage.getItem('nick')|| (typeof currentNick!=='undefined'?currentNick:'');
-    let now = Date.now();
-    let twelveHours = 12*60*60*1000;
-    let activeListings = (typeof marketListings!=='undefined'?marketListings:[]).filter(l=> (now - (l.time||0)) < twelveHours );
-    let filtered=activeListings.filter(l=>{
-      let isMine = l.isMine || (l.seller && myNick && l.seller===myNick);
-      if(typeof marketCategory!=='undefined'){
-        if(marketCategory==='my') return isMine;
-        if(marketCategory!=='all' && l.category!==marketCategory) return false;
-      }
-      if(typeof marketSearch!=='undefined' && marketSearch && !l.item.name.toLowerCase().includes(marketSearch.toLowerCase())) return false;
-      return true;
-    });
-    if(typeof marketSort!=='undefined'){
-      if(marketSort==='newest') filtered.sort((a,b)=>b.time-a.time);
-      else if(marketSort==='cheapest') filtered.sort((a,b)=>a.price-b.price);
-      else if(marketSort==='expensive') filtered.sort((a,b)=>b.price-a.price);
-      else if(marketSort==='name') filtered.sort((a,b)=>a.item.name.localeCompare(b.item.name));
-    }
-    let catEl=document.getElementById('catAllCount');
-    if(catEl) catEl.textContent=activeListings.length;
-    let infoEl=document.getElementById('marketCountInfo');
-    let myCount = activeListings.filter(l=> l.isMine || (l.seller && myNick && l.seller===myNick)).length;
-    if(infoEl) infoEl.textContent=filtered.length+' nabídek • '+myCount+' moje • expiruje po 12h';
-    if(filtered.length===0){
-      listEl.innerHTML='<div style="grid-column:1/-1; text-align:center; padding:30px; color:#666;">📭 Market prázdný<br><span style="font-size:10px;">Žádné nabídky - vystav něco za cihly!<br>⏰ Expiruje po 12h</span></div>';
-      return;
-    }
-    let brickIcon = (typeof GOLD_BAR_ICON_BASE64!=='undefined') ? `<img src="${GOLD_BAR_ICON_BASE64}" class="goldBrickIcon" style="width:14px;height:14px;vertical-align:middle">` : '🧱';
-    let html='';
-    filtered.forEach(l=>{
-      let it=l.item;
-      let isMine = l.isMine || (l.seller && myNick && l.seller===myNick);
-      let iconHtml = (typeof getMarketItemIconHtmlShop==='function') ? getMarketItemIconHtmlShop(it) : `<div class="itemIconShop">${it.icon||'📦'}</div>`;
-      let age = now - (l.time||0);
-      let hoursLeft = Math.max(0, 12 - Math.floor(age/(60*60*1000)));
-      let titleHtml=''; let infoHtml=''; let tierStyle='';
-      
-      if(typeof it.type==='number'){
-        let data = (typeof minerals!=='undefined' && minerals[it.type]) ? minerals[it.type] : {name:it.name||'Kámen', color:'#fff'};
-        let countText = it.count && it.count>1 ? ` <span style="background:#FF6B00; color:#fff; padding:1px 4px; border-radius:4px; font-size:8px;">${it.count}x</span>` : '';
-        titleHtml = `<span style="color:${data.color};font-weight:800">${data.name}</span>${countText}`;
-        infoHtml = `<div style="font-size:10px;color:#aaa">${it.raw?'Surový':'Vybroušený'} • ${it.weight||'?'}g • ${it.purity||'?'}% čistota</div><div style="font-size:10px;margin-top:2px">${brickIcon} <b style="color:#FFD700;">${l.price}</b> • ${l.seller||'Hráč'} • ${hoursLeft}h</div>`;
-      } else if(it.isEquipment || it.isCape || it.isAura){
-        let tier = (typeof equipTiers!=='undefined' && it.tier!==undefined && equipTiers[it.tier]) ? equipTiers[it.tier] : {color:'#aaa', name:'', bg:'', glow:'none'};
-        let countText = it.count && it.count>1 ? ` <span style="background:#FF6B00; color:#fff; padding:1px 4px; border-radius:4px; font-size:8px;">${it.count}x</span>` : '';
-        let tierBadge = tier.name ? `<span style="font-size:7px;background:${tier.color};color:#000;padding:1px 4px;border-radius:3px;margin-left:4px">${tier.name.toUpperCase()}</span>` : '';
-        let capeBadge = it.isCape ? `<span style="font-size:7px;background:${tier.color};color:#000;padding:1px 4px;border-radius:3px;margin-left:4px">PLÁŠŤ</span>` : '';
-        let auraBadge = it.isAura ? `<span style="font-size:7px;background:${it.isBlueAura?'#00BFFF':'#FF4500'};color:#000;padding:1px 4px;border-radius:3px;margin-left:4px">AURA</span>` : '';
-        titleHtml = `${it.name||'Vybavení'}${countText} ${tierBadge}${capeBadge}${auraBadge} ${isMine?'<span style="background:#4CAF50; color:#fff; font-size:7px; padding:1px 3px; border-radius:3px;">MOJE</span>':''}`;
-        let bonusHtml = getBonusHtml(it.bonuses);
-        infoHtml = `<div style="margin:3px 0; line-height:1.4">${bonusHtml||'<span style="font-size:9px;color:#666">bez bonusů</span>'}</div><div style="font-size:10px;color:#aaa">${l.category||'equipment'} • ${brickIcon} <b style="color:#FFD700;">${l.price}</b> • ${l.seller||'Hráč'} • ${hoursLeft}h</div>`;
-        tierStyle = `border-left:4px solid ${tier.color}; background: ${tier.bg||'linear-gradient(135deg,#1e1e1e,#252525)'}; ${tier.glow && tier.glow!=='none' ? 'box-shadow:'+tier.glow+';' : ''}`;
-      } else {
-        let countText = it.count && it.count>1 ? ` <span style="background:#FF6B00; color:#fff; padding:1px 4px; border-radius:4px; font-size:8px;">${it.count}x</span>` : '';
-        let bonusHtml = it.bonuses ? getBonusHtml(it.bonuses) : '';
-        titleHtml = (it.name||'Předmět')+countText+ (isMine?'<span style="background:#4CAF50; color:#fff; font-size:7px; padding:1px 3px; border-radius:3px;margin-left:4px">MOJE</span>':'');
-        if(bonusHtml){
-          infoHtml = `<div style="margin:2px 0">${bonusHtml}</div><div style="font-size:10px;color:#aaa">${l.category||'other'} • ${brickIcon} <b style="color:#FFD700;">${l.price}</b> • ${l.seller||'Hráč'} • ${hoursLeft}h</div>`;
-        } else {
-          infoHtml = `<div style="font-size:10px;color:#aaa">${l.category||'other'}</div><div style="font-size:10px">${brickIcon} <b style="color:#FFD700;">${l.price}</b> • ${l.seller||'Hráč'} • ${hoursLeft}h</div>`;
+    try{
+      let listEl=document.getElementById('marketList');
+      if(!listEl) return;
+      let myNick = localStorage.getItem('nick')|| (typeof currentNick!=='undefined'?currentNick:'');
+      let now = Date.now();
+      let twelveHours = 12*60*60*1000;
+      let activeListings = (typeof marketListings!=='undefined'?marketListings:[]).filter(l=> (now - (l.time||0)) < twelveHours );
+      let filtered=activeListings.filter(l=>{
+        let isMine = l.isMine || (l.seller && myNick && l.seller===myNick);
+        if(typeof marketCategory!=='undefined'){
+          if(marketCategory==='my') return isMine;
+          if(marketCategory!=='all' && l.category!==marketCategory) return false;
         }
+        if(typeof marketSearch!=='undefined' && marketSearch && l.item && l.item.name && !l.item.name.toLowerCase().includes(marketSearch.toLowerCase())) return false;
+        return true;
+      });
+      if(typeof marketSort!=='undefined'){
+        if(marketSort==='newest') filtered.sort((a,b)=>b.time-a.time);
+        else if(marketSort==='cheapest') filtered.sort((a,b)=>a.price-b.price);
+        else if(marketSort==='expensive') filtered.sort((a,b)=>b.price-a.price);
+        else if(marketSort==='name') filtered.sort((a,b)=>a.item.name.localeCompare(b.item.name));
       }
-      
-      let buttonHtml = isMine ? `<button class="actionButton" style="background:#3a2a2a; border:1px solid #6a3a3a; color:#ff8a80; padding:6px 10px; border-radius:6px; font-size:11px; font-weight:800; cursor:pointer" onclick="cancelMarketListing('${l.id}')">ZRUŠIT</button>` : `<button class="actionButton buyButton" style="background:linear-gradient(90deg,#4CAF50,#2E7D32); color:#fff; border:none; border-radius:6px; padding:6px 12px; font-size:11px; font-weight:800; cursor:pointer" onclick="buyMarketListing('${l.id}')">KOUPIT</button>`;
-      
-      html+=`<div class="item" style="${tierStyle} ${isMine?'border-color:#4CAF50 !important;':''} background:linear-gradient(135deg,#1e1e1e,#252525); border:1.5px solid #333; border-radius:12px; padding:8px; margin-bottom:8px"><div class="itemRow" style="display:flex; align-items:center; gap:10px; background:rgba(0,0,0,0.2); border-radius:8px; padding:6px"><div style="display:flex; gap:8px; align-items:center; flex:1; min-width:0;">${iconHtml}<div style="flex:1; min-width:0;"><div class="itemTitle" style="font-size:12px; font-weight:800; color:#fff; line-height:1.2">${titleHtml}</div><div class="itemInfo" style="margin-top:3px">${infoHtml}</div></div></div>${buttonHtml}</div></div>`;
-    });
-    listEl.innerHTML=html;
+      let catEl=document.getElementById('catAllCount');
+      if(catEl) catEl.textContent=activeListings.length;
+      let infoEl=document.getElementById('marketCountInfo');
+      let myCount = activeListings.filter(l=> l.isMine || (l.seller && myNick && l.seller===myNick)).length;
+      if(infoEl) infoEl.textContent=filtered.length+' nabídek • '+myCount+' moje • expiruje po 12h';
+      if(filtered.length===0){
+        listEl.innerHTML='<div style="grid-column:1/-1; text-align:center; padding:30px; color:#666;">📭 Market prázdný<br><span style="font-size:10px;">Žádné nabídky</span></div>';
+        return;
+      }
+      let brickIcon = (typeof GOLD_BAR_ICON_BASE64!=='undefined') ? `<img src="${GOLD_BAR_ICON_BASE64}" class="goldBrickIcon" style="width:14px;height:14px;vertical-align:middle">` : '🧱';
+      let html='';
+      filtered.forEach(l=>{
+        let it=l.item;
+        let isMine = l.isMine || (l.seller && myNick && l.seller===myNick);
+        let iconHtml = (typeof getMarketItemIconHtmlShop==='function') ? getMarketItemIconHtmlShop(it) : `<div class="itemIconShop">${it.icon||'📦'}</div>`;
+        let age = now - (l.time||0);
+        let hoursLeft = Math.max(0, 12 - Math.floor(age/(60*60*1000)));
+        let titleHtml=''; let infoHtml=''; let tierStyle='';
+        if(typeof it.type==='number'){
+          let data = (typeof minerals!=='undefined' && minerals[it.type]) ? minerals[it.type] : {name:it.name||'Kámen', color:'#fff'};
+          let countText = it.count && it.count>1 ? ` <span style="background:#FF6B00; color:#fff; padding:1px 4px; border-radius:4px; font-size:8px;">${it.count}x</span>` : '';
+          titleHtml = `<span style="color:${data.color};font-weight:800">${data.name}</span>${countText}`;
+          infoHtml = `<div style="font-size:10px;color:#aaa">${it.raw?'Surový':'Vybroušený'} • ${it.weight||'?'}g • ${it.purity||'?'}% čistota</div><div style="font-size:10px;margin-top:2px">${brickIcon} <b style="color:#FFD700;">${l.price}</b> • ${l.seller||'Hráč'} • ${hoursLeft}h</div>`;
+        } else if(it.isEquipment || it.isCape || it.isAura){
+          let tier = (typeof equipTiers!=='undefined' && it.tier!==undefined && equipTiers[it.tier]) ? equipTiers[it.tier] : {color:'#aaa', name:'', bg:'', glow:'none'};
+          let countText = it.count && it.count>1 ? ` <span style="background:#FF6B00; color:#fff; padding:1px 4px; border-radius:4px; font-size:8px;">${it.count}x</span>` : '';
+          let tierBadge = tier.name ? `<span style="font-size:7px;background:${tier.color};color:#000;padding:1px 4px;border-radius:3px;margin-left:4px">${tier.name.toUpperCase()}</span>` : '';
+          titleHtml = `${it.name||'Vybavení'}${countText} ${tierBadge} ${isMine?'<span style="background:#4CAF50; color:#fff; font-size:7px; padding:1px 3px; border-radius:3px;">MOJE</span>':''}`;
+          let bonusHtml = getBonusHtml(it.bonuses);
+          infoHtml = `<div style="margin:3px 0; line-height:1.4">${bonusHtml||'<span style="font-size:9px;color:#666">bez bonusů</span>'}</div><div style="font-size:10px;color:#aaa">${l.category||'equipment'} • ${brickIcon} <b style="color:#FFD700;">${l.price}</b> • ${l.seller||'Hráč'} • ${hoursLeft}h</div>`;
+          tierStyle = `border-left:4px solid ${tier.color};`;
+        } else {
+          let countText = it.count && it.count>1 ? ` <span style="background:#FF6B00; color:#fff; padding:1px 4px; border-radius:4px; font-size:8px;">${it.count}x</span>` : '';
+          let bonusHtml = it.bonuses ? getBonusHtml(it.bonuses) : '';
+          titleHtml = (it.name||'Předmět')+countText+ (isMine?'<span style="background:#4CAF50; color:#fff; font-size:7px; padding:1px 3px; border-radius:3px;margin-left:4px">MOJE</span>':'');
+          if(bonusHtml) infoHtml = `<div style="margin:2px 0">${bonusHtml}</div><div style="font-size:10px;color:#aaa">${l.category||'other'} • ${brickIcon} <b style="color:#FFD700;">${l.price}</b> • ${l.seller||'Hráč'} • ${hoursLeft}h</div>`;
+          else infoHtml = `<div style="font-size:10px;color:#aaa">${l.category||'other'}</div><div style="font-size:10px">${brickIcon} <b style="color:#FFD700;">${l.price}</b> • ${l.seller||'Hráč'} • ${hoursLeft}h</div>`;
+        }
+        let buttonHtml = isMine ? `<button class="actionButton" style="background:#3a2a2a; border:1px solid #6a3a3a; color:#ff8a80; padding:6px 10px; border-radius:6px; font-size:11px; font-weight:800; cursor:pointer" onclick="cancelMarketListing('${l.id}')">ZRUŠIT</button>` : `<button class="actionButton buyButton" style="background:linear-gradient(90deg,#4CAF50,#2E7D32); color:#fff; border:none; border-radius:6px; padding:6px 12px; font-size:11px; font-weight:800; cursor:pointer" onclick="buyMarketListing('${l.id}')">KOUPIT</button>`;
+        html+=`<div class="item" style="${tierStyle} background:linear-gradient(135deg,#1e1e1e,#252525); border:1.5px solid #333; border-radius:12px; padding:8px; margin-bottom:8px"><div class="itemRow" style="display:flex; align-items:center; gap:10px; background:rgba(0,0,0,0.2); border-radius:8px; padding:6px"><div style="display:flex; gap:8px; align-items:center; flex:1; min-width:0;">${iconHtml}<div style="flex:1; min-width:0;"><div class="itemTitle" style="font-size:12px; font-weight:800; color:#fff; line-height:1.2">${titleHtml}</div><div class="itemInfo" style="margin-top:3px">${infoHtml}</div></div></div>${buttonHtml}</div></div>`;
+      });
+      listEl.innerHTML=html;
+    }catch(e){ console.error('fixedRenderMarket error', e); }
   }
+  setTimeout(()=>{ window.renderMarket = fixedRenderMarket; }, 1000);
 
-  setTimeout(()=>{
-    window.renderMarket = fixedRenderMarket;
-    try{ if(document.getElementById('marketPanel')?.classList.contains('open')) fixedRenderMarket(); }catch(e){}
-  }, 1000);
-
-  function fixedRenderMarketSelectList(){
-    let listEl=document.getElementById('marketSelectList');
-    if(!listEl) return;
-    if(typeof inventory==='undefined' || inventory.length===0){
-      listEl.innerHTML='<div style="text-align:center; padding:20px; color:#888;">Batoh prázdný</div>';
-      return;
-    }
-    let items=[];
-    for(let i=0;i<inventory.length;i++){
-      let it=inventory[i];
-      if(!it) continue;
-      if(it.isTool && it.toolIndex===0) continue;
-      if(typeof marketSelectCategory!=='undefined'){
-        if(marketSelectCategory==='minerals' && typeof it.type!=='number') continue;
-        if(marketSelectCategory==='equipment' && !it.isEquipment && !it.isCape && !it.isAura) continue;
-        if(marketSelectCategory==='feed' && !it.isFeed && !it.isEnergyDrink && !it.isSuperEnergyDrink) continue;
-        if(marketSelectCategory==='tools' && !it.isTool) continue;
-        if(marketSelectCategory==='maps' && !it.isFireMap && !it.isIceMap) continue;
-        if(marketSelectCategory==='mystery' && !it.isMysteryFeedBox && !it.isMysteryEquipBox && !it.isMysteryEquipBoxLegendary && !it.isMysteryAllBox && !it.isMasterMysteryBox) continue;
-        if(marketSelectCategory==='other' && !(it.isForgeParchment || it.isAuraCapeChanger || it.isChanger || it.isSpecialChanger || it.isVIPItem)) continue;
-      }
-      if(it.isEquipment || it.isCape || it.isAura){ try{ if(Object.values(equipped).some(eq=>eq && eq.id===it.id)) continue; }catch(e){} }
-      items.push(it);
-    }
-    if(items.length===0){
-      listEl.innerHTML='<div style="text-align:center; padding:20px; color:#666;">Nic k prodeji v této kategorii</div>';
-      return;
-    }
-    let html='';
-    items.forEach(it=>{
-      let iconHtml = (typeof getMarketItemIconHtmlShop==='function') ? getMarketItemIconHtmlShop(it) : `<div style="width:44px;height:44px;background:#222;border-radius:8px;display:flex;align-items:center;justify-content:center">${it.icon||'📦'}</div>`;
-      let name=it.name|| (typeof minerals!=='undefined' && typeof it.type==='number' && minerals[it.type] ? minerals[it.type].name : 'Item');
-      let countBadge = it.count && it.count>1 ? ` <span style="background:#FF6B00; color:#fff; padding:1px 4px; border-radius:4px; font-size:9px;">${it.count}x</span>` : '';
-      let sub='';
-      let tierStyle='';
-      if(typeof it.type==='number'){
-        sub = `${it.raw?'Surový':'Vybroušený'} • ${it.weight||'?'}g • ${it.purity||'?'}%`+countBadge;
-      } else if(it.isEquipment || it.isCape || it.isAura){
-        let tier = (typeof equipTiers!=='undefined' && it.tier!==undefined && equipTiers[it.tier]) ? equipTiers[it.tier] : {color:'#aaa', bg:''};
-        tierStyle = `border-left:4px solid ${tier.color}; background:${tier.bg||'#1a1a1a'}`;
-        let bonusHtml = getBonusHtml(it.bonuses);
-        sub = `${tier.name||''}${countBadge}<br><span style="font-size:9px">${bonusHtml||'bez bonusů'}</span>`;
-      } else {
-        sub = (it.tierName||it.feedType||'')+countBadge;
-        if(it.bonus) sub+=` • +${it.bonus}%`;
-      }
-      html+=`<div class="item" style="background:#121914; border:1px solid #3b493e; border-radius:8px; padding:6px; margin-bottom:6px; cursor:pointer; ${tierStyle}" onclick="selectMarketItemToSell('${it.id}')"><div class="itemRow" style="background:rgba(0,0,0,0.22); display:flex; align-items:center; gap:8px; padding:8px; border-radius:8px;"><div style="display:flex; gap:8px; align-items:center; flex:1; min-width:0;">${iconHtml}<div style="flex:1; min-width:0;"><div class="itemTitle" style="font-size:12px; font-weight:bold; color:#fff;">${name}${countBadge}</div><div class="itemInfo" style="font-size:10.5px; color:#b9c4ba; line-height:1.3">${sub}</div></div></div><div style="color:#00ACC1; font-weight:800; font-size:18px;">+</div></div></div>`;
+  // Mystery boxy nad batohem
+  const obs = new MutationObserver((muts)=>{
+    muts.forEach(m=>{
+      m.addedNodes.forEach(node=>{
+        if(!(node instanceof HTMLElement)) return;
+        if(node.id==='mysteryOpenBox'){ node.style.zIndex='210000'; }
+        if(node.id==='mysteryResultBox'){ node.style.zIndex='210001'; }
+        if(node.id==='forgeAnimModal'){ node.style.zIndex='200000'; }
+        if(node.id==='changerModal' || node.id==='changerResultModal'){ node.style.zIndex='200000'; }
+      });
     });
-    listEl.innerHTML=html;
-  }
-
-  setTimeout(()=>{
-    window.renderMarketSelectList = fixedRenderMarketSelectList;
-  }, 1200);
-
-  function patchMysteryFunctions(){
-    const funcs = ['openMysteryFeedBox','openMysteryEquipBox','openMysteryEquipLegendaryBox','openMysteryAllBox','openMasterMysteryBox'];
-    funcs.forEach(fname=>{
-      let orig = window[fname];
-      if(orig && !orig._patched){
-        window[fname] = function(){
-          let res = orig.apply(this, arguments);
-          setTimeout(()=>{
-            let o=document.getElementById('mysteryOpenBox');
-            let r=document.getElementById('mysteryResultBox');
-            if(o){ o.style.zIndex='210000'; o.style.position='fixed'; o.style.left='50%'; o.style.top='50%'; o.style.transform='translate(-50%,-50%)'; }
-            if(r){ r.style.zIndex='210001'; r.style.position='fixed'; r.style.left='50%'; r.style.top='50%'; r.style.transform='translate(-50%,-50%)'; }
-          },50);
-          return res;
-        };
-        window[fname]._patched=true;
-      }
-    });
-  }
-  setTimeout(patchMysteryFunctions, 1500);
-  setTimeout(patchMysteryFunctions, 3000);
-
-  function patchChanger(){
-    ['openChangerModal','openAuraCapeChangerModal','openSpecialChangerModal'].forEach(fname=>{
-      let orig = window[fname];
-      if(orig && !orig._patched){
-        window[fname] = function(){
-          let res = orig.apply(this, arguments);
-          setTimeout(()=>{
-            let m=document.getElementById('changerModal');
-            if(m){ m.style.zIndex='200000'; m.style.position='fixed'; m.style.left='50%'; m.style.top='50%'; m.style.transform='translate(-50%,-50%)'; }
-          },30);
-          return res;
-        };
-        window[fname]._patched=true;
-      }
-    });
-    let origForge = window.openForgeAnimation;
-    if(origForge && !origForge._patched){
-      window.openForgeAnimation = function(){
-        let res = origForge.apply(this, arguments);
-        setTimeout(()=>{
-          let m=document.getElementById('forgeAnimModal');
-          if(m){ m.style.zIndex='200000'; m.style.display='flex'; }
-        },30);
-        return res;
-      };
-      window.openForgeAnimation._patched=true;
-    }
-  }
-  setTimeout(patchChanger, 1500);
+  });
+  obs.observe(document.body, {childList:true, subtree:true});
 })();
 </script>
 
-<script id="fix-feeds-v3">
-// ===== FIX KRMIVA - INSTANTNÍ 150XP až 2000XP - PLYNULÉ PŘIČÍTÁNÍ BEZ DVOJKLIKU =====
+<script id="fix-feeds-v4">
 (function(){
   function waitForGame(){
-    if(typeof getActivePet==='undefined' || typeof findIdx==='undefined' || typeof getXPForLevel==='undefined' || typeof petsOwned==='undefined'){
-      setTimeout(waitForGame, 500);
-      return;
+    if(typeof getActivePet==='undefined' || typeof findIdx==='undefined' || typeof getXPForLevel==='undefined'){
+      setTimeout(waitForGame, 500); return;
     }
-    console.log('🐾 Fix krmiva start');
-
-    // --- OPRAVENÁ FUNKCE PRO INSTANT KRMIVA ---
     window.useInstantFeedById = function(feedId){
-      let idx = (typeof findIdx==='function') ? findIdx(feedId) : inventory.findIndex(it=>it.id===feedId);
-      if(idx===-1){ 
-        if(typeof showToast==='function') showToast("❌ Krmivo nenalezeno"); 
-        return; 
-      }
+      let idx = findIdx(feedId);
+      if(idx===-1){ showToast("❌ Krmivo nenalezeno"); return; }
       let item = inventory[idx];
-      if(!item || !item.isFeed){
-        if(typeof showToast==='function') showToast("❌ To není krmivo");
-        return;
-      }
-      // Získej XP - podporuje všechny typy
+      if(!item || !item.isFeed) return;
       let xpVal = item.xp || 0;
       if(item.feedType && typeof getFeedDefById==='function'){
         let def = getFeedDefById(item.feedType);
         if(def && def.xp) xpVal = def.xp;
       }
-      // Fallback podle názvu pro staré krmiva
       if(xpVal<=0){
-        if(item.name && item.name.includes('150')) xpVal=150;
-        else if(item.name && item.name.includes('280')) xpVal=280;
-        else if(item.name && item.name.includes('420')) xpVal=420;
-        else if(item.name && item.name.includes('650')) xpVal=650;
-        else if(item.name && item.name.includes('800')) xpVal=800;
-        else if(item.name && item.name.includes('1000')) xpVal=1000;
-        else if(item.name && item.name.includes('1500')) xpVal=1500;
-        else if(item.name && item.name.includes('2000')) xpVal=2000;
-        else xpVal = 150;
+        let n=item.name||'';
+        if(n.includes('150')) xpVal=150;
+        else if(n.includes('280')) xpVal=280;
+        else if(n.includes('420')) xpVal=420;
+        else if(n.includes('650')) xpVal=650;
+        else if(n.includes('800')) xpVal=800;
+        else if(n.includes('1000')) xpVal=1000;
+        else if(n.includes('1500')) xpVal=1500;
+        else if(n.includes('2000')) xpVal=2000;
+        else xpVal=150;
       }
-
       let pet = getActivePet();
-      if(!pet){
-        if(typeof showToast==='function') showToast("❌ Nemáš aktivního mazlíčka! Vyber si v ZVÍŘATA 🐾",2.5);
-        return;
-      }
-
-      // Spotřebuj 1 kus
-      if((item.count||1)>1){
-        item.count = (item.count||1)-1;
-      } else {
-        inventory.splice(idx,1);
-      }
-
-      // PLYNULÉ PŘIČÍTÁNÍ - zachovává overflow, používá getXPForLevel
+      if(!pet){ showToast("❌ Nemáš aktivního mazlíčka! Vyber v ZVÍŘATA 🐾",2.5); return; }
+      if((item.count||1)>1) item.count--; else inventory.splice(idx,1);
       pet.xp = (pet.xp||0) + xpVal;
       let oldLevel = pet.level;
-      let leveled = false;
-      let levelsGained = 0;
-      // While loop aby prošlo více levelů najednou (třeba 2000xp na nízkém levelu)
+      let leveled=false, gained=0;
       while(pet.level < 100){
         let need = getXPForLevel(pet.level);
-        if(pet.xp >= need){
-          pet.xp -= need;
-          pet.level++;
-          leveled = true;
-          levelsGained++;
-        } else break;
+        if(pet.xp >= need){ pet.xp -= need; pet.level++; leveled=true; gained++; } else break;
       }
-
-      try{ if(typeof saveGame==='function') saveGame(); }catch(e){}
-      try{ if(typeof renderInventory==='function') renderInventory(); }catch(e){}
-      try{ if(typeof renderPetsPanel==='function') renderPetsPanel(); }catch(e){}
-      try{ if(typeof updateHUD==='function') updateHUD(); }catch(e){}
-
-      if(leveled){
-        if(typeof showToast==='function') showToast("🎉 "+pet.name+" LEVEL UP! "+oldLevel+" → "+pet.level+"! +"+xpVal+"xp ("+levelsGained+"x level) 🐾",3);
-      } else {
-        if(typeof showToast==='function') showToast("🍖 "+pet.name+" +"+xpVal+"xp ("+pet.xp+"/"+getXPForLevel(pet.level)+"xp) 🐾",2);
-      }
+      try{ saveGame(); renderInventory(); renderPetsPanel(); updateHUD(); }catch(e){}
+      if(leveled) showToast("🎉 "+pet.name+" LEVEL UP! "+oldLevel+" → "+pet.level+"! +"+xpVal+"xp 🐾",3);
+      else showToast("🍖 "+pet.name+" +"+xpVal+"xp ("+pet.xp+"/"+getXPForLevel(pet.level)+"xp) 🐾",2);
     };
+    window.useSuperFeedInstant = function(id){ return window.useInstantFeedById(id); };
+    window.useNewInstantFeed = function(id){ return window.useInstantFeedById(id); };
 
-    // Přepiš i staré funkce aby volaly novou - aby nebyl dvojklik
-    window.useSuperFeedInstant = function(id){
-      // Zabránění dvojitého volání - pokud už se volá z onclick, ignoruj
-      return window.useInstantFeedById(id);
-    };
-    window.useNewInstantFeed = function(id){
-      return window.useInstantFeedById(id);
-    };
-    // Pro kompatibilitu
-    window.useInstantFeed = window.useInstantFeedById;
-
-    // Oprav i normální krmivo - už mělo správný while loop, ale pro jistotu necháme původní
-    // Jen zajistíme že instant ignoruje cooldown
-
-    // ===== ODSTRANĚNÍ DVOJKLIKU - PŘEPIS RENDER INVENTORY FEED ČÁSTI =====
-    // Po každém renderInventory opravíme tlačítka aby měla jen 1 handler
     function patchFeedButtons(){
-      // Instantní krmiva
       document.querySelectorAll('[data-feed-instant-id]').forEach(btn=>{
-        // Odstraň inline onclick aby se nevolal 2x
         btn.removeAttribute('onclick');
-        // Klonuj aby se odstranily staré event listenery
-        if(btn._feedPatched) return;
-        let newBtn = btn.cloneNode(true);
-        newBtn._feedPatched = true;
-        btn.parentNode.replaceChild(newBtn, btn);
-        newBtn.addEventListener('click', function(e){
-          e.preventDefault();
-          e.stopPropagation();
-          e.stopImmediatePropagation();
-          let fid = this.getAttribute('data-feed-instant-id');
-          // Debounce - zabraň rychlému dvojkliku
-          if(this._lastClick && Date.now() - this._lastClick < 400) return;
-          this._lastClick = Date.now();
-          window.useInstantFeedById(fid);
+        if(btn._v4) return;
+        let nb = btn.cloneNode(true); nb._v4=true;
+        btn.parentNode.replaceChild(nb, btn);
+        nb.addEventListener('click', function(e){
+          e.preventDefault(); e.stopPropagation();
+          if(this._last && Date.now()-this._last < 400) return;
+          this._last = Date.now();
+          window.useInstantFeedById(this.getAttribute('data-feed-instant-id'));
         }, true);
       });
-      // Normální krmiva
       document.querySelectorAll('[data-feed-use-id]').forEach(btn=>{
         btn.removeAttribute('onclick');
-        if(btn._feedPatched) return;
-        let newBtn = btn.cloneNode(true);
-        newBtn._feedPatched = true;
-        btn.parentNode.replaceChild(newBtn, btn);
-        newBtn.addEventListener('click', function(e){
-          e.preventDefault();
-          e.stopPropagation();
-          e.stopImmediatePropagation();
-          let fid = this.getAttribute('data-feed-use-id');
-          if(this._lastClick && Date.now() - this._lastClick < 400) return;
-          this._lastClick = Date.now();
-          if(typeof feedPetWithItem==='function') feedPetWithItem(fid);
+        if(btn._v4) return;
+        let nb = btn.cloneNode(true); nb._v4=true;
+        btn.parentNode.replaceChild(nb, btn);
+        nb.addEventListener('click', function(e){
+          e.preventDefault(); e.stopPropagation();
+          if(this._last && Date.now()-this._last < 400) return;
+          this._last = Date.now();
+          if(typeof feedPetWithItem==='function') feedPetWithItem(this.getAttribute('data-feed-use-id'));
         }, true);
       });
     }
-
-    // Obal renderInventory aby po každém vykreslení opravil tlačítka
-    function wrapRenderInventory(){
-      if(typeof window.renderInventory==='undefined'){
-        setTimeout(wrapRenderInventory, 500);
-        return;
-      }
-      // Pokud už je obalený naším fixem, neobaluj znovu
-      if(window.renderInventory._feedFixWrapped) return;
-      let origRI = window.renderInventory;
+    function wrapRI(){
+      if(typeof window.renderInventory==='undefined'){ setTimeout(wrapRI,500); return; }
+      if(window.renderInventory._v4) return;
+      let orig = window.renderInventory;
       window.renderInventory = function(){
-        let res = origRI.apply(this, arguments);
-        // Po vykreslení oprav tlačítka
+        let r = orig.apply(this, arguments);
         setTimeout(patchFeedButtons, 50);
-        setTimeout(patchFeedButtons, 250);
-        return res;
+        return r;
       };
-      window.renderInventory._feedFixWrapped = true;
-      console.log('✅ renderInventory obalen pro fix krmiv');
+      window.renderInventory._v4=true;
     }
-
-    // Spusť wrap
-    setTimeout(wrapRenderInventory, 1000);
-    setTimeout(wrapRenderInventory, 2500);
-
-    // Ihned oprav pokud už je inventář otevřený
-    setTimeout(patchFeedButtons, 800);
-    setTimeout(patchFeedButtons, 1500);
-
-    // Přepiš i feedPetWithItem aby ignoroval cooldown pro instant (ale normální nechává cooldown)
-    let origFeedPetWithItem = window.feedPetWithItem;
-    if(origFeedPetWithItem && !origFeedPetWithItem._feedFixWrapped){
-      window.feedPetWithItem = function(itemId){
-        let idx = findIdx(itemId);
-        if(idx===-1){ showToast("❌ Krmivo nenalezeno"); return; }
-        let item = inventory[idx];
-        // Pokud je to instant, přesměruj na instant logiku bez cooldown
-        if(item && item.instant){
-          return window.useInstantFeedById(itemId);
-        }
-        // Jinak normální logika s cooldown
-        return origFeedPetWithItem.apply(this, arguments);
+    setTimeout(wrapRI,1000);
+    setTimeout(patchFeedButtons,1200);
+    let origF = window.feedPetWithItem;
+    if(origF && !origF._v4){
+      window.feedPetWithItem = function(id){
+        let idx=findIdx(id);
+        let it=inventory[idx];
+        if(it && it.instant) return window.useInstantFeedById(id);
+        return origF.apply(this, arguments);
       };
-      window.feedPetWithItem._feedFixWrapped = true;
+      window.feedPetWithItem._v4=true;
     }
-
-    console.log('✅ FIX KRMIVA: instant 150-2000xp plynule přičítá, bez dvojkliku, s overflow');
   }
-
   waitForGame();
 })();
 </script>
