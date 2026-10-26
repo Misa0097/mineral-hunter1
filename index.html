@@ -10165,36 +10165,99 @@ if(origOpenEventPanel){
 
 
 <style>
-/* === V42 - FIX NIC NEJDE KLIKNOUT - PANELY NAD IKONAMI BEZ SCHOVÁVÁNÍ === */
-/* Vráceno na funkční V39 + jen z-index oprava */
+/* === V43 - MARKET ZPĚT NAD IKONAMI JAKO V39 + OSTATNÍ PANELY TAKÉ === */
+/* Market + všechny panely nad ikonami, ikony schované když je panel otevřený */
 
-/* Panely musí být nad ikonami, ale jen když jsou otevřené */
 .panel.open, #marketPanel.open, #marketSelectModal.open, #marketPriceModal.open {
-  z-index: 10000 !important;
+  z-index: 100002 !important;
 }
 
-#shopPanel.open, #leaderboardPanel.open, #petsPanel.open, #eventPanel.open, #inventoryPanel.open {
-  z-index: 10000 !important;
+#shopPanel.open, #leaderboardPanel.open, #petsPanel.open, #eventPanel.open, #inventoryPanel.open, #marketPanel.open {
+  z-index: 100002 !important;
   position: fixed !important;
   top: 50% !important;
   left: 50% !important;
   transform: translate(-50%, -50%) !important;
   width: min(92%, 560px) !important;
   max-height: 92vh !important;
+  background: #121212 !important;
+  border: 2px solid #333 !important;
+  border-radius: 16px !important;
 }
 
-/* Ikony pod panely - NIKDY je neschovávej display:none, jen nižší z-index */
+/* Ikony pod panely */
 #shopAboveMap, #leaderboardAboveMap, #petsButton, #marketButton, #eventButton_fixed, #chatButton, #minimapWrap {
-  z-index: 1000 !important;
+  z-index: 5000 !important;
 }
 
-/* Toast nad vším */
-#toast {
-  z-index: 20000 !important;
-  position: absolute !important;
-  left: 50% !important;
-  top: 16px !important;
-  transform: translateX(-50%) !important;
+/* Když je otevřený market - schovej ikony jako ve V39 */
+body.market-open #shopAboveMap,
+body.market-open #leaderboardAboveMap,
+body.market-open #petsButton,
+body.market-open #marketButton,
+body.market-open #eventButton_fixed,
+body.market-open #chatButton,
+body.market-open #minimapWrap {
+  display: none !important;
+}
+
+/* Když je otevřený jakýkoliv jiný panel - schovej také ikony */
+body.panel-open #shopAboveMap,
+body.panel-open #leaderboardAboveMap,
+body.panel-open #petsButton,
+body.panel-open #marketButton,
+body.panel-open #eventButton_fixed,
+body.panel-open #chatButton,
+body.panel-open #minimapWrap {
+  display: none !important;
+}
+
+#marketSelectModal {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: rgba(0,0,0,0.88) !important;
+  z-index: 100005 !important;
+  display: none !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 12px !important;
+}
+#marketSelectModal.open { display: flex !important; }
+#marketPriceModal {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: rgba(0,0,0,0.92) !important;
+  z-index: 100008 !important;
+  display: none !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 12px !important;
+}
+#marketPriceModal.open { display: flex !important; }
+
+#marketSelectBox, #marketPriceBox {
+  background: #1e1e1e !important;
+  border: 2px solid #7b1fa2 !important;
+  border-radius: 16px !important;
+  width: min(95%, 600px) !important;
+  max-height: 88vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  box-shadow: 0 0 30px rgba(123,31,162,0.6) !important;
+  z-index: 100009 !important;
+  position: relative !important;
+}
+#marketPriceBox {
+  border-color: #FFD700 !important;
+  box-shadow: 0 0 30px rgba(255,215,0,0.4) !important;
+  width: min(90%, 420px) !important;
 }
 
 #marketList {
@@ -10324,11 +10387,19 @@ if(origOpenEventPanel){
   justify-content: space-between !important;
   font-size: 11px !important;
 }
+#toast {
+  z-index: 100010 !important;
+  position: absolute !important;
+  left: 50% !important;
+  top: 16px !important;
+  transform: translateX(-50%) !important;
+}
+#toast.show { opacity: 1 !important; z-index: 100010 !important; }
 </style>
 
 
 <script>
-// V42 - FIX NIC NEJDE KLIKNOUT - vráceno na V39 funkční + jen z-index
+// V43 - market zpět nad ikonami jako V39 + ostatní panely také nad ikonami
 (function(){
   let marketDb = null;
   try{
@@ -10339,19 +10410,17 @@ if(origOpenEventPanel){
     }
   }catch(e){}
 
-  // WEEKLY FIX - e.points undefined
+  // WEEKLY FIX
   let originalFetchWeekly = window.fetchWeeklyLeaderboard;
   if(originalFetchWeekly){
     window.fetchWeeklyLeaderboard = function(cb){
       originalFetchWeekly(function(arr, wp){
-        let fixed = arr.map(e=>{
-          return {
-            nick: e.nick,
-            score: e.score!==undefined?e.score:(e.points||0),
-            points: e.score!==undefined?e.score:(e.points||0),
-            body: e.score!==undefined?e.score:(e.points||0)
-          };
-        });
+        let fixed = arr.map(e=>({
+          nick: e.nick,
+          score: e.score!==undefined?e.score:(e.points||0),
+          points: e.score!==undefined?e.score:(e.points||0),
+          body: e.score!==undefined?e.score:(e.points||0)
+        }));
         cb(fixed, wp);
       });
     };
@@ -10364,9 +10433,58 @@ if(origOpenEventPanel){
         el.innerHTML = el.innerHTML.replace(/undefined bodů/g, '0 bodů').replace(/undefined/g, '0');
       }
     });
-  }, 1000);
+  }, 800);
+
+  // Přepiš open/close pro panely aby schovávaly ikony (stejně jako market ve V39)
+  function wrapPanelOpenClose(openName, closeName){
+    let origOpen = window[openName];
+    let origClose = window[closeName];
+    if(origOpen){
+      window[openName] = function(){
+        try{ origOpen.apply(this, arguments); }catch(e){ try{origOpen();}catch(e2){} }
+        document.body.classList.add('panel-open');
+        // Zajisti z-index
+        let panelMap = {
+          'openShop':'shopPanel',
+          'openLeaderboard':'leaderboardPanel',
+          'openPets':'petsPanel',
+          'openEvent':'eventPanel',
+          'openInventory':'inventoryPanel',
+          'openMuseum':'museumPanel'
+        };
+        let pid = panelMap[openName];
+        if(pid){
+          let p=document.getElementById(pid);
+          if(p){ p.style.zIndex='100002'; }
+        }
+      };
+    }
+    if(origClose){
+      window[closeName] = function(){
+        try{ origClose.apply(this, arguments); }catch(e){ try{origClose();}catch(e2){} }
+        // Zkontroluj jestli je ještě nějaký panel otevřený
+        setTimeout(()=>{
+          let anyOpen = document.querySelector('.panel.open') || document.getElementById('marketPanel')?.classList.contains('open');
+          if(!anyOpen){
+            document.body.classList.remove('panel-open');
+          }
+        }, 50);
+      };
+    }
+  }
+
+  // Počkej až se definují originální funkce
+  setTimeout(()=>{
+    wrapPanelOpenClose('openShop','closeShop');
+    wrapPanelOpenClose('openLeaderboard','closeLeaderboard');
+    wrapPanelOpenClose('openPets','closePets');
+    wrapPanelOpenClose('openEvent','closeEvent');
+    wrapPanelOpenClose('openInventory','closeInventory');
+  }, 500);
 
   window.openMarket = function(){
+    document.body.classList.add('market-open');
+    document.body.classList.add('panel-open');
     try{
       ['inventoryPanel','shopPanel','leaderboardPanel','petsPanel','eventPanel'].forEach(id=>{
         let p=document.getElementById(id);
@@ -10374,7 +10492,7 @@ if(origOpenEventPanel){
       });
     }catch(e){}
     let mp=document.getElementById('marketPanel');
-    if(mp){ mp.classList.add('open'); }
+    if(mp){ mp.classList.add('open'); mp.style.zIndex='100002'; }
     let parent=document.getElementById('marketGoldDisplay');
     if(parent){
       let brickImg = (typeof GOLD_BAR_ICON_BASE64!=='undefined') ? `<img src="${GOLD_BAR_ICON_BASE64}" class="goldBrickIcon">` : '';
@@ -10387,6 +10505,14 @@ if(origOpenEventPanel){
   window.closeMarket = function(){
     let mp=document.getElementById('marketPanel');
     if(mp) mp.classList.remove('open');
+    document.body.classList.remove('market-open');
+    // Zkontroluj jestli není otevřený jiný panel
+    setTimeout(()=>{
+      let anyOpen = document.querySelector('.panel.open');
+      if(!anyOpen){
+        document.body.classList.remove('panel-open');
+      }
+    }, 50);
     ['marketSelectModal','marketPriceModal'].forEach(id=>{
       let m=document.getElementById(id);
       if(m){ m.classList.remove('open'); m.style.display='none'; }
@@ -10412,7 +10538,6 @@ if(origOpenEventPanel){
     try{
       let saved = localStorage.getItem('marketListings');
       if(saved) marketListings = JSON.parse(saved);
-
       if(marketDb){
         marketDb.ref('market/listings').on('value', snap=>{
           let val = snap.val();
@@ -10429,7 +10554,6 @@ if(origOpenEventPanel){
             renderMarket();
           }
         });
-
         let nick = localStorage.getItem('nick')|| (typeof currentNick!=='undefined'?currentNick:'');
         if(nick){
           marketDb.ref('market/transactions/'+nick).on('child_added', snap=>{
@@ -10593,16 +10717,6 @@ if(origOpenEventPanel){
       marketDb.ref('market/transactions/'+seller).push({
         seller: seller, buyer: buyer, itemName: itemName, price: price, afterFee: afterFee, time: Date.now(), claimed: false
       });
-      if(typeof sendGlobalAnnouncement==='function'){
-        sendGlobalAnnouncement({
-          type: 'market_sale',
-          text: `🏪 ${buyer} koupil ${itemName} za ${price} cihel od ${seller}!`,
-          buyer: buyer, seller: seller, itemName: itemName, price: price
-        });
-      }
-    } else {
-      marketListings.splice(idx,1);
-      saveMarket();
     }
     saveGame(); renderMarket(); renderInventory(); updateHUD();
     showToast(`✅ Koupil jsi ${itemName} za ${price} cihel od ${seller}!`, 4);
@@ -10694,18 +10808,7 @@ if(origOpenEventPanel){
         let data = (typeof minerals!=='undefined' && minerals[it.type]) ? minerals[it.type] : {name:it.name||'Kámen', color:'#fff'};
         let countText = it.count && it.count>1 ? ` <span style="background:#FF6B00; color:#fff; padding:1px 4px; border-radius:4px; font-size:8px;">${it.count}x</span>` : '';
         titleHtml = `<span style="color:${data.color};">${data.name}</span>${countText}`;
-        infoHtml = `<div>${it.weight}g • ${it.purity}% • ${it.quality}%</div><div>${brickIcon} <b style="color:#FFD700;">${l.price}</b> • ${l.seller||'Hráč'} • ${hoursLeft}h</div>`;
-      } else if(it.isEquipment){
-        let tierName = it.tierName || '';
-        let bonusesHtml = it.bonuses && it.bonuses.length>0 ? it.bonuses.map(b=>`<span style="color:#FFEB3B; margin-right:6px;">${b.icon} ${b.value}${b.unit}</span>`).join('') : 'Bez bonusů';
-        let countText = it.count && it.count>1 ? ` <span style="background:#FF6B00; color:#fff; padding:1px 4px; border-radius:4px; font-size:8px;">${it.count}x</span>` : '';
-        titleHtml = `${it.name||'Helma'}${countText}`;
-        infoHtml = `<div>${bonusesHtml}</div><div>${brickIcon} <b style="color:#FFD700;">${l.price}</b> • ${hoursLeft}h</div>`;
-      } else if(it.isTool){
-        let tName = it.name || (['Rezavý','Železný','Ocelový','Titanový','Diamantový'][it.toolIndex]||'Krompáč');
-        let countText = it.count && it.count>1 ? ` <span style="background:#FF6B00; color:#fff; padding:1px 4px; border-radius:4px; font-size:8px;">${it.count}x</span>` : '';
-        titleHtml = tName+countText;
-        infoHtml = `<div>Těžba: ${[19,33,45,57,63][it.toolIndex]||59}%</div><div>${brickIcon} <b style="color:#FFD700;">${l.price}</b> • ${hoursLeft}h</div>`;
+        infoHtml = `<div>${it.weight}g • ${it.purity}%</div><div>${brickIcon} <b style="color:#FFD700;">${l.price}</b> • ${l.seller||'Hráč'} • ${hoursLeft}h</div>`;
       } else {
         let countText = it.count && it.count>1 ? ` <span style="background:#FF6B00; color:#fff; padding:1px 4px; border-radius:4px; font-size:8px;">${it.count}x</span>` : '';
         titleHtml = (it.name||'Předmět')+countText;
@@ -10725,7 +10828,7 @@ if(origOpenEventPanel){
       let iconHtml = getPriceModalIconHtml(it);
       let name = it.name || (typeof minerals!=='undefined' && typeof it.type==='number' && minerals[it.type] ? minerals[it.type].name : 'Předmět');
       let countText = it.count && it.count>1 ? ` (${it.count}x)` : '';
-      let sub = typeof it.type==='number' ? `${it.raw?'Surový':'Vybroušený'} • ${it.weight||'?'}g • ${it.purity||'?'}%`+countText : (it.tierName||'')+countText;
+      let sub = typeof it.type==='number' ? `${it.raw?'Surový':'Vybroušený'} • ${it.weight||'?'}g`+countText : (it.tierName||'')+countText;
       preview.innerHTML = `<div style="display:flex; gap:12px; align-items:center; width:100%;">${iconHtml}<div style="flex:1; min-width:0; text-align:left;"><div style="font-weight:800; color:#fff; font-size:13px;">${name}${countText}</div><div style="font-size:10px; color:#aaa; margin-top:3px;">${sub}</div><div style="font-size:9px; color:#4CAF50; margin-top:4px; font-weight:700;">✅ Přesně s bonusy • Expiruje po 12h</div></div></div>`;
     }
     let inp=document.getElementById('marketPriceInput');
@@ -10828,7 +10931,7 @@ if(origOpenEventPanel){
   };
 
   setTimeout(()=>{ if(typeof loadMarket==='function') loadMarket(); }, 800);
-  console.log('✅ V42 - fix nic nejde kliknout - V39 funkční + panely z-index 10000 nad ikonami 1000');
+  console.log('✅ V43 - market zpět nad ikonami jako V39 + ostatní panely také nad ikonami');
 })();
 </script>
 
