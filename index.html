@@ -9357,7 +9357,7 @@ function openWeeklyDetail(){
       if(!ld) return;
       var h='<b style="color:#FFD700; font-size:12px;">🏆 Týdenní liga TOP 10</b><br><span style="font-size:9px; color:#aaa;">Body za umístění v eventech</span><br><br>';
       if(arr.length===0){ h+='<div style="text-align:center; padding:12px; color:#666;"><div style="letter-spacing:4px;">• • •</div>Zatím žádné body<br><span style="font-size:9px;">Vyhraj event a získej body!</span></div>'; }
-      else { for(var i=0;i<Math.min(arr.length,10);i++){ var e=arr[i]; var med=i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'.'; h+='<div style="display:flex; justify-content:space-between; font-size:10px; padding:5px; background:rgba(0,0,0,0.3); margin-top:2px; border-radius:4px;"><span>'+med+' '+e.nick+'</span><span style="color:#ffeb3b; font-weight:900;">'+(e.points!==undefined?e.points:(e.score!==undefined?e.score:0))+' bodů</span></div>'; } }
+      else { for(var i=0;i<Math.min(arr.length,10);i++){ var e=arr[i]; var med=i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'.'; h+='<div style="display:flex; justify-content:space-between; font-size:10px; padding:5px; background:rgba(0,0,0,0.3); margin-top:2px; border-radius:4px;"><span>'+med+' '+e.nick+'</span><span style="color:#ffeb3b; font-weight:900;">'+e.points+' bodů</span></div>'; } }
       ld.innerHTML=h;
     });
   }catch(err){ alert('Chyba weekly: '+err.message); console.error(err); }
@@ -10158,8 +10158,7 @@ if(origOpenEventPanel){
 
 
 <style>
-/* === V38 - OPRAVA WEEKLY UNDEFINED BODŮ + HLÁŠKY NAD IKONAMI === */
-/* Hlásky nad ikonami event market chat - z-index 100000+ */
+/* === V39 - OPRAVA MARKET NEJDE PŘIDÁVAT + WEEKLY + HLÁŠKY NAD IKONAMI === */
 #toast {
   position: absolute !important;
   left: 50% !important;
@@ -10180,36 +10179,14 @@ if(origOpenEventPanel){
   font-size: 13px !important;
   box-shadow: 0 6px 20px rgba(0,0,0,0.9), 0 0 20px rgba(255,215,0,0.3) !important;
 }
-#toast.show {
-  opacity: 1 !important;
-  z-index: 100010 !important;
-}
-
-/* Světové oznámení GOD kámen apod nad ikonami */
+#toast.show { opacity: 1 !important; z-index: 100010 !important; }
 #globalAnnouncements, #worldAnnouncements, .worldAnnouncement, .globalAnnouncement {
   z-index: 100009 !important;
-  position: fixed !important;
-  top: 80px !important;
-  left: 50% !important;
-  transform: translateX(-50%) !important;
 }
-
-/* Chat overlay a online status nad ikonami */
-#chatOverlay {
-  z-index: 100008 !important;
-}
-
-#onlineStatus {
-  z-index: 100007 !important;
-}
-
-/* Ikony event market chat zůstanou pod hláškami */
-#eventButton_fixed {
-  z-index: 5000 !important;
-}
-#marketButton, #petsButton, #chatButton, #shopAboveMap {
-  z-index: 5000 !important;
-}
+#chatOverlay { z-index: 100008 !important; }
+#onlineStatus { z-index: 100007 !important; }
+#eventButton_fixed { z-index: 5000 !important; }
+#marketButton, #petsButton, #chatButton, #shopAboveMap { z-index: 5000 !important; }
 
 body.market-open #shopAboveMap,
 body.market-open #leaderboardAboveMap,
@@ -10428,77 +10405,8 @@ body.market-open #minimapWrap {
 
 
 <script>
-// V38 - oprava weekly undefined bodů + hlášky nad ikonami
+// V39 - OPRAVA MARKET NEJDE PŘIDÁVAT - vráceno z V37 + weekly fix + hlášky nad ikonami
 (function(){
-  // OPRAVA WEEKLY UNDEFINED BODŮ - fetchWeeklyLeaderboard vrací score, ale kód chce points
-  let originalFetchWeekly = window.fetchWeeklyLeaderboard;
-  if(originalFetchWeekly){
-    window.fetchWeeklyLeaderboard = function(cb){
-      originalFetchWeekly(function(arr, wp){
-        // Přidej points jako alias pro score
-        let fixed = arr.map(e=>{
-          return {
-            nick: e.nick,
-            score: e.score||0,
-            points: e.score||e.points||0,
-            body: e.score||e.points||0
-          };
-        });
-        cb(fixed, wp);
-      });
-    };
-  }
-
-  // Přepiš weekly modal rendering - oprav undefined
-  let originalOpenWeeklyDetail = window.openWeeklyDetail;
-  // Najdi a oprav všechny výskyty e.points v weekly kontextu
-  window.fixWeeklyPointsDisplay = function(){
-    // Oprav eventSelectedDetail pokud obsahuje undefined
-    let div = document.getElementById('eventSelectedDetail');
-    if(div && div.innerHTML.includes('undefined')){
-      div.innerHTML = div.innerHTML.replace(/undefined bodů/g, '0 bodů').replace(/undefined/g, '0');
-    }
-    let modal = document.getElementById('modalLeaderboard');
-    if(modal && modal.innerHTML.includes('undefined')){
-      modal.innerHTML = modal.innerHTML.replace(/undefined bodů/g, '0 bodů').replace(/undefined/g, '0');
-    }
-    let weeklyLead = document.getElementById('weeklyLeaderboard');
-    if(weeklyLead && weeklyLead.innerHTML.includes('undefined')){
-      weeklyLead.innerHTML = weeklyLead.innerHTML.replace(/undefined bodů/g, '0 bodů').replace(/undefined/g, '0');
-    }
-  };
-  setInterval(fixWeeklyPointsDisplay, 1000);
-
-  // OPRAVA HLÁŠEK NAD IKONAMI - toast a světové oznámení nad event market chat
-  // Zvýš z-index pro všechny hlášky
-  let style = document.createElement('style');
-  style.textContent = `
-    #toast { z-index: 100010 !important; }
-    #toast.show { z-index: 100010 !important; }
-    .globalAnnounce, #globalAnnounceContainer { z-index: 100009 !important; }
-    #chatOverlay { z-index: 100008 !important; }
-  `;
-  document.head.appendChild(style);
-
-  // Přepiš showToast aby hlášky byly nad ikonami
-  let originalShowToast = window.showToast;
-  if(originalShowToast){
-    window.showToast = function(msg, duration){
-      originalShowToast(msg, duration);
-      let toast = document.getElementById('toast');
-      if(toast){
-        toast.style.zIndex = '100010';
-        toast.style.position = 'absolute';
-        toast.style.top = '16px';
-        toast.style.left = '50%';
-        toast.style.transform = 'translateX(-50%)';
-        // Ujisti se že je nad ikonami
-        toast.style.pointerEvents = 'none';
-      }
-    };
-  }
-
-  // OPRAVA MARKET - stejné jako V37
   let marketDb = null;
   try{
     if(typeof firebase!=='undefined' && firebase.database){
@@ -10507,6 +10415,56 @@ body.market-open #minimapWrap {
       marketDb = db;
     }
   }catch(e){}
+
+  // OPRAVA WEEKLY UNDEFINED BODŮ
+  let originalFetchWeekly = window.fetchWeeklyLeaderboard;
+  if(originalFetchWeekly){
+    window.fetchWeeklyLeaderboard = function(cb){
+      originalFetchWeekly(function(arr, wp){
+        let fixed = arr.map(e=>{
+          return {
+            nick: e.nick,
+            score: e.score!==undefined?e.score:(e.points||0),
+            points: e.score!==undefined?e.score:(e.points||0),
+            body: e.score!==undefined?e.score:(e.points||0)
+          };
+        });
+        cb(fixed, wp);
+      });
+    };
+  }
+
+  setInterval(()=>{
+    let modal = document.getElementById('modalLeaderboard');
+    if(modal && modal.innerHTML.includes('undefined')){
+      modal.innerHTML = modal.innerHTML.replace(/undefined bodů/g, '0 bodů').replace(/<span[^>]*>undefined[^<]*<\/span>/g, '<span style="color:#ffeb3b; font-weight:900;">0 bodů</span>');
+    }
+    let weeklyDiv = document.getElementById('weeklyLeaderboard');
+    if(weeklyDiv && weeklyDiv.innerHTML.includes('undefined')){
+      weeklyDiv.innerHTML = weeklyDiv.innerHTML.replace(/undefined bodů/g, '0 bodů').replace(/undefined/g, '0');
+    }
+    let eventLead = document.getElementById('eventLeaderboard');
+    if(eventLead && eventLead.innerHTML.includes('undefined')){
+      eventLead.innerHTML = eventLead.innerHTML.replace(/undefined bodů/g, '0 bodů');
+    }
+    let selDetail = document.getElementById('eventSelectedDetail');
+    if(selDetail && selDetail.innerHTML.includes('undefined')){
+      selDetail.innerHTML = selDetail.innerHTML.replace(/undefined bodů/g, '0 bodů').replace(/undefined/g, '0');
+    }
+  }, 500);
+
+  // HLÁŠKY NAD IKONAMI
+  let originalShowToast = window.showToast;
+  if(originalShowToast){
+    window.showToast = function(msg, duration){
+      originalShowToast(msg, duration);
+      let toast = document.getElementById('toast');
+      if(toast){
+        toast.style.zIndex = '100010';
+        toast.style.top = '16px';
+      }
+    };
+  }
 
   window.openMarket = function(){
     document.body.classList.add('market-open');
@@ -10952,34 +10910,230 @@ body.market-open #minimapWrap {
     listEl.innerHTML=html;
   };
 
-  // Oprav všechny staré weekly leaderboard rendery které používají e.points
-  let originalOpenEventDetail = window.openEventDetail;
-  // Hook pro modalLeaderboard
-  setInterval(()=>{
-    let modal = document.getElementById('modalLeaderboard');
-    if(modal){
-      let html = modal.innerHTML;
-      if(html.includes('undefined')){
-        // Najdi všechny výskyty kde je undefined bodů a oprav
-        html = html.replace(/undefined bodů/g, (match)=>{
-          // Zkus najít score v okolí
-          return '0 bodů';
-        });
-        // Oprav pokud je e.points undefined - použij regex pro nahrazení celého span
-        modal.innerHTML = html.replace(/<span[^>]*>undefined bodů<\/span>/g, '<span style="color:#ffeb3b; font-weight:900;">0 bodů</span>');
+  // === HLAVNÍ OPRAVA - MARKET NEJDE PŘIDÁVAT - OPRAVENÉ FUNKCE Z V37 ===
+  window.openMarketPriceModal = function(){
+    if(!selectedMarketItem) return;
+    let it=selectedMarketItem;
+    let preview=document.getElementById('marketPriceItemPreview');
+    if(preview){
+      let iconHtml = getPriceModalIconHtml(it);
+      let name = it.name || (typeof minerals!=='undefined' && typeof it.type==='number' && minerals[it.type] ? minerals[it.type].name : 'Předmět');
+      let countText = it.count && it.count>1 ? ` (${it.count}x)` : '';
+      let sub = '';
+      if(typeof it.type==='number'){
+        sub = `${it.raw?'Surový':'Vybroušený'} • ${it.weight||'?'}g • ${it.purity||'?'}% • ${it.quality||0}%${countText}`;
+      } else if(it.isEquipment && it.bonuses){
+        sub = it.bonuses.map(b=>`${b.icon} ${b.value}${b.unit}`).join(' • ')+countText;
+      } else if(it.isTool){
+        sub = `${it.name||'Krompáč'} • Těžba: ${[19,33,45,57,63][it.toolIndex]||59}%${countText}`;
+      } else if(it.isEnergyDrink){
+        sub = `Energetický nápoj • Doplní ${it.energy||50} energie${countText} • Máš ${it.count||1}ks`;
+      } else if(it.isSuperEnergyDrink){
+        sub = `Super energetický nápoj • Doplní ${it.energy||200} energie${countText}`;
+      } else if(it.isFeed){
+        sub = `${it.xp||'?'} XP • ${it.count||1}ks${countText}`;
+      } else {
+        sub = (it.tierName || it.desc || 'Předmět')+countText;
+      }
+      preview.innerHTML = `
+        <div style="display:flex; gap:12px; align-items:center; width:100%;">
+          ${iconHtml}
+          <div style="flex:1; min-width:0; text-align:left;">
+            <div style="font-weight:800; color:#fff; font-size:13px;">${name}${countText}</div>
+            <div style="font-size:10px; color:#aaa; margin-top:3px;">${sub}</div>
+            <div style="font-size:9px; color:#4CAF50; margin-top:4px; font-weight:700;">✅ Přesně s těmito bonusy • Expiruje po 12h</div>
+          </div>
+        </div>
+      `;
+      let existingCountRow = document.getElementById('marketPriceCountRow');
+      if(it.count && it.count>1 && !existingCountRow){
+        let previewEl = document.getElementById('marketPriceItemPreview');
+        let countRow = document.createElement('div');
+        countRow.id = 'marketPriceCountRow';
+        countRow.innerHTML = `<span>📦 Máš ${it.count}ks tohoto předmětu</span><span style="color:#FF6B00; font-weight:800;">Prodáváš 1ks</span>`;
+        previewEl.after(countRow);
+      } else if(existingCountRow && (!it.count || it.count<=1)){
+        existingCountRow.remove();
       }
     }
-    let weeklyDiv = document.getElementById('weeklyLeaderboard');
-    if(weeklyDiv && weeklyDiv.innerHTML.includes('undefined')){
-      weeklyDiv.innerHTML = weeklyDiv.innerHTML.replace(/undefined bodů/g, '0 bodů').replace(/undefined/g, '0');
+    let inp=document.getElementById('marketPriceInput');
+    if(inp){ inp.value=''; setTimeout(()=>inp.focus(),100); }
+    let modal=document.getElementById('marketPriceModal');
+    if(modal){
+      modal.classList.add('open');
+      modal.style.display='flex';
+      modal.style.zIndex='100008';
     }
-    let eventLead = document.getElementById('eventLeaderboard');
-    if(eventLead && eventLead.innerHTML.includes('undefined')){
-      eventLead.innerHTML = eventLead.innerHTML.replace(/undefined bodů/g, '0 bodů');
-    }
-  }, 500);
+  };
 
-  console.log('✅ V38 - oprava weekly undefined + hlášky nad ikonami 100010 z-index');
+  window.closeMarketPriceModal = function(){
+    let modal=document.getElementById('marketPriceModal');
+    if(modal){ modal.classList.remove('open'); modal.style.display='none'; }
+    let countRow = document.getElementById('marketPriceCountRow');
+    if(countRow) countRow.remove();
+    selectedMarketItem=null;
+  };
+
+  window.openMarketSelect = function(){
+    console.log('openMarketSelect called');
+    let modal=document.getElementById('marketSelectModal');
+    if(modal){
+      modal.classList.add('open');
+      modal.style.display='flex';
+      modal.style.zIndex='100005';
+    }
+    if(typeof renderMarketSelectList==='function') renderMarketSelectList();
+  };
+  window.closeMarketSelect = function(){
+    let modal=document.getElementById('marketSelectModal');
+    if(modal){ modal.classList.remove('open'); modal.style.display='none'; }
+  };
+
+  window.selectMarketItemToSell = function(itemId){
+    console.log('selectMarketItemToSell', itemId);
+    let idx = (typeof findIdx==='function') ? findIdx(itemId) : -1;
+    if(idx===-1 && typeof inventory!=='undefined'){
+      idx = inventory.findIndex(it=>it.id===itemId);
+    }
+    if(idx!==-1) selectedMarketItem=inventory[idx];
+    let selModal=document.getElementById('marketSelectModal');
+    if(selModal){ selModal.classList.remove('open'); selModal.style.display='none'; }
+    openMarketPriceModal();
+  };
+
+  window.confirmMarketSell = function(){
+    console.log('confirmMarketSell', selectedMarketItem);
+    let inp=document.getElementById('marketPriceInput');
+    let price=parseInt(inp.value);
+    if(isNaN(price) || price<1 || price>99999){ showToast('❌ Zadej cenu 1-99999'); return; }
+    if(!selectedMarketItem) { showToast('❌ Žádný předmět vybrán'); return; }
+    let idx=findIdx(selectedMarketItem.id);
+    if(idx===-1){ showToast('❌ Předmět nenalezen v batohu'); closeMarketPriceModal(); return; }
+    let item=inventory[idx];
+    if(item.isTool && item.toolIndex===0){ showToast('❌ Rezavý krompáč nelze prodat'); return; }
+    if(item.isTool && item.toolIndex===4){
+      let diamondCount = inventory.filter(x=>x.isTool && x.toolIndex===4).length;
+      if(typeof player!=='undefined' && player.tool===4 && diamondCount<=1){
+        // Máš vybavený a poslední v batohu - dovol prodat jen pokud máš víc
+        // Ale nech prodat
+      }
+    }
+
+    let sellItem;
+    if(item.count && item.count>1){
+      item.count--;
+      sellItem = JSON.parse(JSON.stringify(item));
+      sellItem.count=1;
+      sellItem.id = Date.now()+Math.random();
+    } else {
+      sellItem = inventory.splice(idx,1)[0];
+    }
+
+    let category= (typeof getMarketCategoryForItem==='function') ? getMarketCategoryForItem(sellItem) : 'other';
+    let nick = localStorage.getItem('nick')|| (typeof currentNick!=='undefined'?currentNick:'Ty');
+    let listing={ 
+      id:'m_'+Date.now()+'_'+Math.random().toString(36).substr(2,5), 
+      item:JSON.parse(JSON.stringify(sellItem)), 
+      price:price, 
+      seller:nick, 
+      time:Date.now(), 
+      category:category, 
+      isMine:true,
+      expires: Date.now() + 12*60*60*1000
+    };
+    marketListings.unshift(listing);
+
+    if(marketDb){
+      marketDb.ref('market/listings').once('value', snap=>{
+        let all = snap.val() || [];
+        let arr = Array.isArray(all) ? all : Object.values(all);
+        let now = Date.now();
+        arr = arr.filter(l=> (now - (l.time||0)) < 12*60*60*1000 );
+        arr.unshift({...listing, isMine:false});
+        marketDb.ref('market/listings').set(arr.slice(0,200));
+      });
+      if(typeof sendGlobalAnnouncement==='function'){
+        sendGlobalAnnouncement({
+          type: 'market_new',
+          text: `🏪 ${nick} vystavil ${sellItem.name||'předmět'}${sellItem.count>1?` ${sellItem.count}x`:''} za ${price} cihel!`,
+          seller: nick,
+          itemName: sellItem.name||'předmět',
+          price: price
+        });
+      }
+    }
+
+    saveGame(); saveMarket();
+    closeMarketPriceModal();
+    renderMarket(); renderInventory(); updateHUD();
+    showToast('✅ Vystaveno za '+price+' cihel! Expiruje za 12h',3);
+  };
+
+  window.renderMarketSelectList = function(){
+    console.log('renderMarketSelectList called, inventory:', typeof inventory!=='undefined'?inventory.length:0);
+    let listEl=document.getElementById('marketSelectList');
+    if(!listEl) return;
+    if(typeof inventory==='undefined' || inventory.length===0){
+      listEl.innerHTML='<div style="text-align:center; padding:20px; color:#888;">Batoh prázdný</div>';
+      return;
+    }
+    let items=[];
+    for(let i=0;i<inventory.length;i++){
+      let it=inventory[i];
+      if(!it) continue;
+      if(it.isTool && it.toolIndex===0) continue;
+      if(marketSelectCategory==='minerals' && typeof it.type!=='number') continue;
+      if(marketSelectCategory==='equipment' && !it.isEquipment) continue;
+      if(marketSelectCategory==='feed' && !it.isFeed && !it.isEnergyDrink && !it.isSuperEnergyDrink) continue;
+      if(marketSelectCategory==='tools' && !it.isTool) continue;
+      if(marketSelectCategory==='maps' && !it.isFireMap && !it.isIceMap) continue;
+      if(marketSelectCategory==='mystery' && !it.isMysteryFeedBox && !it.isMysteryEquipBox && !it.isMysteryEquipBoxLegendary && !it.isMysteryAllBox && !it.isMasterMysteryBox) continue;
+      if(marketSelectCategory==='other' && !(it.isForgeParchment || it.isAuraCapeChanger || it.isChanger || it.isVIPItem)) continue;
+      if(it.isEquipment){
+        try{ if(Object.values(equipped).some(eq=>eq && eq.id===it.id)) continue; }catch(e){}
+      }
+      items.push(it);
+    }
+    if(items.length===0){
+      listEl.innerHTML='<div style="text-align:center; padding:20px; color:#666;">Nic k prodeji<br><span style="font-size:10px;">Rezavý krompáč nelze prodat</span></div>';
+      return;
+    }
+    let html='';
+    items.forEach(it=>{
+      let iconHtml = getMarketItemIconHtmlShop(it);
+      let name=it.name|| (typeof minerals!=='undefined' && typeof it.type==='number' && minerals[it.type] ? minerals[it.type].name : 'Item');
+      let countBadge = it.count && it.count>1 ? ` <span style="background:#FF6B00; color:#fff; padding:1px 4px; border-radius:4px; font-size:9px;">${it.count}x</span>` : '';
+      let sub='';
+      if(typeof it.type==='number') sub=`${it.weight}g • ${it.purity}% • ${it.quality}%${countBadge}`;
+      else if(it.bonuses) sub=it.bonuses.map(b=>`${b.icon} ${b.value}${b.unit}`).join(' ')+countBadge;
+      else if(it.isTool) sub=`${it.name||'Krompáč'} • Těžba ${[19,33,45,57,63][it.toolIndex]||59}%${countBadge}`;
+      else if(it.isEnergyDrink) sub=`Doplní ${it.energy||50} energie • ${it.count||1}ks${countBadge}`;
+      else if(it.isSuperEnergyDrink) sub=`Doplní ${it.energy||200} energie • Super • ${it.count||1}ks${countBadge}`;
+      else if(it.isFeed) sub=`${it.xp||'?'} XP • ${it.count||1}ks${countBadge}`;
+      else if(it.isForgeParchment) sub=`+${it.bonus}% kování • ${it.count||1}ks${countBadge}`;
+      else if(it.isChanger || it.isAuraCapeChanger) sub=`Měnič • ${it.count||1}ks${countBadge}`;
+      else sub=(it.tierName||it.desc||'')+countBadge;
+      html+=`
+        <div class="item" style="background:#121914; border:1px solid #3b493e; border-radius:8px; padding:6px; margin-bottom:6px; cursor:pointer;" onclick="selectMarketItemToSell('${it.id}')">
+          <div class="itemRow" style="background:rgba(0,0,0,0.22); display:flex; align-items:center; gap:8px; padding:8px; border-radius:8px;">
+            <div style="display:flex; gap:8px; align-items:center; flex:1; min-width:0;">
+              ${iconHtml}
+              <div style="flex:1; min-width:0;">
+                <div class="itemTitle" style="font-size:12px; font-weight:bold; color:#fff;">${name}${countBadge}</div>
+                <div class="itemInfo" style="font-size:10.5px; color:#b9c4ba;">${sub}</div>
+              </div>
+            </div>
+            <div style="color:#00ACC1; font-weight:800; font-size:18px;">+</div>
+          </div>
+        </div>
+      `;
+    });
+    listEl.innerHTML=html;
+  };
+
+  setTimeout(()=>{ if(typeof loadMarket==='function') loadMarket(); }, 800);
+
+  console.log('✅ V39 - OPRAVA MARKET NEJDE PŘIDÁVAT - funkční select + confirmMarketSell z V37 + weekly + hlášky nad ikonami');
 })();
 </script>
 
