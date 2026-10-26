@@ -9357,7 +9357,7 @@ function openWeeklyDetail(){
       if(!ld) return;
       var h='<b style="color:#FFD700; font-size:12px;">🏆 Týdenní liga TOP 10</b><br><span style="font-size:9px; color:#aaa;">Body za umístění v eventech</span><br><br>';
       if(arr.length===0){ h+='<div style="text-align:center; padding:12px; color:#666;"><div style="letter-spacing:4px;">• • •</div>Zatím žádné body<br><span style="font-size:9px;">Vyhraj event a získej body!</span></div>'; }
-      else { for(var i=0;i<Math.min(arr.length,10);i++){ var e=arr[i]; var med=i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'.'; h+='<div style="display:flex; justify-content:space-between; font-size:10px; padding:5px; background:rgba(0,0,0,0.3); margin-top:2px; border-radius:4px;"><span>'+med+' '+e.nick+'</span><span style="color:#ffeb3b; font-weight:900;">'+e.points+' bodů</span></div>'; } }
+      else { for(var i=0;i<Math.min(arr.length,10);i++){ var e=arr[i]; var med=i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'.'; h+='<div style="display:flex; justify-content:space-between; font-size:10px; padding:5px; background:rgba(0,0,0,0.3); margin-top:2px; border-radius:4px;"><span>'+med+' '+e.nick+'</span><span style="color:#ffeb3b; font-weight:900;">'+(e.points!==undefined?e.points:(e.score!==undefined?e.score:0))+' bodů</span></div>'; } }
       ld.innerHTML=h;
     });
   }catch(err){ alert('Chyba weekly: '+err.message); console.error(err); }
@@ -10144,7 +10144,73 @@ if(origOpenEventPanel){
 
 
 <style>
-/* === V36 - FIREBASE MULTIPLAYER MARKET - TVŮJ KÓD VYUŽIT === */
+
+
+
+
+
+
+<style>
+
+
+
+
+
+
+<style>
+/* === V38 - OPRAVA WEEKLY UNDEFINED BODŮ + HLÁŠKY NAD IKONAMI === */
+/* Hlásky nad ikonami event market chat - z-index 100000+ */
+#toast {
+  position: absolute !important;
+  left: 50% !important;
+  top: 16px !important;
+  transform: translateX(-50%) !important;
+  z-index: 100010 !important;
+  background: rgba(20,20,20,.95) !important;
+  border: 1px solid #FFD700 !important;
+  border-radius: 10px !important;
+  padding: 10px 16px !important;
+  font-weight: bold !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+  transition: opacity .18s !important;
+  max-width: 90% !important;
+  text-align: center !important;
+  line-height: 1.35 !important;
+  font-size: 13px !important;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.9), 0 0 20px rgba(255,215,0,0.3) !important;
+}
+#toast.show {
+  opacity: 1 !important;
+  z-index: 100010 !important;
+}
+
+/* Světové oznámení GOD kámen apod nad ikonami */
+#globalAnnouncements, #worldAnnouncements, .worldAnnouncement, .globalAnnouncement {
+  z-index: 100009 !important;
+  position: fixed !important;
+  top: 80px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+}
+
+/* Chat overlay a online status nad ikonami */
+#chatOverlay {
+  z-index: 100008 !important;
+}
+
+#onlineStatus {
+  z-index: 100007 !important;
+}
+
+/* Ikony event market chat zůstanou pod hláškami */
+#eventButton_fixed {
+  z-index: 5000 !important;
+}
+#marketButton, #petsButton, #chatButton, #shopAboveMap {
+  z-index: 5000 !important;
+}
+
 body.market-open #shopAboveMap,
 body.market-open #leaderboardAboveMap,
 body.market-open #petsButton,
@@ -10262,6 +10328,7 @@ body.market-open #minimapWrap {
   overflow: hidden !important;
   flex-shrink: 0 !important;
   box-sizing: border-box !important;
+  position: relative !important;
 }
 .itemIconShop img, .priceIconShop img {
   width: 40px !important;
@@ -10270,6 +10337,22 @@ body.market-open #minimapWrap {
   max-height: 40px !important;
   object-fit: contain !important;
   display: block !important;
+}
+
+.itemCountBadge {
+  position: absolute !important;
+  bottom: -4px !important;
+  right: -4px !important;
+  background: #FF6B00 !important;
+  color: #fff !important;
+  font-size: 9px !important;
+  font-weight: 900 !important;
+  padding: 1px 4px !important;
+  border-radius: 6px !important;
+  border: 1px solid #000 !important;
+  min-width: 14px !important;
+  text-align: center !important;
+  z-index: 2 !important;
 }
 
 #marketSelectList {
@@ -10330,23 +10413,100 @@ body.market-open #minimapWrap {
   align-items: center !important;
   border: 1px solid #444 !important;
 }
+
+#marketPriceCountRow {
+  background: #2a2a2a !important;
+  border-radius: 8px !important;
+  padding: 8px !important;
+  margin-bottom: 8px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  font-size: 11px !important;
+}
 </style>
 
 
 <script>
-// V36 - FIREBASE MULTIPLAYER MARKET - využívá tvůj stávající kód Firebase v hře
+// V38 - oprava weekly undefined bodů + hlášky nad ikonami
 (function(){
-  // Tvůj Firebase config už je ve hře - použijeme ho
+  // OPRAVA WEEKLY UNDEFINED BODŮ - fetchWeeklyLeaderboard vrací score, ale kód chce points
+  let originalFetchWeekly = window.fetchWeeklyLeaderboard;
+  if(originalFetchWeekly){
+    window.fetchWeeklyLeaderboard = function(cb){
+      originalFetchWeekly(function(arr, wp){
+        // Přidej points jako alias pro score
+        let fixed = arr.map(e=>{
+          return {
+            nick: e.nick,
+            score: e.score||0,
+            points: e.score||e.points||0,
+            body: e.score||e.points||0
+          };
+        });
+        cb(fixed, wp);
+      });
+    };
+  }
+
+  // Přepiš weekly modal rendering - oprav undefined
+  let originalOpenWeeklyDetail = window.openWeeklyDetail;
+  // Najdi a oprav všechny výskyty e.points v weekly kontextu
+  window.fixWeeklyPointsDisplay = function(){
+    // Oprav eventSelectedDetail pokud obsahuje undefined
+    let div = document.getElementById('eventSelectedDetail');
+    if(div && div.innerHTML.includes('undefined')){
+      div.innerHTML = div.innerHTML.replace(/undefined bodů/g, '0 bodů').replace(/undefined/g, '0');
+    }
+    let modal = document.getElementById('modalLeaderboard');
+    if(modal && modal.innerHTML.includes('undefined')){
+      modal.innerHTML = modal.innerHTML.replace(/undefined bodů/g, '0 bodů').replace(/undefined/g, '0');
+    }
+    let weeklyLead = document.getElementById('weeklyLeaderboard');
+    if(weeklyLead && weeklyLead.innerHTML.includes('undefined')){
+      weeklyLead.innerHTML = weeklyLead.innerHTML.replace(/undefined bodů/g, '0 bodů').replace(/undefined/g, '0');
+    }
+  };
+  setInterval(fixWeeklyPointsDisplay, 1000);
+
+  // OPRAVA HLÁŠEK NAD IKONAMI - toast a světové oznámení nad event market chat
+  // Zvýš z-index pro všechny hlášky
+  let style = document.createElement('style');
+  style.textContent = `
+    #toast { z-index: 100010 !important; }
+    #toast.show { z-index: 100010 !important; }
+    .globalAnnounce, #globalAnnounceContainer { z-index: 100009 !important; }
+    #chatOverlay { z-index: 100008 !important; }
+  `;
+  document.head.appendChild(style);
+
+  // Přepiš showToast aby hlášky byly nad ikonami
+  let originalShowToast = window.showToast;
+  if(originalShowToast){
+    window.showToast = function(msg, duration){
+      originalShowToast(msg, duration);
+      let toast = document.getElementById('toast');
+      if(toast){
+        toast.style.zIndex = '100010';
+        toast.style.position = 'absolute';
+        toast.style.top = '16px';
+        toast.style.left = '50%';
+        toast.style.transform = 'translateX(-50%)';
+        // Ujisti se že je nad ikonami
+        toast.style.pointerEvents = 'none';
+      }
+    };
+  }
+
+  // OPRAVA MARKET - stejné jako V37
   let marketDb = null;
   try{
     if(typeof firebase!=='undefined' && firebase.database){
       marketDb = firebase.database();
-      console.log('✅ Market používá tvůj Firebase');
     } else if(typeof db!=='undefined' && db){
       marketDb = db;
-      console.log('✅ Market používá existující db');
     }
-  }catch(e){ console.log('Firebase pro Market nenalezen, používá localStorage'); }
+  }catch(e){}
 
   window.openMarket = function(){
     document.body.classList.add('market-open');
@@ -10365,7 +10525,7 @@ body.market-open #minimapWrap {
       parent.innerHTML = brickImg + ` <span><b>${count}</b> cihel</span>`;
     }
     if(typeof renderMarket==='function') renderMarket();
-    claimMarketSales();
+    if(typeof claimMarketSales==='function') claimMarketSales();
   };
   window.closeMarket = function(){
     let mp=document.getElementById('marketPanel');
@@ -10377,17 +10537,15 @@ body.market-open #minimapWrap {
     });
   };
 
-  // MULTIPLAYER MARKET - FIREBASE
   window.generateFakeMarketListings = function(){
     marketListings = [];
-    saveMarket();
+    try{ localStorage.removeItem('marketListings'); }catch(e){}
+    if(marketDb) marketDb.ref('market/listings').set([]);
   };
 
   window.saveMarket = function(){
     try{
-      // Lokální záloha
       localStorage.setItem('marketListings', JSON.stringify(marketListings.slice(0,200)));
-      // Firebase sync pokud je k dispozici
       if(marketDb){
         marketDb.ref('market/listings').set(marketListings.slice(0,200));
       }
@@ -10396,29 +10554,27 @@ body.market-open #minimapWrap {
 
   window.loadMarket = function(){
     try{
-      // Nejprve lokální
       let saved = localStorage.getItem('marketListings');
       if(saved) marketListings = JSON.parse(saved);
 
-      // Pokud je Firebase, poslouchej live data - MULTIPLAYER
       if(marketDb){
         marketDb.ref('market/listings').on('value', snap=>{
           let val = snap.val();
           if(val){
-            // Firebase vrací object nebo array
             if(Array.isArray(val)) marketListings = val;
             else marketListings = Object.values(val);
+            let now = Date.now();
+            let twelveHours = 12*60*60*1000;
+            marketListings = marketListings.filter(l=> (now - (l.time||0)) < twelveHours );
             localStorage.setItem('marketListings', JSON.stringify(marketListings.slice(0,200)));
             renderMarket();
-            console.log('🔄 Market sync z Firebase - '+marketListings.length+' nabídek');
           } else {
             marketListings = [];
             renderMarket();
           }
         });
 
-        // Poslouchej prodeje pro aktuálního hráče - CIHLY PRODEJCI
-        let nick = localStorage.getItem('nick')||currentNick||'';
+        let nick = localStorage.getItem('nick')|| (typeof currentNick!=='undefined'?currentNick:'');
         if(nick){
           marketDb.ref('market/transactions/'+nick).on('child_added', snap=>{
             let trans = snap.val();
@@ -10428,34 +10584,39 @@ body.market-open #minimapWrap {
                 goldBricks += afterFee;
                 saveGame();
                 updateHUD();
-                showToast(`💰 Někdo koupil ${trans.itemName} za ${trans.price} cihel! Dostal jsi ${afterFee} cihel (poplatek 5%)`, 4);
-                // Označ jako vybrané
+                showToast(`💰 ${trans.buyer||'Někdo'} koupil ${trans.itemName} za ${trans.price} cihel! +${afterFee} cihel`, 4);
                 snap.ref.update({claimed:true});
               }
             }
           });
         }
+      } else {
+        let now = Date.now();
+        let twelveHours = 12*60*60*1000;
+        marketListings = marketListings.filter(l=> (now - (l.time||0)) < twelveHours );
       }
     }catch(e){ marketListings=[]; }
   };
 
-  // IKONY - OPRAVENÉ TITANOVÝ A ERGI
   window.getMarketItemIconHtmlShop = function(it){
     try{
+      let count = it.count && it.count>1 ? it.count : 0;
+      let badge = count>1 ? `<div class="itemCountBadge">${count}x</div>` : '';
+
       if(typeof it.type==='number'){
         let imgSrc='';
         try{
           if(it.raw && typeof rawImgs!=='undefined' && rawImgs[it.type]) imgSrc=rawImgs[it.type];
           else if(!it.raw && typeof polImgs!=='undefined' && polImgs[it.type]) imgSrc=polImgs[it.type];
         }catch(e){}
-        if(imgSrc) return `<div class="itemIconShop"><img src="${imgSrc}"></div>`;
+        if(imgSrc) return `<div class="itemIconShop"><img src="${imgSrc}">${badge}</div>`;
       }
       if(it.isCape){
         let img = it.capeImg || it.icon || '';
-        if(img && img.startsWith('data:')) return `<div class="itemIconShop"><img src="${img}"></div>`;
+        if(img && img.startsWith('data:')) return `<div class="itemIconShop"><img src="${img}">${badge}</div>`;
         if(it.capeId && typeof CAPE_DEFS!=='undefined'){
           let def = CAPE_DEFS.find(c=>c.id===it.capeId);
-          if(def && def.img) return `<div class="itemIconShop"><img src="${def.img}"></div>`;
+          if(def && def.img) return `<div class="itemIconShop"><img src="${def.img}">${badge}</div>`;
         }
       }
       if(it.isAura){
@@ -10468,73 +10629,73 @@ body.market-open #minimapWrap {
           else if(typeof GOLDEN_AURA_ICON!=='undefined') auraIcon=GOLDEN_AURA_ICON;
           else if(it.icon && it.icon.startsWith('data:')) auraIcon=it.icon;
         }catch(e){}
-        if(auraIcon) return `<div class="itemIconShop"><img src="${auraIcon}"></div>`;
+        if(auraIcon) return `<div class="itemIconShop"><img src="${auraIcon}">${badge}</div>`;
       }
       if(it.isTool){
         let toolIdx = it.toolIndex;
         if(typeof PICKAXE_ICONS!=='undefined' && toolIdx!==undefined && PICKAXE_ICONS[toolIdx]){
-          return `<div class="itemIconShop"><img src="${PICKAXE_ICONS[toolIdx]}"></div>`;
+          return `<div class="itemIconShop"><img src="${PICKAXE_ICONS[toolIdx]}">${badge}</div>`;
         }
         if(it.icon && it.icon.startsWith('data:')){
-          return `<div class="itemIconShop"><img src="${it.icon}"></div>`;
+          return `<div class="itemIconShop"><img src="${it.icon}">${badge}</div>`;
         }
-        return `<div class="itemIconShop" style="font-size:20px;">⛏️</div>`;
+        return `<div class="itemIconShop" style="font-size:20px;">⛏️${badge}</div>`;
       }
       if(it.isFeed){
-        if(it.icon && it.icon.startsWith('data:')) return `<div class="itemIconShop"><img src="${it.icon}"></div>`;
-        if(typeof FEED_SMALL_IMG!=='undefined' && it.feedType==='small') return `<div class="itemIconShop"><img src="${FEED_SMALL_IMG}"></div>`;
-        if(typeof FEED_BIG_IMG!=='undefined' && it.feedType==='big') return `<div class="itemIconShop"><img src="${FEED_BIG_IMG}"></div>`;
-        if(typeof PET_FEED_SMALL_IMG!=='undefined') return `<div class="itemIconShop"><img src="${PET_FEED_SMALL_IMG}"></div>`;
-        if(typeof PET_FEED_BIG_IMG!=='undefined') return `<div class="itemIconShop"><img src="${PET_FEED_BIG_IMG}"></div>`;
-        return `<div class="itemIconShop">🍖</div>`;
+        if(it.icon && it.icon.startsWith('data:')) return `<div class="itemIconShop"><img src="${it.icon}">${badge}</div>`;
+        if(typeof FEED_SMALL_IMG!=='undefined' && it.feedType==='small') return `<div class="itemIconShop"><img src="${FEED_SMALL_IMG}">${badge}</div>`;
+        if(typeof FEED_BIG_IMG!=='undefined' && it.feedType==='big') return `<div class="itemIconShop"><img src="${FEED_BIG_IMG}">${badge}</div>`;
+        if(typeof PET_FEED_SMALL_IMG!=='undefined') return `<div class="itemIconShop"><img src="${PET_FEED_SMALL_IMG}">${badge}</div>`;
+        if(typeof PET_FEED_BIG_IMG!=='undefined') return `<div class="itemIconShop"><img src="${PET_FEED_BIG_IMG}">${badge}</div>`;
+        return `<div class="itemIconShop">🍖${badge}</div>`;
       }
       if(it.isEnergyDrink){
-        if(it.icon && it.icon.startsWith('data:')) return `<div class="itemIconShop"><img src="${it.icon}"></div>`;
-        if(typeof ENERGY_DRINK_ICON_BASE64!=='undefined') return `<div class="itemIconShop"><img src="${ENERGY_DRINK_ICON_BASE64}"></div>`;
-        return `<div class="itemIconShop">🔋</div>`;
+        if(it.icon && it.icon.startsWith('data:')) return `<div class="itemIconShop"><img src="${it.icon}">${badge}</div>`;
+        if(typeof ENERGY_DRINK_ICON_BASE64!=='undefined') return `<div class="itemIconShop"><img src="${ENERGY_DRINK_ICON_BASE64}">${badge}</div>`;
+        return `<div class="itemIconShop">🔋${badge}</div>`;
       }
       if(it.isSuperEnergyDrink){
-        if(it.icon && it.icon.startsWith('data:')) return `<div class="itemIconShop"><img src="${it.icon}"></div>`;
-        if(typeof SUPER_ENERGY_DRINK_ICON_BASE64!=='undefined') return `<div class="itemIconShop"><img src="${SUPER_ENERGY_DRINK_ICON_BASE64}"></div>`;
-        if(typeof ENERGY_DRINK_ICON_BASE64!=='undefined') return `<div class="itemIconShop"><img src="${ENERGY_DRINK_ICON_BASE64}"></div>`;
-        return `<div class="itemIconShop">⚡</div>`;
+        if(it.icon && it.icon.startsWith('data:')) return `<div class="itemIconShop"><img src="${it.icon}">${badge}</div>`;
+        if(typeof SUPER_ENERGY_DRINK_ICON_BASE64!=='undefined') return `<div class="itemIconShop"><img src="${SUPER_ENERGY_DRINK_ICON_BASE64}">${badge}</div>`;
+        if(typeof ENERGY_DRINK_ICON_BASE64!=='undefined') return `<div class="itemIconShop"><img src="${ENERGY_DRINK_ICON_BASE64}">${badge}</div>`;
+        return `<div class="itemIconShop">⚡${badge}</div>`;
       }
       if(it.isFireMap){
-        if(it.icon && it.icon.startsWith('data:')) return `<div class="itemIconShop"><img src="${it.icon}"></div>`;
-        if(typeof FIRE_MAP_ICON_BASE64!=='undefined') return `<div class="itemIconShop"><img src="${FIRE_MAP_ICON_BASE64}"></div>`;
-        return `<div class="itemIconShop">🔥</div>`;
+        if(it.icon && it.icon.startsWith('data:')) return `<div class="itemIconShop"><img src="${it.icon}">${badge}</div>`;
+        if(typeof FIRE_MAP_ICON_BASE64!=='undefined') return `<div class="itemIconShop"><img src="${FIRE_MAP_ICON_BASE64}">${badge}</div>`;
+        return `<div class="itemIconShop">🔥${badge}</div>`;
       }
       if(it.isIceMap){
-        if(it.icon && it.icon.startsWith('data:')) return `<div class="itemIconShop"><img src="${it.icon}"></div>`;
-        if(typeof ICE_MAP_ICON_BASE64!=='undefined') return `<div class="itemIconShop"><img src="${ICE_MAP_ICON_BASE64}"></div>`;
-        return `<div class="itemIconShop">🧊</div>`;
+        if(it.icon && it.icon.startsWith('data:')) return `<div class="itemIconShop"><img src="${it.icon}">${badge}</div>`;
+        if(typeof ICE_MAP_ICON_BASE64!=='undefined') return `<div class="itemIconShop"><img src="${ICE_MAP_ICON_BASE64}">${badge}</div>`;
+        return `<div class="itemIconShop">🧊${badge}</div>`;
       }
       if(it.isMysteryFeedBox || it.isMysteryEquipBox || it.isMysteryEquipBoxLegendary || it.isMysteryAllBox || it.isMasterMysteryBox){
-        if(it.icon && it.icon.startsWith('data:')) return `<div class="itemIconShop"><img src="${it.icon}"></div>`;
-        if(typeof MYSTERY_BOX_FEED!=='undefined' && MYSTERY_BOX_FEED.icon) return `<div class="itemIconShop"><img src="${MYSTERY_BOX_FEED.icon}"></div>`;
-        if(typeof MYSTERY_BOX_EQUIP!=='undefined' && MYSTERY_BOX_EQUIP.icon) return `<div class="itemIconShop"><img src="${MYSTERY_BOX_EQUIP.icon}"></div>`;
-        return `<div class="itemIconShop">📦</div>`;
+        if(it.icon && it.icon.startsWith('data:')) return `<div class="itemIconShop"><img src="${it.icon}">${badge}</div>`;
+        if(typeof MYSTERY_BOX_FEED!=='undefined' && MYSTERY_BOX_FEED.icon) return `<div class="itemIconShop"><img src="${MYSTERY_BOX_FEED.icon}">${badge}</div>`;
+        if(typeof MYSTERY_BOX_EQUIP!=='undefined' && MYSTERY_BOX_EQUIP.icon) return `<div class="itemIconShop"><img src="${MYSTERY_BOX_EQUIP.icon}">${badge}</div>`;
+        return `<div class="itemIconShop">📦${badge}</div>`;
       }
       if(it.isAuraCapeChanger || it.isChanger || it.isSpecialChanger || it.isBonusChanger){
-        if(it.icon && it.icon.startsWith('data:')) return `<div class="itemIconShop"><img src="${it.icon}"></div>`;
-        if(typeof AURA_CAPE_CHANGER_IMG!=='undefined') return `<div class="itemIconShop"><img src="${AURA_CAPE_CHANGER_IMG}"></div>`;
-        return `<div class="itemIconShop">🔄</div>`;
+        if(it.icon && it.icon.startsWith('data:')) return `<div class="itemIconShop"><img src="${it.icon}">${badge}</div>`;
+        if(typeof AURA_CAPE_CHANGER_IMG!=='undefined') return `<div class="itemIconShop"><img src="${AURA_CAPE_CHANGER_IMG}">${badge}</div>`;
+        return `<div class="itemIconShop">🔄${badge}</div>`;
       }
       if(it.isForgeParchment){
-        if(it.icon && it.icon.startsWith('data:')) return `<div class="itemIconShop"><img src="${it.icon}"></div>`;
-        if(typeof FORGE_PARCHMENT_ICON_BASE64!=='undefined') return `<div class="itemIconShop"><img src="${FORGE_PARCHMENT_ICON_BASE64}"></div>`;
-        if(typeof FORGE_PARCHMENT_ICON_10!=='undefined') return `<div class="itemIconShop"><img src="${FORGE_PARCHMENT_ICON_10}"></div>`;
-        return `<div class="itemIconShop">📜</div>`;
+        if(it.icon && it.icon.startsWith('data:')) return `<div class="itemIconShop"><img src="${it.icon}">${badge}</div>`;
+        if(typeof FORGE_PARCHMENT_ICON_BASE64!=='undefined') return `<div class="itemIconShop"><img src="${FORGE_PARCHMENT_ICON_BASE64}">${badge}</div>`;
+        if(typeof FORGE_PARCHMENT_ICON_10!=='undefined') return `<div class="itemIconShop"><img src="${FORGE_PARCHMENT_ICON_10}">${badge}</div>`;
+        return `<div class="itemIconShop">📜${badge}</div>`;
       }
       if(it.isVIPItem){
-        if(it.icon && it.icon.startsWith('data:')) return `<div class="itemIconShop"><img src="${it.icon}"></div>`;
-        return `<div class="itemIconShop">👑</div>`;
+        if(it.icon && it.icon.startsWith('data:')) return `<div class="itemIconShop"><img src="${it.icon}">${badge}</div>`;
+        return `<div class="itemIconShop">👑${badge}</div>`;
       }
       if(it.isEquipment){
-        if(it.icon && it.icon.startsWith('data:')) return `<div class="itemIconShop"><img src="${it.icon}"></div>`;
-        return `<div class="itemIconShop" style="font-size:20px;">${it.icon||'⛑️'}</div>`;
+        if(it.icon && it.icon.startsWith('data:')) return `<div class="itemIconShop"><img src="${it.icon}">${badge}</div>`;
+        return `<div class="itemIconShop" style="font-size:20px;">${it.icon||'⛑️'}${badge}</div>`;
       }
-      if(it.icon && it.icon.startsWith('data:')) return `<div class="itemIconShop"><img src="${it.icon}"></div>`;
+      if(it.icon && it.icon.startsWith('data:')) return `<div class="itemIconShop"><img src="${it.icon}">${badge}</div>`;
     }catch(e){}
     return `<div class="itemIconShop">📦</div>`;
   };
@@ -10544,12 +10705,13 @@ body.market-open #minimapWrap {
     return html.replace('itemIconShop','priceIconShop');
   };
 
-  // MULTIPLAYER KOUPĚ - CIHLY PRODEJCI, PŘEDMĚT KUPUJÍCÍMU, HLÁŠKA
   window.buyMarketListing = function(listingId){
     let idx = marketListings.findIndex(l=>l.id===listingId);
     if(idx===-1){ showToast('❌ Nabídka neexistuje',2); return; }
     let listing = marketListings[idx];
-    if(listing.isMine){ showToast('❌ Nemůžeš koupit vlastní nabídku',2); return; }
+    let myNick = localStorage.getItem('nick')|| (typeof currentNick!=='undefined'?currentNick:'');
+    let isMine = listing.isMine || (listing.seller && myNick && listing.seller===myNick);
+    if(isMine){ showToast('❌ Nemůžeš koupit vlastní nabídku',2); return; }
     if(typeof goldBricks==='undefined') goldBricks=0;
     if(goldBricks < listing.price){
       showToast('❌ Nemáš dost cihel! Potřebuješ '+listing.price+', máš '+Math.floor(goldBricks),2.5);
@@ -10565,22 +10727,18 @@ body.market-open #minimapWrap {
     inventory.push(boughtItem);
 
     let seller = listing.seller || 'Neznámý';
-    let buyer = localStorage.getItem('nick')||currentNick||'Ty';
+    let buyer = myNick||'Ty';
     let price = listing.price;
     let itemName = listing.item.name || (typeof minerals!=='undefined' && typeof listing.item.type==='number' ? minerals[listing.item.type].name : 'Předmět');
     let afterFee = Math.floor(price * 0.95);
 
-    // FIREBASE MULTIPLAYER - PŘEDÁNÍ CIHEL PRODEJCI
     if(marketDb){
-      // Smaž nabídku ze společného marketu - všichni hráči ji přestanou vidět
       marketDb.ref('market/listings').once('value', snap=>{
         let all = snap.val() || [];
         let arr = Array.isArray(all) ? all : Object.values(all);
         let newArr = arr.filter(l=>l.id!==listingId);
         marketDb.ref('market/listings').set(newArr);
       });
-
-      // Přidej transakci prodejci - dostane cihly
       marketDb.ref('market/transactions/'+seller).push({
         seller: seller,
         buyer: buyer,
@@ -10590,8 +10748,6 @@ body.market-open #minimapWrap {
         time: Date.now(),
         claimed: false
       });
-
-      // Globální hláška pro všechny
       if(typeof sendGlobalAnnouncement==='function'){
         sendGlobalAnnouncement({
           type: 'market_sale',
@@ -10603,12 +10759,6 @@ body.market-open #minimapWrap {
         });
       }
     } else {
-      // Lokální fallback
-      try{
-        let transactions = JSON.parse(localStorage.getItem('marketTransactions')||'[]');
-        transactions.push({id: Date.now()+Math.random(), type:'sale', seller:seller, buyer:buyer, itemName:itemName, price:price, afterFee:afterFee, time:Date.now(), claimed:false});
-        localStorage.setItem('marketTransactions', JSON.stringify(transactions.slice(-50)));
-      }catch(e){}
       marketListings.splice(idx,1);
       saveMarket();
     }
@@ -10621,11 +10771,40 @@ body.market-open #minimapWrap {
     showToast(`✅ Koupil jsi ${itemName} za ${price} cihel od ${seller}! ${afterFee} cihel předáno prodejci`, 4);
   };
 
+  window.cancelMarketListing = function(listingId){
+    let idx = marketListings.findIndex(l=>l.id===listingId);
+    if(idx===-1){ showToast('❌ Nabídka neexistuje',2); return; }
+    let listing = marketListings[idx];
+    let myNick = localStorage.getItem('nick')|| (typeof currentNick!=='undefined'?currentNick:'');
+    let isMine = listing.isMine || (listing.seller && myNick && listing.seller===myNick);
+    if(!isMine){ showToast('❌ Můžeš zrušit jen vlastní nabídku',2); return; }
+
+    let item = JSON.parse(JSON.stringify(listing.item));
+    item.id = Date.now()+Math.random();
+    inventory.push(item);
+
+    if(marketDb){
+      marketDb.ref('market/listings').once('value', snap=>{
+        let all = snap.val() || [];
+        let arr = Array.isArray(all) ? all : Object.values(all);
+        let newArr = arr.filter(l=>l.id!==listingId);
+        marketDb.ref('market/listings').set(newArr);
+      });
+    } else {
+      marketListings.splice(idx,1);
+      saveMarket();
+    }
+
+    saveGame();
+    renderMarket();
+    renderInventory();
+    updateHUD();
+    showToast(`↩️ Nabídka zrušena - ${item.name||'předmět'} vrácen do batohu`,2.5);
+  };
+
   window.claimMarketSales = function(){
     try{
-      let nick = localStorage.getItem('nick')||currentNick||'Ty';
-      // Firebase transakce už se řeší automaticky přes on child_added nahoře
-      // Lokální fallback
+      let nick = localStorage.getItem('nick')|| (typeof currentNick!=='undefined'?currentNick:'');
       if(!marketDb){
         let transactions = JSON.parse(localStorage.getItem('marketTransactions')||'[]');
         let mySales = transactions.filter(t=> t.seller===nick && !t.claimed);
@@ -10647,8 +10826,16 @@ body.market-open #minimapWrap {
   window.renderMarket = function(){
     let listEl=document.getElementById('marketList');
     if(!listEl) return;
-    let filtered=marketListings.filter(l=>{
-      if(marketCategory==='my') return l.isMine;
+
+    let myNick = localStorage.getItem('nick')|| (typeof currentNick!=='undefined'?currentNick:'');
+
+    let now = Date.now();
+    let twelveHours = 12*60*60*1000;
+    let activeListings = marketListings.filter(l=> (now - (l.time||0)) < twelveHours );
+
+    let filtered=activeListings.filter(l=>{
+      let isMine = l.isMine || (l.seller && myNick && l.seller===myNick);
+      if(marketCategory==='my') return isMine;
       if(marketCategory!=='all' && l.category!==marketCategory) return false;
       if(marketSearch && !l.item.name.toLowerCase().includes(marketSearch.toLowerCase())) return false;
       return true;
@@ -10659,12 +10846,13 @@ body.market-open #minimapWrap {
     else if(marketSort==='name') filtered.sort((a,b)=>a.item.name.localeCompare(b.item.name));
 
     let catEl=document.getElementById('catAllCount');
-    if(catEl) catEl.textContent=marketListings.length;
+    if(catEl) catEl.textContent=activeListings.length;
     let infoEl=document.getElementById('marketCountInfo');
-    if(infoEl) infoEl.textContent=filtered.length+' nabídek • '+marketListings.filter(l=>l.isMine).length+' moje';
+    let myCount = activeListings.filter(l=> l.isMine || (l.seller && myNick && l.seller===myNick)).length;
+    if(infoEl) infoEl.textContent=filtered.length+' nabídek • '+myCount+' moje • expiruje po 12h';
 
     if(filtered.length===0){
-      listEl.innerHTML='<div style="text-align:center; padding:30px; color:#666;">📭 Market prázdný<br><span style="font-size:10px;">🌐 Multiplayer přes Firebase<br>Žádné nabídky - vystav něco za cihly!<br><br>✅ Tvůj kód Firebase už v hře je - Market teď jede přes něj</span></div>';
+      listEl.innerHTML='<div style="text-align:center; padding:30px; color:#666;">📭 Market prázdný<br><span style="font-size:10px;">🌐 Multiplayer přes Firebase<br>Žádné nabídky - vystav něco za cihly!<br>⏰ Nabídky expirují po 12 hodinách</span></div>';
       return;
     }
 
@@ -10673,9 +10861,13 @@ body.market-open #minimapWrap {
     let html='';
     filtered.forEach(l=>{
       let it=l.item;
+      let isMine = l.isMine || (l.seller && myNick && l.seller===myNick);
       let tierColor = it.tierColor || (typeof equipTiers!=='undefined' && it.tier!==undefined && equipTiers[it.tier] ? equipTiers[it.tier].color : '#555');
       let iconHtml = getMarketItemIconHtmlShop(it);
 
+      let age = now - (l.time||0);
+      let hoursLeft = Math.max(0, 12 - Math.floor(age/(60*60*1000)));
+      
       let titleHtml='';
       let infoHtml='';
 
@@ -10685,8 +10877,9 @@ body.market-open #minimapWrap {
         let weight = it.weight||'?';
         let quality = it.quality||0;
         let rawText = it.raw ? 'Surový' : 'Vybroušený';
-        titleHtml = `<span style="color:${data.color};">${data.name}</span> <span style="font-size:8px; background:#333; color:#aaa; padding:1px 4px; border-radius:3px;">${rawText}</span>`;
-        infoHtml = `<div>Váha: <b style="color:#A5D6A7;">${weight}g</b> Čistota: <b style="color:#FFEB3B;">${purity}%</b> Kvalita: <b>${quality}%</b></div><div>${brickIcon} <b style="color:#FFD700;">${l.price} cihel</b> <span style="font-size:9px; color:#888;">• ${l.seller||'Hráč'}</span></div>`;
+        let countText = it.count && it.count>1 ? ` <span style="background:#FF6B00; color:#fff; padding:1px 4px; border-radius:4px; font-size:8px;">${it.count}x</span>` : '';
+        titleHtml = `<span style="color:${data.color};">${data.name}</span>${countText} <span style="font-size:8px; background:#333; color:#aaa; padding:1px 4px; border-radius:3px;">${rawText}</span>`;
+        infoHtml = `<div>Váha: <b style="color:#A5D6A7;">${weight}g</b> Čistota: <b style="color:#FFEB3B;">${purity}%</b> Kvalita: <b>${quality}%</b></div><div>${brickIcon} <b style="color:#FFD700;">${l.price} cihel</b> <span style="font-size:9px; color:#888;">• ${l.seller||'Hráč'} • ${hoursLeft}h</span></div>`;
       } else if(it.isEquipment){
         let tierName = it.tierName || '';
         let bonusesHtml = '';
@@ -10698,59 +10891,60 @@ body.market-open #minimapWrap {
         } else {
           bonusesHtml = '<span style="color:#666;">Bez bonusů</span>';
         }
+        let countText = it.count && it.count>1 ? ` <span style="background:#FF6B00; color:#fff; padding:1px 4px; border-radius:4px; font-size:8px;">${it.count}x</span>` : '';
         if(it.isAura){
-          titleHtml = `<span style="color:${it.isBlueAura?'#00BFFF':it.isVoidAura?'#9C27B0':'#FF4500'};">${it.name||'Aura'}</span>`;
-          infoHtml = `<div style="display:flex; flex-wrap:wrap; gap:2px;">${bonusesHtml}</div><div>${brickIcon} <b style="color:#FFD700;">${l.price} cihel</b> <span style="font-size:9px; color:#888;">• ${l.seller||'Hráč'}</span></div>`;
+          titleHtml = `<span style="color:${it.isBlueAura?'#00BFFF':it.isVoidAura?'#9C27B0':'#FF4500'};">${it.name||'Aura'}</span>${countText}`;
+          infoHtml = `<div style="display:flex; flex-wrap:wrap; gap:2px;">${bonusesHtml}</div><div>${brickIcon} <b style="color:#FFD700;">${l.price} cihel</b> <span style="font-size:9px; color:#888;">• ${l.seller||'Hráč'} • ${hoursLeft}h</span></div>`;
         } else if(it.isCape){
-          titleHtml = `<span style="color:${tierColor};">🧥 ${it.name||'Plášť'}</span>`;
-          infoHtml = `<div style="display:flex; flex-wrap:wrap; gap:2px;">${bonusesHtml}</div><div>${brickIcon} <b style="color:#FFD700;">${l.price} cihel</b></div>`;
+          titleHtml = `<span style="color:${tierColor};">🧥 ${it.name||'Plášť'}</span>${countText}`;
+          infoHtml = `<div style="display:flex; flex-wrap:wrap; gap:2px;">${bonusesHtml}</div><div>${brickIcon} <b style="color:#FFD700;">${l.price} cihel</b> <span style="font-size:9px; color:#888;">• ${hoursLeft}h</span></div>`;
         } else {
-          titleHtml = `<span style="color:${tierColor};">${it.name||'Helma'}</span> <span style="font-size:8px; background:${tierColor}; color:#000; padding:1px 4px; border-radius:3px;">${tierName.toUpperCase()}</span>`;
-          infoHtml = `<div style="display:flex; flex-wrap:wrap; gap:2px;">${bonusesHtml}</div><div>${brickIcon} <b style="color:#FFD700;">${l.price} cihel</b> <span style="font-size:9px; color:#888;">• ${l.seller||'Hráč'}</span></div>`;
+          titleHtml = `<span style="color:${tierColor};">${it.name||'Helma'}</span>${countText} <span style="font-size:8px; background:${tierColor}; color:#000; padding:1px 4px; border-radius:3px;">${tierName.toUpperCase()}</span>`;
+          infoHtml = `<div style="display:flex; flex-wrap:wrap; gap:2px;">${bonusesHtml}</div><div>${brickIcon} <b style="color:#FFD700;">${l.price} cihel</b> <span style="font-size:9px; color:#888;">• ${l.seller||'Hráč'} • ${hoursLeft}h</span></div>`;
         }
       } else if(it.isTool){
         let toolNames = ['Rezavý','Železný','Ocelový','Titanový','Diamantový'];
         let tName = it.name || (toolNames[it.toolIndex]||'Krompáč');
-        titleHtml = tName;
-        infoHtml = `<div>Těžba: <b style="color:#7dd8ff;">${[19,33,45,57,63][it.toolIndex]||59}%</b></div><div>${brickIcon} <b style="color:#FFD700;">${l.price} cihel</b> <span style="font-size:9px; color:#888;">• ${l.seller||'Hráč'}</span></div>`;
-      } else if(it.isFeed){
-        titleHtml = `🍖 ${it.name}`;
-        infoHtml = `<div>${it.xp||'?'} XP</div><div>${brickIcon} <b style="color:#FFD700;">${l.price} cihel</b></div>`;
-      } else if(it.isEnergyDrink){
-        titleHtml = `🔋 ${it.name||'Energetický nápoj'}`;
-        infoHtml = `<div>Doplní ${it.energy||50} energie</div><div>${brickIcon} <b style="color:#FFD700;">${l.price} cihel</b></div>`;
-      } else if(it.isSuperEnergyDrink){
-        titleHtml = `⚡ ${it.name||'Super energetický nápoj'}`;
-        infoHtml = `<div>Doplní ${it.energy||200} energie</div><div>${brickIcon} <b style="color:#FFD700;">${l.price} cihel</b></div>`;
-      } else if(it.isFireMap || it.isIceMap){
-        titleHtml = it.name||'Mapa';
-        infoHtml = `<div>${it.isFireMap?'Ohnivá jeskyně':'Ledová jeskyně'} • Mapa</div><div>${brickIcon} <b style="color:#FFD700;">${l.price} cihel</b></div>`;
-      } else if(it.isMysteryFeedBox || it.isMysteryEquipBox || it.isMysteryEquipBoxLegendary || it.isMysteryAllBox || it.isMasterMysteryBox){
-        let typeName = it.isMysteryFeedBox ? 'Krmivo' : it.isMysteryEquipBox ? 'Vybavení' : it.isMysteryEquipBoxLegendary ? 'Legendární' : it.isMysteryAllBox ? 'Všechno' : 'Master';
-        titleHtml = `📦 Mystery ${typeName}`;
-        infoHtml = `<div>Náhodný obsah • ${typeName}</div><div>${brickIcon} <b style="color:#FFD700;">${l.price} cihel</b></div>`;
-      } else if(it.isAuraCapeChanger || it.isChanger){
-        titleHtml = it.name||'Měnič';
-        infoHtml = `<div>${it.desc||'Změní bonusy'}</div><div>${brickIcon} <b style="color:#FFD700;">${l.price} cihel</b></div>`;
-      } else if(it.isForgeParchment){
-        titleHtml = `📜 ${it.name}`;
-        infoHtml = `<div>Pergamen kování +${it.bonus}%</div><div>${brickIcon} <b style="color:#FFD700;">${l.price} cihel</b></div>`;
+        let countText = it.count && it.count>1 ? ` <span style="background:#FF6B00; color:#fff; padding:1px 4px; border-radius:4px; font-size:8px;">${it.count}x</span>` : '';
+        titleHtml = tName+countText;
+        infoHtml = `<div>Těžba: <b style="color:#7dd8ff;">${[19,33,45,57,63][it.toolIndex]||59}%</b></div><div>${brickIcon} <b style="color:#FFD700;">${l.price} cihel</b> <span style="font-size:9px; color:#888;">• ${l.seller||'Hráč'} • ${hoursLeft}h</span></div>`;
+      } else if(it.isFeed || it.isEnergyDrink || it.isSuperEnergyDrink || it.isForgeParchment || it.isChanger || it.isAuraCapeChanger){
+        let countText = it.count && it.count>1 ? ` <span style="background:#FF6B00; color:#fff; padding:1px 4px; border-radius:4px; font-size:8px;">${it.count}x</span>` : '';
+        if(it.isFeed) titleHtml = `🍖 ${it.name}${countText}`;
+        else if(it.isEnergyDrink) titleHtml = `🔋 ${it.name||'Energetický nápoj'}${countText}`;
+        else if(it.isSuperEnergyDrink) titleHtml = `⚡ ${it.name||'Super energetický nápoj'}${countText}`;
+        else if(it.isForgeParchment) titleHtml = `📜 ${it.name}${countText}`;
+        else titleHtml = `${it.name||'Předmět'}${countText}`;
+
+        let detail = '';
+        if(it.isFeed) detail = `${it.xp||'?'} XP`;
+        else if(it.isEnergyDrink) detail = `Doplní ${it.energy||50} energie`;
+        else if(it.isSuperEnergyDrink) detail = `Doplní ${it.energy||200} energie`;
+        else if(it.isForgeParchment) detail = `Pergamen +${it.bonus}%`;
+        else detail = it.desc||'';
+
+        infoHtml = `<div>${detail} ${it.count>1?`• ${it.count}ks`:''}</div><div>${brickIcon} <b style="color:#FFD700;">${l.price} cihel</b> <span style="font-size:9px; color:#888;">• ${l.seller||'Hráč'} • ${hoursLeft}h</span></div>`;
       } else {
-        titleHtml = it.name||'Předmět';
-        infoHtml = `<div>${l.category}</div><div>${brickIcon} <b style="color:#FFD700;">${l.price} cihel</b></div>`;
+        let countText = it.count && it.count>1 ? ` <span style="background:#FF6B00; color:#fff; padding:1px 4px; border-radius:4px; font-size:8px;">${it.count}x</span>` : '';
+        titleHtml = (it.name||'Předmět')+countText;
+        infoHtml = `<div>${l.category} ${it.count>1?`• ${it.count}ks`:''}</div><div>${brickIcon} <b style="color:#FFD700;">${l.price} cihel</b></div>`;
       }
 
+      let buttonHtml = isMine 
+        ? `<button class="actionButton" style="background:#3a2a2a; border-color:#6a3a3a; color:#ff8a80;" onclick="cancelMarketListing('${l.id}')">ZRUŠIT</button>`
+        : `<button class="actionButton buyButton" onclick="buyMarketListing('${l.id}')" ${(typeof goldBricks!=='undefined' && goldBricks < l.price)?'disabled':''}>KOUPIT</button>`;
+
       html+=`
-        <div class="item" style="${it.tier!==undefined?'border-left:3px solid '+tierColor:''} ${l.isMine?'border-color:#4CAF50;':''}">
+        <div class="item" style="${it.tier!==undefined?'border-left:3px solid '+tierColor:''} ${isMine?'border-color:#4CAF50; background:#1a2a1a !important;':''}">
           <div class="itemRow">
             <div style="display:flex; gap:8px; align-items:center; flex:1; min-width:0;">
               ${iconHtml}
               <div style="flex:1; min-width:0;">
-                <div class="itemTitle">${titleHtml}</div>
+                <div class="itemTitle">${titleHtml} ${isMine?'<span style="background:#4CAF50; color:#fff; font-size:7px; padding:1px 3px; border-radius:3px;">MOJE</span>':''}</div>
                 <div class="itemInfo">${infoHtml}</div>
               </div>
             </div>
-            ${l.isMine?`<button class="actionButton" style="background:#3a2a2a; border-color:#6a3a3a; color:#ff8a80;" onclick="cancelMarketListing('${l.id}')">Zrušit</button>`:`<button class="actionButton buyButton" onclick="buyMarketListing('${l.id}')" ${(typeof goldBricks!=='undefined' && goldBricks < l.price)?'disabled':''}>KOUPIT</button>`}
+            ${buttonHtml}
           </div>
         </div>
       `;
@@ -10758,194 +10952,34 @@ body.market-open #minimapWrap {
     listEl.innerHTML=html;
   };
 
-  window.openMarketPriceModal = function(){
-    if(!selectedMarketItem) return;
-    let it=selectedMarketItem;
-    let preview=document.getElementById('marketPriceItemPreview');
-    if(preview){
-      let iconHtml = getPriceModalIconHtml(it);
-      let name = it.name || (typeof minerals!=='undefined' && typeof it.type==='number' && minerals[it.type] ? minerals[it.type].name : 'Předmět');
-      let sub = '';
-      if(typeof it.type==='number'){
-        sub = `${it.raw?'Surový':'Vybroušený'} • ${it.weight||'?'}g • ${it.purity||'?'}% • ${it.quality||0}%`;
-      } else if(it.isEquipment && it.bonuses){
-        sub = it.bonuses.map(b=>`${b.icon} ${b.value}${b.unit}`).join(' • ');
-      } else if(it.isTool){
-        sub = `${it.name||'Krompáč'} • Těžba: ${[19,33,45,57,63][it.toolIndex]||59}%`;
-      } else if(it.isEnergyDrink){
-        sub = `Energetický nápoj • Doplní ${it.energy||50} energie`;
-      } else if(it.isSuperEnergyDrink){
-        sub = `Super energetický nápoj • Doplní ${it.energy||200} energie`;
-      } else {
-        sub = it.tierName || it.desc || 'Předmět';
-      }
-      preview.innerHTML = `
-        <div style="display:flex; gap:12px; align-items:center; width:100%;">
-          ${iconHtml}
-          <div style="flex:1; min-width:0; text-align:left;">
-            <div style="font-weight:800; color:#fff; font-size:13px;">${name}</div>
-            <div style="font-size:10px; color:#aaa; margin-top:3px;">${sub}</div>
-            <div style="font-size:9px; color:#4CAF50; margin-top:4px; font-weight:700;">✅ Přesně s těmito bonusy • Multiplayer přes Firebase</div>
-          </div>
-        </div>
-      `;
-    }
-    let inp=document.getElementById('marketPriceInput');
-    if(inp){ inp.value=''; setTimeout(()=>inp.focus(),100); }
-    let modal=document.getElementById('marketPriceModal');
+  // Oprav všechny staré weekly leaderboard rendery které používají e.points
+  let originalOpenEventDetail = window.openEventDetail;
+  // Hook pro modalLeaderboard
+  setInterval(()=>{
+    let modal = document.getElementById('modalLeaderboard');
     if(modal){
-      modal.classList.add('open');
-      modal.style.display='flex';
-      modal.style.zIndex='100008';
-    }
-  };
-
-  window.closeMarketPriceModal = function(){
-    let modal=document.getElementById('marketPriceModal');
-    if(modal){ modal.classList.remove('open'); modal.style.display='none'; }
-    selectedMarketItem=null;
-  };
-
-  window.openMarketSelect = function(){
-    let modal=document.getElementById('marketSelectModal');
-    if(modal){
-      modal.classList.add('open');
-      modal.style.display='flex';
-      modal.style.zIndex='100005';
-    }
-    if(typeof renderMarketSelectList==='function') renderMarketSelectList();
-  };
-  window.closeMarketSelect = function(){
-    let modal=document.getElementById('marketSelectModal');
-    if(modal){ modal.classList.remove('open'); modal.style.display='none'; }
-  };
-
-  window.selectMarketItemToSell = function(itemId){
-    let idx = (typeof findIdx==='function') ? findIdx(itemId) : -1;
-    if(idx===-1 && typeof inventory!=='undefined'){
-      idx = inventory.findIndex(it=>it.id===itemId);
-    }
-    if(idx!==-1) selectedMarketItem=inventory[idx];
-    let selModal=document.getElementById('marketSelectModal');
-    if(selModal){ selModal.classList.remove('open'); selModal.style.display='none'; }
-    openMarketPriceModal();
-  };
-
-  // Vystavení - MULTIPLAYER přes Firebase
-  window.confirmMarketSell = function(){
-    let inp=document.getElementById('marketPriceInput');
-    let price=parseInt(inp.value);
-    if(isNaN(price) || price<1 || price>99999){ showToast('❌ Zadej cenu 1-99999'); return; }
-    if(!selectedMarketItem) return;
-    let idx=findIdx(selectedMarketItem.id);
-    if(idx===-1){ showToast('❌ Předmět nenalezen'); closeMarketPriceModal(); return; }
-    let item=inventory[idx];
-    // Rezavý nejde prodat
-    if(item.isTool && item.toolIndex===0){ showToast('❌ Rezavý krompáč nelze prodat'); return; }
-    inventory.splice(idx,1);
-    let category=getMarketCategoryForItem(item);
-    let nick = localStorage.getItem('nick')||currentNick||'Ty';
-    let listing={ 
-      id:'m_'+Date.now()+'_'+Math.random().toString(36).substr(2,5), 
-      item:JSON.parse(JSON.stringify(item)), 
-      price:price, 
-      seller:nick, 
-      time:Date.now(), 
-      category:category, 
-      isMine:false // pro ostatní nebude isMine
-    };
-    // Pro lokálního hráče si označíme jako moje pro zobrazení
-    let myListing = {...listing, isMine:true};
-    marketListings.unshift(myListing);
-
-    // MULTIPLAYER - pošli do Firebase - všichni uvidí
-    if(marketDb){
-      marketDb.ref('market/listings').once('value', snap=>{
-        let all = snap.val() || [];
-        let arr = Array.isArray(all) ? all : Object.values(all);
-        arr.unshift(listing); // bez isMine pro ostatní
-        marketDb.ref('market/listings').set(arr.slice(0,200));
-      });
-      if(typeof sendGlobalAnnouncement==='function'){
-        sendGlobalAnnouncement({
-          type: 'market_new',
-          text: `🏪 ${nick} vystavil ${item.name||'předmět'} za ${price} cihel!`,
-          seller: nick,
-          itemName: item.name||'předmět',
-          price: price
+      let html = modal.innerHTML;
+      if(html.includes('undefined')){
+        // Najdi všechny výskyty kde je undefined bodů a oprav
+        html = html.replace(/undefined bodů/g, (match)=>{
+          // Zkus najít score v okolí
+          return '0 bodů';
         });
+        // Oprav pokud je e.points undefined - použij regex pro nahrazení celého span
+        modal.innerHTML = html.replace(/<span[^>]*>undefined bodů<\/span>/g, '<span style="color:#ffeb3b; font-weight:900;">0 bodů</span>');
       }
     }
-
-    saveGame(); saveMarket();
-    closeMarketPriceModal();
-    renderMarket(); renderInventory(); updateHUD();
-    showToast('✅ Vystaveno za '+price+' cihel! Všichni hráči to vidí',3);
-  };
-
-  window.renderMarketSelectList = function(){
-    let listEl=document.getElementById('marketSelectList');
-    if(!listEl) return;
-    if(typeof inventory==='undefined' || inventory.length===0){
-      listEl.innerHTML='<div style="text-align:center; padding:20px; color:#888;">Batoh prázdný</div>';
-      return;
+    let weeklyDiv = document.getElementById('weeklyLeaderboard');
+    if(weeklyDiv && weeklyDiv.innerHTML.includes('undefined')){
+      weeklyDiv.innerHTML = weeklyDiv.innerHTML.replace(/undefined bodů/g, '0 bodů').replace(/undefined/g, '0');
     }
-    let items=[];
-    for(let i=0;i<inventory.length;i++){
-      let it=inventory[i];
-      if(!it) continue;
-      if(it.isTool && it.toolIndex===0) continue;
-      if(marketSelectCategory==='minerals' && typeof it.type!=='number') continue;
-      if(marketSelectCategory==='equipment' && !it.isEquipment) continue;
-      if(marketSelectCategory==='feed' && !it.isFeed && !it.isEnergyDrink && !it.isSuperEnergyDrink) continue;
-      if(marketSelectCategory==='tools' && !it.isTool) continue;
-      if(marketSelectCategory==='maps' && !it.isFireMap && !it.isIceMap) continue;
-      if(marketSelectCategory==='mystery' && !it.isMysteryFeedBox && !it.isMysteryEquipBox && !it.isMysteryEquipBoxLegendary && !it.isMysteryAllBox && !it.isMasterMysteryBox) continue;
-      if(marketSelectCategory==='other' && !(it.isForgeParchment || it.isAuraCapeChanger || it.isChanger || it.isVIPItem)) continue;
-      if(it.isEquipment){
-        try{ if(Object.values(equipped).some(eq=>eq && eq.id===it.id)) continue; }catch(e){}
-      }
-      items.push(it);
+    let eventLead = document.getElementById('eventLeaderboard');
+    if(eventLead && eventLead.innerHTML.includes('undefined')){
+      eventLead.innerHTML = eventLead.innerHTML.replace(/undefined bodů/g, '0 bodů');
     }
-    if(items.length===0){
-      listEl.innerHTML='<div style="text-align:center; padding:20px; color:#666;">Nic k prodeji<br><span style="font-size:10px;">Rezavý krompáč nelze prodat</span></div>';
-      return;
-    }
-    let html='';
-    items.forEach(it=>{
-      let iconHtml = getMarketItemIconHtmlShop(it);
-      let name=it.name|| (typeof minerals!=='undefined' && typeof it.type==='number' && minerals[it.type] ? minerals[it.type].name : 'Item');
-      let sub='';
-      if(typeof it.type==='number') sub=`${it.weight}g • ${it.purity}% • ${it.quality}%`;
-      else if(it.bonuses) sub=it.bonuses.map(b=>`${b.icon} ${b.value}${b.unit}`).join(' ');
-      else if(it.isTool) sub=`${it.name||'Krompáč'} • Těžba ${[19,33,45,57,63][it.toolIndex]||59}%`;
-      else if(it.isEnergyDrink) sub=`Doplní ${it.energy||50} energie`;
-      else if(it.isSuperEnergyDrink) sub=`Doplní ${it.energy||200} energie • Super`;
-      else if(it.isFeed) sub=`${it.xp||'?'} XP`;
-      else if(it.isForgeParchment) sub=`+${it.bonus}% kování`;
-      else sub=it.tierName||it.desc||'';
-      html+=`
-        <div class="item" style="background:#121914; border:1px solid #3b493e; border-radius:8px; padding:6px; margin-bottom:6px; cursor:pointer;" onclick="selectMarketItemToSell('${it.id}')">
-          <div class="itemRow" style="background:rgba(0,0,0,0.22); display:flex; align-items:center; gap:8px; padding:8px; border-radius:8px;">
-            <div style="display:flex; gap:8px; align-items:center; flex:1; min-width:0;">
-              ${iconHtml}
-              <div style="flex:1; min-width:0;">
-                <div class="itemTitle" style="font-size:12px; font-weight:bold; color:#fff;">${name}</div>
-                <div class="itemInfo" style="font-size:10.5px; color:#b9c4ba;">${sub}</div>
-              </div>
-            </div>
-            <div style="color:#00ACC1; font-weight:800; font-size:18px;">+</div>
-          </div>
-        </div>
-      `;
-    });
-    listEl.innerHTML=html;
-  };
+  }, 500);
 
-  // Spusť loadMarket - napojí Firebase
-  setTimeout(()=>{ if(typeof loadMarket==='function') loadMarket(); }, 1000);
-
-  console.log('✅ V36 - FIREBASE MULTIPLAYER MARKET - využívá tvůj stávající kód');
+  console.log('✅ V38 - oprava weekly undefined + hlášky nad ikonami 100010 z-index');
 })();
 </script>
 
