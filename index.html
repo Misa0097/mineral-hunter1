@@ -481,7 +481,7 @@ body.panel-open #chatButton{ display:none!important; }
   #dig{ width:84px!important; height:84px!important; font-size:12px!important; }
 }
 </style>
-</head>
+<style id="hide-both"> #openBackpackFromEquip { display:none !important; } #backToBackpackBtn { display:none !important; } </style></head>
 <body>
 
 <button id="eventButton_fixed" onclick="openEventPanel()">🎉 EVENTY</button>
@@ -11522,21 +11522,20 @@ const WINGS_PRICE = 1500;
 <\/script>
 </body>
 </html>`;var Nc=ft(dn(),1),xm=Symbol.for("react.element");var ym=Object.prototype.hasOwnProperty,vm=Nc.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.ReactCurrentOwner,hm={key:!0,ref:!0,__self:!0,__source:!0};function Oc(e,t,n){var i,r={},a=null,o=null;n!==void 0&&(a=""+n),t.key!==void 0&&(a=""+t.key),t.ref!==void 0&&(o=t.ref);for(i in t)ym.call(t,i)&&!hm.hasOwnProperty(i)&&(r[i]=t[i]);if(e&&e.defaultProps)for(i in t=e.defaultProps,t)r[i]===void 0&&(r[i]=t[i]);return{$$typeof:xm,type:e,key:a,ref:o,props:r,_owner:vm.current}}var fe=Oc,ai=Oc;function Am(e){let n=`<style id="v42-github-joystick-kopej-fix">
-${`
-/* === V42 GITHUB MOBILE FIX - joystick + KOPEJ nad spodní lištou === */
+
+<style id="v44-hard-fix">
+/* V44 - HARD FIX pro Meta AI chat + klávesnici */
 html, body {
   height: 100dvh !important;
   min-height: 100dvh !important;
-  min-height: -webkit-fill-available !important;
   overflow: hidden !important;
   position: fixed !important;
   width: 100% !important;
+  overscroll-behavior: none !important;
 }
 #gameWrap {
   height: 100dvh !important;
   min-height: 100dvh !important;
-  min-height: -webkit-fill-available !important;
-  height: -webkit-fill-available !important;
   display: flex !important;
   flex-direction: column !important;
 }
@@ -11547,70 +11546,140 @@ html, body {
   right: 0 !important;
   bottom: 0 !important;
 }
+/* HLAVNÍ FIX - zvednout controls o 120px */
 #controls {
   position: absolute !important;
   left: 0 !important;
   right: 0 !important;
-  bottom: 0 !important;
+  bottom: 12px !important; /* V48 + NÍZKO */
+  top: auto !important;
   padding: 0 18px !important;
-  padding-bottom: calc(28px + env(safe-area-inset-bottom, 12px)) !important;
-  padding-left: max(18px, env(safe-area-inset-left, 0px)) !important;
-  padding-right: max(18px, env(safe-area-inset-right, 0px)) !important;
+  padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)) !important;
+  margin-bottom: 0 !important;
   display: flex !important;
   justify-content: space-between !important;
   align-items: flex-end !important;
   pointer-events: none !important;
   z-index: 9999 !important;
-  transform: translateZ(0);
+  transform: translateZ(0) !important;
+  background: transparent !important;
+  height: auto !important;
 }
 #joystick {
-  width: 125px !important;
-  height: 125px !important;
+  width: 130px !important;
+  height: 130px !important;
   position: relative !important;
   pointer-events: auto !important;
   touch-action: none !important;
   z-index: 10000 !important;
-  transform: translateZ(0);
-  margin-bottom: 0 !important;
-  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));
+  background: rgba(0,0,0,0.25) !important;
+  border-radius: 50% !important;
+  border: 2px solid rgba(255,255,255,0.15) !important;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.6) !important;
+  filter: none !important;
 }
 .joy {
   pointer-events: auto !important;
   touch-action: none !important;
   z-index: 10001 !important;
+  background: rgba(40,50,40,0.95) !important;
+  border: 1px solid rgba(255,255,255,0.2) !important;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.5) !important;
+  width: 44px !important;
+  height: 44px !important;
 }
+#up { left: 43px !important; top: 4px !important; }
+#down { left: 43px !important; bottom: 4px !important; }
+#left { left: 4px !important; top: 43px !important; }
+#right { right: 4px !important; top: 43px !important; }
 #dig {
-  width: 84px !important;
-  height: 84px !important;
+  width: 90px !important;
+  height: 90px !important;
+  min-width: 90px !important;
+  min-height: 90px !important;
   border-radius: 50% !important;
   pointer-events: auto !important;
   touch-action: none !important;
   z-index: 10000 !important;
   position: relative !important;
-  margin-bottom: calc(4px + env(safe-area-inset-bottom, 0px)) !important;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.6) !important;
-  transform: translateZ(0);
-  flex-shrink: 0;
+  margin: 0 !important;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.8) !important;
+  background: radial-gradient(circle at 30% 30%, #a06a3a, #6b4425) !important;
+  border: 3px solid #c07a3a !important;
+  font-weight: 900 !important;
+  font-size: 13px !important;
+  text-shadow: 0 1px 2px black !important;
 }
 #dig:active {
-  transform: scale(0.94) translateZ(0) !important;
+  transform: scale(0.90) !important;
 }
-@media (max-height: 800px) {
-  #controls {
-    padding-bottom: calc(36px + env(safe-area-inset-bottom, 16px)) !important;
-  }
-  #joystick { width: 115px !important; height: 115px !important; }
-  #dig { width: 78px !important; height: 78px !important; }
+
+/* Když je otevřená klávesnice, ještě výš */
+@media (max-height: 600px) {
+  #controls { bottom: 160px !important; }
 }
-@media (max-height: 650px) {
-  #controls { padding-bottom: calc(42px + env(safe-area-inset-bottom, 20px)) !important; }
+@media (max-height: 500px) {
+  #controls { bottom: 180px !important; }
 }
-/* Zachování původních herních prvků - křídla, header, boxy */
-#hud {
-  z-index: 200 !important;
+
+#hud { z-index: 500 !important; }
+#toast { bottom: 200px !important; top: auto !important; }
+
+/* V48 - PANELY JEN RÁMEČEK S TEXTEM, NE NUDLE */
+.panel {
+  position: absolute !important;
+  left: 50% !important;
+  top: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  bottom: auto !important;
+  width: min(92%, 560px) !important;
+  min-width: 320px !important;
+  max-width: 95% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: 78vh !important;
+  background: #1b241e !important;
+  border: 2px solid #455347 !important;
+  border-radius: 14px !important;
+  box-shadow: 0 12px 40px #000b !important;
+  overflow: hidden !important;
+  display: none !important;
+  z-index: 110000 !important;
 }
-`}
-</style>`;if(e.includes("</head>"))return e.replace("</head>",`${n}</head>`);else if(e.includes("<head>"))return e.replace("<head>",`<head>${n}`);else return n+e}function _o(){let[e,t]=oi.useState(""),[n,i]=oi.useState(!0);return oi.useEffect(()=>{let r=Lc||"";if(r)t(Am(r));i(!1)},[]),ai("div",{style:{width:"100vw",height:"100dvh",minHeight:"100dvh",background:"#0e1a12",overflow:"hidden",position:"relative",paddingTop:"var(--safe-area-inset-top)",boxSizing:"border-box"},className:"flex flex-col",children:[n&&fe("div",{className:"absolute inset-0 z-50 flex items-center justify-center bg-[#0e1a12] text-white",children:ai("div",{className:"flex flex-col items-center gap-3",children:[fe("div",{className:"h-10 w-10 animate-spin rounded-full border-4 border-[#2a5a2a] border-t-[#7ed87e]"}),fe("div",{className:"text-sm font-bold tracking-wide",children:"Načítám V42..."})]})}),e?fe("iframe",{title:"Mineral Hunter V42 - Joystick Fix",srcDoc:e,sandbox:"allow-scripts allow-same-origin allow-forms allow-pointer-lock",allow:"fullscreen; gamepad",style:{width:"100%",height:"100%",minHeight:"100dvh",border:"0",display:"block",background:"#1a4a1a",overflow:"hidden"},className:"flex-1"}):!n?fe("div",{className:"flex h-full w-full items-center justify-center p-6 text-center text-white/80",children:ai("div",{className:"max-w-[320px] rounded-xl border border-white/10 bg-[#1a221a] p-6",children:[fe("div",{className:"mb-2 text-lg font-bold text-white",children:"Nepodařilo se načíst hru"}),fe("div",{className:"text-sm opacity-70",children:"Zkuste obnovit stránku. Soubor hry by měl být v /assets."})]})}):null,fe("div",{className:"pointer-events-none absolute left-2 top-2 z-40 rounded-full bg-black/60 px-2 py-1 text-[10px] font-bold tracking-widest text-white/50 backdrop-blur",style:{marginTop:"var(--safe-area-inset-top)"},children:"V42 • JOYSTICK FIX • 100dvh"})]})}jc.createRoot(document.getElementById("root")).render(fe(Hc.default.StrictMode,{children:fe(_o,{})}));
+.panel.open { display: block !important; }
+.panelHeader {
+  padding: 10px 14px !important;
+  background: #263229 !important;
+  border-bottom: 1px solid #455347 !important;
+  height: auto !important;
+}
+.panelBody {
+  padding: 12px !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: 65vh !important;
+  overflow-y: auto !important;
+}
+.item {
+  height: auto !important;
+  min-height: 0 !important;
+}
+#toast {
+  position: absolute !important;
+  left: 50% !important;
+  top: 70px !important;
+  bottom: auto !important;
+  transform: translateX(-50%) !important;
+  width: auto !important;
+  max-width: 85% !important;
+  height: auto !important;
+  padding: 10px 16px !important;
+  z-index: 220000 !important;
+}
+
+</style>
+
+</style>`;if(e.includes("</head>"))return e.replace("</head>",`${n}</head>`);else if(e.includes("<head>"))return e.replace("<head>",`<head>${n}`);else return n+e}function _o(){let[e,t]=oi.useState(""),[n,i]=oi.useState(!0);return oi.useEffect(()=>{let r=Lc||"";if(r)t(Am(r));i(!1)},[]),ai("div",{style:{width:"100vw",height:"100dvh",minHeight:"100dvh",background:"#0e1a12",overflow:"hidden",position:"relative",paddingTop:"var(--safe-area-inset-top)",boxSizing:"border-box"},className:"flex flex-col",children:[n&&fe("div",{className:"absolute inset-0 z-50 flex items-center justify-center bg-[#0e1a12] text-white",children:ai("div",{className:"flex flex-col items-center gap-3",children:[fe("div",{className:"h-10 w-10 animate-spin rounded-full border-4 border-[#2a5a2a] border-t-[#7ed87e]"}),fe("div",{className:"text-sm font-bold tracking-wide",children:"Načítám V42..."})]})}),e?fe("iframe",{title:"Mineral Hunter V42 - Joystick Fix",srcDoc:e,sandbox:"allow-scripts allow-same-origin allow-forms allow-pointer-lock",allow:"fullscreen; gamepad",style:{width:"100%",height:"100%",minHeight:"100dvh",border:"0",display:"block",background:"#1a4a1a",overflow:"hidden"},className:"flex-1"}):!n?fe("div",{className:"flex h-full w-full items-center justify-center p-6 text-center text-white/80",children:ai("div",{className:"max-w-[320px] rounded-xl border border-white/10 bg-[#1a221a] p-6",children:[fe("div",{className:"mb-2 text-lg font-bold text-white",children:"Nepodařilo se načíst hru"}),fe("div",{className:"text-sm opacity-70",children:"Zkuste obnovit stránku. Soubor hry by měl být v /assets."})]})}):null,null]})}jc.createRoot(document.getElementById("root")).render(fe(Hc.default.StrictMode,{children:fe(_o,{})}));
 </script>
   <script>(function(){function m(a){var h=a.getAttribute("href");if(!h)return;try{var u=new URL(h,document.baseURI);if(((u.protocol==="http:"||u.protocol==="https:")&&u.host!==location.host)||u.protocol==="mailto:"||u.protocol==="tel:"||u.protocol==="sms:"){a.target="_blank";a.rel="noopener noreferrer";}}catch(e){}}function s(){document.querySelectorAll("a[href]").forEach(m);}if(document.readyState!=="loading"){s();}else{document.addEventListener("DOMContentLoaded",s);}document.addEventListener("click",function(e){var a=e.target&&e.target.closest&&e.target.closest("a[href]");if(a){m(a);}},true);})();</script>
   <script type="application/json" data-clippy-inline-media-manifest="1">{"version":1,"slots":[]}</script>
