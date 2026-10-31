@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Mineral Hunter - SERVER RESET TOOL</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<style>
+body{background:#0e1a12;color:#fff;font-family:sans-serif;padding:20px;max-width:800px;margin:0 auto}
+h1{color:#ff4444}
+button{padding:16px 24px;font-size:18px;font-weight:900;border-radius:12px;border:2px solid #000;cursor:pointer;margin:10px 0}
+.danger{background:linear-gradient(135deg,#ff1744,#b71c1c);color:#fff}
+.safe{background:linear-gradient(135deg,#4caf50,#2e7d32);color:#000}
+pre{background:#1a221a;padding:12px;border-radius:8px;overflow:auto}
+input{padding:12px;font-size:16px;width:100%;border-radius:8px;border:2px solid #333;background:#111;color:#fff;margin:10px 0}
+</style>
+</head>
+<body>
+<h1>🔥 MINERAL HUNTER - SERVER RESTART</h1>
+<p>Tento nástroj smaže <b>VŠECHNY</b> hráčské save, žebříčky, chat a online data.</p>
+<p>Všichni hráči začnou od znova s prázdným batohem.</p>
+
+<div id="status">Připojuji se k Firebase...</div>
+
+<input type="password" id="pwd" placeholder="Zadej admin heslo: restart2025">
+
+<button class="safe" onclick="checkData()">👀 Zkontrolovat kolik dat je v DB</button>
+<pre id="dataInfo">Klikni na kontrolu...</pre>
+
+<button class="danger" onclick="doWipe()">💥 VYMAZAT VŠE - SERVER WIPE - POTVRDIT</button>
+
+<pre id="log"></pre>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCpgDKPwzesGiwXaOUP_6HWOl_6dKUGqKY",
+  authDomain: "mineral-hunter.firebaseapp.com",
+  databaseURL: "https://mineral-hunter-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "mineral-hunter",
+  storageBucket: "mineral-hunter.firebasestorage.app",
+  messagingSenderId: "97854295928",
+  appId: "1:97854295928:web:c2e45bf38e6024e9c2428d"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+const ADMIN_PWD = "restart2025";
+const logEl = document.getElementById('log');
+const statusEl = document.getElementById('status');
+
+function log(msg){
+  logEl.textContent += msg + "\n";
+  console.log(msg);
+}
+
+statusEl.textContent = "✅ Připojeno k Firebase: " + firebaseConfig.databaseURL;
+
+async function checkData(){
+  log("Kontroluji data...");
+  try{
+    const paths = ['saves','players','mineralBest','chat','globalAnnouncements','online','players/','meta','eventScores','weeklyScores','eventRewards'];
+    for(let p of paths){
+      try{
+        let snap = await db.ref(p).once('value');
+        let val = snap.val();
+        let count = val ? Object.keys(val).length : 0;
+        log(`📁 ${p}: ${count} záznamů`);
+      }catch(e){ log(`❌ ${p}: ${e.message}`); }
+    }
+  }catch(e){ log("Chyba: "+e.message); }
+}
+
+async function doWipe(){
+  let pwd = document.getElementById('pwd').value;
+  if(pwd !== ADMIN_PWD){
+    alert("Špatné heslo! Heslo je: restart2025");
+    return;
+  }
+  if(!confirm("OPRAVDU chceš smazat VŠECHNY save a žebříčky? Všichni hráči přijdou o věci!")) return;
+  if(!confirm("Ještě jednou - POTVRDIT TOTÁLNÍ WIPE?")) return;
+
+  log("🔥 ZAČÍNÁM WIPE...");
+  const pathsToDelete = [
+    'saves',
+    'players',
+    'mineralBest',
+    'chat',
+    'globalAnnouncements',
+    'online',
+    'players/',
+    'leaderboard',
+    'eventLeaderboard',
+    'weeklyLeaderboard',
+    'eventScores',
+    'weeklyScores',
+    'eventRewards',
+    'weeklyRewards',
+    'eventHistory',
+    'events'
+  ];
+
+  for(let path of pathsToDelete){
+    try{
+      log(`🗑️ Mažu ${path}...`);
+      await db.ref(path).remove();
+      log(`✅ Smazáno ${path}`);
+    }catch(e){
+      log(`❌ Chyba mazání ${path}: ${e.message}`);
+    }
+  }
+
+  // Nastav timestamp resetu - všichni klienti se pak sami vymažou
+  let now = Date.now();
+  try{
+    await db.ref('meta/lastReset').set(now);
+    await db.ref('meta/resetReason').set('Server restart - test od znova - ' + new Date().toISOString());
+    log(`✅ Nastaven meta/lastReset = ${now}`);
+  }catch(e){ log(`❌ Chyba meta: ${e.message}`); }
+
+  log("🎉 WIPE HOTOVÝ! Všichni hráči teď začnou od nuly.");
+  log("Teď nahraj novou verzi hry s auto-wipe logikou.");
+  
+  // Vymaž i localStorage tohoto prohlížeče
+  try{
+    localStorage.clear();
+    localStorage.setItem('lastResetCheck', now);
+    log("✅ LocalStorage tohoto prohlížeče vymazán");
+  }catch(e){}
+
+  alert("WIPE HOTOVÝ! Server je prázdný.");
+}
+</script>
+</body>
+</html>
