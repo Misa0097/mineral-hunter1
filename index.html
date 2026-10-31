@@ -5,7 +5,7 @@
 // V52 HARD WIPE - safe version at top - runs before everything
 (function(){
   try{
-    var CURRENT_VER = "v52_full_wipe_20241031";
+    var CURRENT_VER = "v53_museum_fix_20241031";
     var saved = localStorage.getItem('gameVersion');
     if(saved !== CURRENT_VER){
       console.log('HARD WIPE V52', saved, '->', CURRENT_VER);
@@ -1361,10 +1361,38 @@ let equipped = {
 };
 
 
-// === MUZEUM / GALERIE V29 ===
+// === MUZEUM / GALERIE V29 - FIX V53 - 5 slotů start, +5 každé rozšíření ===
 let museum = [null,null,null,null,null];
 let museumSize = 5;
 let museumExpansionLevel = 0;
+
+function fixMuseum(){
+  try{
+    if(!Array.isArray(museum)) museum = [null,null,null,null,null];
+    if(typeof museumSize!=='number' || museumSize < 5) museumSize = 5;
+    // V53: muzeum musí mít přesně museumSize slotů, každý 5,10,15...
+    // Pokud museumSize není násobek 5, oprav
+    if(museumSize % 5 !== 0){
+      museumSize = Math.ceil(museumSize/5)*5;
+      if(museumSize < 5) museumSize = 5;
+    }
+    // Doplň null pokud je kratší
+    while(museum.length < museumSize) museum.push(null);
+    // Pokud je delší (bug), ořízni jen prázdné na konci
+    while(museum.length > museumSize){
+      let last = museum[museum.length-1];
+      if(!last) museum.pop();
+      else break;
+    }
+    // Oprav undefined na null
+    for(let i=0;i<museum.length;i++){
+      if(typeof museum[i]==='undefined') museum[i]=null;
+    }
+    // Pokud je pořád kratší, doplň
+    while(museum.length < museumSize) museum.push(null);
+  }catch(e){ console.error('fixMuseum err', e); }
+}
+
 let museumLastCollected = Date.now();
 let museumPending = 0;
 let museumBaseIncomeRate = 0.01;
@@ -1464,14 +1492,23 @@ function getGalleryBonusForLevel(level){
 }
 function moveToMuseum(invIdx){
   try{
+    fixMuseum();
     let item=inventory[invIdx];
     if(!item || item.isTool || item.isEquipment){ showToast("Do muzea jen minerály"); return; }
     if(item.raw){ showToast("Do muzea jen vybroušené kameny"); return; }
     let freeIdx=museum.findIndex(m=>!m);
-    if(freeIdx===-1){ showToast("Muzeum je plné, kup rozšíření v obchodě"); return; }
+    if(freeIdx===-1){ 
+      // Zkus ještě opravit a najít znovu
+      fixMuseum();
+      freeIdx=museum.findIndex(m=>!m);
+      if(freeIdx===-1){
+        showToast("Muzeum je plné ("+museum.filter(x=>x).length+"/"+museumSize+"), kup rozšíření v obchodě"); 
+        return; 
+      }
+    }
     museum[freeIdx]=item;
     inventory.splice(invIdx,1);
-    showToast("🏛️ Vystaveno v muzeu: "+minerals[item.type].name);
+    showToast("🏛️ Vystaveno v muzeu: "+minerals[item.type].name+" ("+(museum.filter(x=>x).length)+"/"+museumSize+")");
     saveGame(); renderInventory(); renderMuseum(); updateHUD();
   }catch(e){ console.error(e); }
 }
@@ -1486,15 +1523,18 @@ function moveFromMuseumToInventory(museumIdx){
   }catch(e){ console.error(e); }
 }
 function expandMuseum(){
+  try{ fixMuseum(); }catch(e){}
   let costs=[3000,6000,12000,24000,48000,96000,192000];
   let level=museumExpansionLevel||0;
   let cost=costs[level]|| (costs[costs.length-1] * Math.pow(2, level - costs.length +1));
   if(money<cost){ showToast("💰 Potřebuješ "+cost+" Kč"); return; }
   money-=cost;
   museumExpansionLevel=level+1;
-  museumSize+=5;
-  for(let i=0;i<5;i++) museum.push(null);
-  showToast("🏛️ Muzeum rozšířeno na "+museumSize+" slotů!",2);
+  // V53: přesně 5,10,15,20...
+  museumSize = 5 + museumExpansionLevel*5;
+  // Oprav pole
+  fixMuseum();
+  showToast("🏛️ Muzeum rozšířeno na "+museumSize+" slotů! ("+museumExpansionLevel+". rozšíření)",2);
   saveGame(); renderShop(); renderMuseum(); updateHUD();
 }
 function getMuseumExpansionCost(){
@@ -1526,10 +1566,13 @@ function renderMuseum(){
         let col=k==='findChance'?'#ffeb3b':'#7dd8ff';
         return '<span style="font-size:7.5px;background:#0a0a0a;border:1px solid '+col+';padding:2px 4px;border-radius:4px;color:'+col+'">'+icon+' '+k+': +'+v+'%</span>';
       }).join('') || '<span style="font-size:8px;color:#666">Zatím žádné - vystav vybroušené kameny</span>');
+    try{ fixMuseum(); }catch(e){}
+    let filled = museum.filter(m=>m).length;
+    let free = museumSize - filled;
     header.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">'
       +'<div><div style="font-size:14px;font-weight:800;color:#7dd8ff">🏛️ Muzeum - Level '+lvl+'/100</div>'
       +'<div style="font-size:10px;color:#8a9a8a">Skóre krásy: <b style="color:#ffeb3b">'+totalBeauty+'</b> | Hodnota: <b style="color:#4caf50">'+totalVal+' Kč</b><br>'
-      +'Příjem: <b style="color:#a5d6a7">'+Math.floor(perMin)+' Kč/min</b> | Slotů: '+museum.filter(m=>m).length+'/'+museumSize+'</div></div>'
+      +'Příjem: <b style="color:#a5d6a7">'+Math.floor(perMin)+' Kč/min</b> | Obsazeno: <b style="color:#ffeb3b">'+filled+'/'+museumSize+'</b> | Volné: <b style="color:#4caf50">'+free+'</b></div></div>'
       +'<div style="text-align:right"><div style="font-size:10px;color:#aaa">K výběru:</div><div style="font-size:16px;font-weight:800;color:#4caf50">'+pending+' Kč</div>'
       +'<button id="collectMuseumBtn" style="margin-top:4px;background:#4caf50;color:#000;border:none;border-radius:6px;padding:5px 10px;font-weight:800;font-size:11px;cursor:pointer">💰 VYBRAT (5min)</button></div>'
       +'</div>'
@@ -7346,16 +7389,27 @@ function loadGame(){
        }
      });
    }
-   // FIX: nacist muzeum
+   // FIX V53: nacist muzeum - 5,10,15...
    if(Array.isArray(s.museum)){
      museum = s.museum;
-     // zajisti spravnou velikost
-     if(s.museumSize && museum.length < s.museumSize){
-       while(museum.length < s.museumSize) museum.push(null);
-     }
    }
    if(typeof s.museumSize==="number") museumSize=s.museumSize;
    if(typeof s.museumExpansionLevel==="number") museumExpansionLevel=s.museumExpansionLevel;
+   // Oprav konzistenci
+   try{
+     if(typeof museumSize!=="number" || museumSize<5) museumSize=5;
+     if(museumSize%5!==0) museumSize=Math.ceil(museumSize/5)*5;
+     // Pokud expansionLevel nesedí s velikostí, oprav
+     let expectedSize = 5 + (museumExpansionLevel||0)*5;
+     if(museumSize !== expectedSize && museumExpansionLevel>0){
+       // Věř expansionLevel
+       museumSize = expectedSize;
+     }
+     // Doplň / oprav pole
+     if(!Array.isArray(museum)) museum=[null,null,null,null,null];
+     while(museum.length < museumSize) museum.push(null);
+     for(let i=0;i<museum.length;i++) if(typeof museum[i]==='undefined') museum[i]=null;
+   }catch(e){}
    if(typeof s.museumLastCollected==="number") museumLastCollected=s.museumLastCollected;
    if(typeof s.museumPending==="number") museumPending=s.museumPending;
 
@@ -12362,7 +12416,7 @@ const WINGS_PRICE = 1500;
     if(p.get('forceWipe')==='1' || p.get('reset')==='1'){
       localStorage.clear();
       sessionStorage.clear();
-      localStorage.setItem('gameVersion', 'v52_full_wipe_20241031');
+      localStorage.setItem('gameVersion', 'v53_museum_fix_20241031');
       localStorage.setItem('lastResetCheck', Date.now().toString());
       alert('FORCE WIPE! Začínáš od nuly!');
       history.replaceState({}, document.title, location.pathname);
@@ -12384,7 +12438,7 @@ const WINGS_PRICE = 1500;
           console.log('SERVER RESET detected');
           localStorage.clear();
           sessionStorage.clear();
-          localStorage.setItem('gameVersion', 'v52_full_wipe_20241031');
+          localStorage.setItem('gameVersion', 'v53_museum_fix_20241031');
           localStorage.setItem('lastResetCheck', serverReset.toString());
           alert('SERVER RESTART! Začínáš od nuly!');
           location.reload();
@@ -12405,7 +12459,7 @@ const WINGS_PRICE = 1500;
           if(fw && (!lr || lr < fw)){
             localStorage.clear();
             sessionStorage.clear();
-            localStorage.setItem('gameVersion', 'v52_full_wipe_20241031');
+            localStorage.setItem('gameVersion', 'v53_museum_fix_20241031');
             localStorage.setItem('lastResetCheck', fw.toString());
             try{ db.ref('meta/forceWipe/'+currentNick).remove(); }catch(e){}
             alert('FORCE WIPE pro '+currentNick+'! Začínáš od nuly!');
