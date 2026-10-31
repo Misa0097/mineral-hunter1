@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>MINERAL HUNTER - AUTO SERVER WIPE NOW</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<style>
+body{background:#0e1a12;color:#fff;font-family:monospace;padding:20px;max-width:900px;margin:0 auto}
+h1{color:#ff1744;font-size:28px}
+.log{background:#000;color:#0f0;padding:15px;border-radius:8px;white-space:pre-wrap;max-height:600px;overflow:auto;border:2px solid #333}
+button{padding:16px 32px;font-size:20px;font-weight:900;background:linear-gradient(135deg,#ff1744,#b71c1c);color:#fff;border:3px solid #fff;border-radius:12px;cursor:pointer;margin:20px 0}
+.ok{color:#4caf50;font-weight:900}
+</style>
+</head>
+<body>
+<h1>🔥 AUTO SERVER WIPE - MAŽU VŠE TEĎ</h1>
+<div id="status">Připojuji se...</div>
+<div class="log" id="log">Čekám...</div>
+<button id="goBtn" onclick="doAutoWipe()">🚀 SPUSTIT WIPE TEĎ - SMAZAT VŠE</button>
+<div id="after" style="display:none">
+<h2 class="ok">✅ WIPE HOTOVÝ!</h2>
+<p>Teď nahraj na GitHub novou verzi:</p>
+<p><b>mineral_hunter_V51_FINAL_WIPE_ALL_NEW.html</b></p>
+<p>Všichni hráči začnou od 0 - Zaječice bude mít 0 krásy.</p>
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCpgDKPwzesGiwXaOUP_6HWOl_6dKUGqKY",
+  authDomain: "mineral-hunter.firebaseapp.com",
+  databaseURL: "https://mineral-hunter-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "mineral-hunter",
+  storageBucket: "mineral-hunter.firebasestorage.app",
+  messagingSenderId: "97854295928",
+  appId: "1:97854295928:web:c2e45bf38e6024e9c2428d"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+function log(msg){
+  let el = document.getElementById('log');
+  el.textContent += msg + "\n";
+  el.scrollTop = el.scrollHeight;
+  console.log(msg);
+}
+
+document.getElementById('status').textContent = "✅ Připojeno k Firebase - připraveno k wipe";
+
+async function doAutoWipe(){
+  let btn = document.getElementById('goBtn');
+  btn.disabled = true;
+  btn.textContent = "MAŽU...";
+  
+  log("🔥 ZAČÍNÁM TOTÁLNÍ SERVER WIPE - " + new Date().toISOString());
+  log("Mažu všechny data...");
+  
+  const paths = [
+    'saves',
+    'players',
+    'mineralBest',
+    'chat',
+    'globalAnnouncements',
+    'online',
+    'eventScores',
+    'weeklyScores',
+    'eventRewards',
+    'weeklyRewards',
+    'leaderboard',
+    'eventLeaderboard',
+    'weeklyLeaderboard',
+    'players/',
+    'mineralBest/',
+    'eventHistory',
+    'meta/forceWipe'
+  ];
+  
+  for(let p of paths){
+    try{
+      log(`🗑️ Mažu ${p}...`);
+      await db.ref(p).remove();
+      log(`✅ Smazáno ${p}`);
+    }catch(e){
+      log(`❌ Chyba ${p}: ${e.message}`);
+    }
+    await new Promise(r=>setTimeout(r, 200));
+  }
+  
+  // Nastav hard reset timestamp
+  let now = Date.now();
+  try{
+    await db.ref('meta/lastReset').set(now);
+    await db.ref('meta/hardWipeVersion').set("v51_full_wipe_20241031");
+    await db.ref('meta/resetReason').set("FULL WIPE V51 - Všichni od 0 - Zaječice fix - " + new Date().toISOString());
+    log(`✅ Nastaven meta/lastReset = ${now}`);
+    log(`✅ Nastaven hardWipeVersion = v51`);
+  }catch(e){ log(`❌ Meta error: ${e.message}`); }
+  
+  // Ověř že je prázdné
+  try{
+    let snap = await db.ref('saves').once('value');
+    log(`📊 Kontrola saves/: ${snap.numChildren()} záznamů (mělo by být 0)`);
+    let snap2 = await db.ref('players').once('value');
+    log(`📊 Kontrola players/: ${snap2.numChildren()} záznamů (mělo by být 0)`);
+    let snap3 = await db.ref('eventScores').once('value');
+    let total = 0;
+    snap3.forEach(()=>total++);
+    log(`📊 Kontrola eventScores: ${total} záznamů (mělo by být 0)`);
+  }catch(e){}
+  
+  log("");
+  log("🎉🎉🎉 WIPE DOKONČEN! 🎉🎉🎉");
+  log("Všichni hráči teď mají 0.");
+  log("Zaječice bude mít 0 krásy.");
+  log("Nahraj V51 verzi hry na GitHub!");
+  
+  document.getElementById('after').style.display = 'block';
+  btn.textContent = "✅ HOTOVO - WIPE PROVEDEN";
+  
+  // Vymaž i localStorage tohoto prohlížeče
+  try{
+    localStorage.clear();
+    sessionStorage.clear();
+    localStorage.setItem('gameVersion', 'v51_full_wipe_20241031_2024');
+    localStorage.setItem('lastResetCheck', now);
+    log("✅ LocalStorage tohoto prohlížeče vymazán");
+  }catch(e){}
+}
+
+// Auto-spustit pokud je ?auto=1 v URL
+if(new URLSearchParams(window.location.search).get('auto')==='1'){
+  setTimeout(doAutoWipe, 1000);
+}
+</script>
+</body>
+</html>
