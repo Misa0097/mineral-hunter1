@@ -2,34 +2,36 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Mineral Hunter - SERVER RESET TOOL</title>
+<title>Mineral Hunter - Vymazat SCORE EVENTŮ</title>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <style>
 body{background:#0e1a12;color:#fff;font-family:sans-serif;padding:20px;max-width:800px;margin:0 auto}
-h1{color:#ff4444}
-button{padding:16px 24px;font-size:18px;font-weight:900;border-radius:12px;border:2px solid #000;cursor:pointer;margin:10px 0}
+h1{color:#ffd700}
+button{padding:14px 20px;font-size:16px;font-weight:900;border-radius:10px;border:2px solid #000;cursor:pointer;margin:8px 4px}
 .danger{background:linear-gradient(135deg,#ff1744,#b71c1c);color:#fff}
 .safe{background:linear-gradient(135deg,#4caf50,#2e7d32);color:#000}
-pre{background:#1a221a;padding:12px;border-radius:8px;overflow:auto}
-input{padding:12px;font-size:16px;width:100%;border-radius:8px;border:2px solid #333;background:#111;color:#fff;margin:10px 0}
+.warn{background:linear-gradient(135deg,#ff9800,#ef6c00);color:#000}
+pre{background:#1a221a;padding:12px;border-radius:8px;overflow:auto;max-height:400px;white-space:pre-wrap}
+input{padding:12px;font-size:16px;border-radius:8px;border:2px solid #333;background:#111;color:#fff;margin:8px 0;width:100%;box-sizing:border-box}
+.event-item{background:#1a221a;border:1px solid #444;padding:10px;border-radius:8px;margin:6px 0;display:flex;justify-content:space-between;align-items:center}
 </style>
 </head>
 <body>
-<h1>🔥 MINERAL HUNTER - SERVER RESTART</h1>
-<p>Tento nástroj smaže <b>VŠECHNY</b> hráčské save, žebříčky, chat a online data.</p>
-<p>Všichni hráči začnou od znova s prázdným batohem.</p>
+<h1>🏆 Vymazat SCORE EVENTŮ</h1>
+<p>Smaže jen body z eventů a týdenní ligy. <b>Save hráčů, batohy, cihly zůstanou!</b></p>
 
 <div id="status">Připojuji se k Firebase...</div>
 
-<input type="password" id="pwd" placeholder="Zadej admin heslo: restart2025">
+<input type="password" id="pwd" placeholder="Admin heslo: restart2025" value="restart2025">
 
-<button class="safe" onclick="checkData()">👀 Zkontrolovat kolik dat je v DB</button>
-<pre id="dataInfo">Klikni na kontrolu...</pre>
+<button class="safe" onclick="checkEventScores()">👀 Zkontrolovat event score</button>
+<button class="danger" onclick="wipeEventScores()">💥 VYMAZAT VŠECHNY EVENT SCORE</button>
+<button class="warn" onclick="wipeWeeklyScores()">🗑️ Vymazat jen týdenní ligu</button>
 
-<button class="danger" onclick="doWipe()">💥 VYMAZAT VŠE - SERVER WIPE - POTVRDIT</button>
+<pre id="log">Log...</pre>
 
-<pre id="log"></pre>
+<div id="eventsList"></div>
 
 <script>
 const firebaseConfig = {
@@ -43,91 +45,136 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
-
 const ADMIN_PWD = "restart2025";
-const logEl = document.getElementById('log');
-const statusEl = document.getElementById('status');
 
 function log(msg){
-  logEl.textContent += msg + "\n";
+  document.getElementById('log').textContent += msg + "\n";
   console.log(msg);
 }
 
-statusEl.textContent = "✅ Připojeno k Firebase: " + firebaseConfig.databaseURL;
+document.getElementById('status').textContent = "✅ Připojeno k Firebase: mineral-hunter";
 
-async function checkData(){
-  log("Kontroluji data...");
+async function checkEventScores(){
+  log("🔍 Kontroluji event score...");
+  document.getElementById('eventsList').innerHTML = "";
   try{
-    const paths = ['saves','players','mineralBest','chat','globalAnnouncements','online','players/','meta','eventScores','weeklyScores','eventRewards'];
-    for(let p of paths){
-      try{
-        let snap = await db.ref(p).once('value');
-        let val = snap.val();
-        let count = val ? Object.keys(val).length : 0;
-        log(`📁 ${p}: ${count} záznamů`);
-      }catch(e){ log(`❌ ${p}: ${e.message}`); }
-    }
-  }catch(e){ log("Chyba: "+e.message); }
+    // eventScores
+    let snap = await db.ref('eventScores').once('value');
+    let totalPlayers = 0;
+    let events = [];
+    snap.forEach(eventSnap=>{
+      let eventId = eventSnap.key;
+      let players = [];
+      eventSnap.forEach(p=>{ players.push({nick:p.key, score:p.val()}); totalPlayers++; });
+      players.sort((a,b)=>b.score-a.score);
+      events.push({id:eventId, players});
+    });
+    
+    log(`📁 eventScores: ${events.length} eventů, ${totalPlayers} záznamů`);
+    events.forEach(ev=>{
+      log(`  🎉 ${ev.id}: ${ev.players.length} hráčů`);
+      ev.players.slice(0,5).forEach(p=> log(`    - ${p.nick}: ${p.score} bodů`));
+      if(ev.players.length>5) log(`    ... a ${ev.players.length-5} dalších`);
+    });
+    
+    // weeklyScores
+    let snapW = await db.ref('weeklyScores').once('value');
+    let weeks = [];
+    let totalW = 0;
+    snapW.forEach(weekSnap=>{
+      let weekId = weekSnap.key;
+      let players = [];
+      weekSnap.forEach(p=>{ players.push({nick:p.key, score:p.val()}); totalW++; });
+      weeks.push({id:weekId, players});
+    });
+    log(`📁 weeklyScores: ${weeks.length} týdnů, ${totalW} záznamů`);
+    weeks.forEach(w=>{
+      log(`  📅 ${w.id}: ${w.players.length} hráčů`);
+      w.players.slice(0,5).forEach(p=> log(`    - ${p.nick}: ${p.score}`));
+    });
+    
+    // eventRewards
+    let snapR = await db.ref('eventRewards').once('value');
+    let rewardsCount = 0;
+    snapR.forEach(nickSnap=>{ rewardsCount += nickSnap.numChildren(); });
+    log(`📁 eventRewards: ${rewardsCount} odměn u ${snapR.numChildren()} hráčů`);
+    
+    // Zobraz eventy s tlačítky na smazání jednotlivě
+    let html = "<h3>Jednotlivé eventy:</h3>";
+    events.forEach(ev=>{
+      html += `<div class="event-item"><span>🎉 ${ev.id} (${ev.players.length} hráčů)</span><button class="warn" onclick="wipeSingleEvent('${ev.id}')">Smazat tento</button></div>`;
+    });
+    weeks.forEach(w=>{
+      html += `<div class="event-item"><span>📅 Týden ${w.id} (${w.players.length} hráčů)</span><button class="warn" onclick="wipeSingleWeek('${w.id}')">Smazat tento týden</button></div>`;
+    });
+    document.getElementById('eventsList').innerHTML = html;
+    
+  }catch(e){ log("❌ Chyba: "+e.message); }
 }
 
-async function doWipe(){
+async function wipeEventScores(){
   let pwd = document.getElementById('pwd').value;
-  if(pwd !== ADMIN_PWD){
-    alert("Špatné heslo! Heslo je: restart2025");
-    return;
-  }
-  if(!confirm("OPRAVDU chceš smazat VŠECHNY save a žebříčky? Všichni hráči přijdou o věci!")) return;
-  if(!confirm("Ještě jednou - POTVRDIT TOTÁLNÍ WIPE?")) return;
-
-  log("🔥 ZAČÍNÁM WIPE...");
-  const pathsToDelete = [
-    'saves',
-    'players',
-    'mineralBest',
-    'chat',
-    'globalAnnouncements',
-    'online',
-    'players/',
-    'leaderboard',
-    'eventLeaderboard',
-    'weeklyLeaderboard',
-    'eventScores',
-    'weeklyScores',
-    'eventRewards',
-    'weeklyRewards',
-    'eventHistory',
-    'events'
-  ];
-
-  for(let path of pathsToDelete){
-    try{
-      log(`🗑️ Mažu ${path}...`);
-      await db.ref(path).remove();
-      log(`✅ Smazáno ${path}`);
-    }catch(e){
-      log(`❌ Chyba mazání ${path}: ${e.message}`);
-    }
-  }
-
-  // Nastav timestamp resetu - všichni klienti se pak sami vymažou
-  let now = Date.now();
-  try{
-    await db.ref('meta/lastReset').set(now);
-    await db.ref('meta/resetReason').set('Server restart - test od znova - ' + new Date().toISOString());
-    log(`✅ Nastaven meta/lastReset = ${now}`);
-  }catch(e){ log(`❌ Chyba meta: ${e.message}`); }
-
-  log("🎉 WIPE HOTOVÝ! Všichni hráči teď začnou od nuly.");
-  log("Teď nahraj novou verzi hry s auto-wipe logikou.");
+  if(pwd !== ADMIN_PWD){ alert("Špatné heslo!"); return; }
+  if(!confirm("Opravdu smazat VŠECHNY event score? Týdenní liga + všechny eventy?")) return;
+  if(!confirm("Potvrdit - smažou se všechny body z eventů!")) return;
   
-  // Vymaž i localStorage tohoto prohlížeče
+  log("💥 Mažu eventScores...");
   try{
-    localStorage.clear();
-    localStorage.setItem('lastResetCheck', now);
-    log("✅ LocalStorage tohoto prohlížeče vymazán");
-  }catch(e){}
+    await db.ref('eventScores').remove();
+    log("✅ eventScores smazáno");
+  }catch(e){ log("❌ eventScores: "+e.message); }
+  
+  log("💥 Mažu weeklyScores...");
+  try{
+    await db.ref('weeklyScores').remove();
+    log("✅ weeklyScores smazáno");
+  }catch(e){ log("❌ weeklyScores: "+e.message); }
+  
+  log("💥 Mažu eventRewards...");
+  try{
+    await db.ref('eventRewards').remove();
+    log("✅ eventRewards smazáno");
+  }catch(e){ log("❌ eventRewards: "+e.message); }
+  
+  log("🎉 HOTOVO! Všechny event score vymazány. Hráčům zůstanou věci, ale score je 0.");
+  alert("Event score vymazáno!");
+  checkEventScores();
+}
 
-  alert("WIPE HOTOVÝ! Server je prázdný.");
+async function wipeWeeklyScores(){
+  let pwd = document.getElementById('pwd').value;
+  if(pwd !== ADMIN_PWD){ alert("Špatné heslo!"); return; }
+  if(!confirm("Smazat jen týdenní ligu?")) return;
+  
+  try{
+    await db.ref('weeklyScores').remove();
+    log("✅ weeklyScores smazáno");
+    alert("Týdenní liga vymazána!");
+  }catch(e){ log("❌ "+e.message); }
+}
+
+async function wipeSingleEvent(eventId){
+  let pwd = document.getElementById('pwd').value;
+  if(pwd !== ADMIN_PWD){ alert("Špatné heslo!"); return; }
+  if(!confirm(`Smazat event ${eventId}?`)) return;
+  
+  try{
+    await db.ref(`eventScores/${eventId}`).remove();
+    log(`✅ Smazán event ${eventId}`);
+    checkEventScores();
+  }catch(e){ log("❌ "+e.message); }
+}
+
+async function wipeSingleWeek(weekId){
+  let pwd = document.getElementById('pwd').value;
+  if(pwd !== ADMIN_PWD){ alert("Špatné heslo!"); return; }
+  if(!confirm(`Smazat týden ${weekId}?`)) return;
+  
+  try{
+    await db.ref(`weeklyScores/${weekId}`).remove();
+    log(`✅ Smazán týden ${weekId}`);
+    checkEventScores();
+  }catch(e){ log("❌ "+e.message); }
 }
 </script>
 </body>
