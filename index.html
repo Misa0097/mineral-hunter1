@@ -1396,6 +1396,10 @@ function fixMuseum(){
 let museumLastCollected = Date.now();
 let museumPending = 0;
 let museumBaseIncomeRate = 0.01;
+// NOVÉ: pouze aktivní čas ve hře - muzeum je otevřené jen když je hráč ve hře
+let museumActiveMs = 0;
+let museumLastActiveTick = Date.now();
+let museumIsOpen = true;
 
 function getBeautyScore(mineral){
   if(!mineral) return 0;
@@ -1428,28 +1432,93 @@ function getMuseumIncomePerMinute(){
   return getMuseumTotalValue() * museumBaseIncomeRate;
 }
 function getMuseumPendingIncome(){
-  let now=Date.now();
-  let elapsedMs=now - museumLastCollected;
-  let elapsedMin=elapsedMs/60000;
+  // Vydělává POUZE podle aktivního času ve hře, ne podle reálného času
+  let elapsedMin = museumActiveMs / 60000;
   return Math.floor(elapsedMin * getMuseumIncomePerMinute());
 }
 function updateMuseumPending(){ museumPending=getMuseumPendingIncome(); }
 function collectMuseumIncome(){
-  let now=Date.now();
-  let elapsedMs=now - museumLastCollected;
-  if(elapsedMs < 5*60*1000){
-    let remain=Math.ceil((5*60*1000 - elapsedMs)/1000);
-    showToast("⏳ Výběr až za "+remain+"s (min 5 min)",1.5);
+  // min 5 minut AKTIVNÍHO času
+  if(museumActiveMs < 5*60*1000){
+    let remain=Math.ceil((5*60*1000 - museumActiveMs)/1000);
+    showToast("⏳ Výběr až za "+remain+"s (min 5 min aktivně ve hře)",1.5);
     return;
   }
   let income=getMuseumPendingIncome();
   if(income<=0){ showToast("Muzeum zatím nic nevydělalo"); return; }
   money+=income;
-  museumLastCollected=now;
+  museumLastCollected=Date.now();
+  museumActiveMs=0;
   museumPending=0;
   showToast("💰 Vybráno z muzea: "+income+" Kč",2);
   saveGame(); updateHUD(); renderMuseum();
 }
+
+// ticker pro aktivní čas - POČÍTÁ JEN KDYŽ JE KARTA VIDITELNÁ (hráč ve hře)
+function tickMuseumActive(){
+  let now=Date.now();
+  let delta = now - museumLastActiveTick;
+  museumLastActiveTick = now;
+  // ochrana proti velkým skokům (uspání PC, alt-tab dlouho, atd)
+  if(delta>2000) delta=1000;
+  if(delta<0 || delta>5000) delta=0;
+  // Muzeum otevřené JEN když je hráč ve hře = karta viditelná
+  // když zavře kartu / minimalizuje / přepne tab -> document.hidden = true -> STOP
+  if(!document.hidden){
+    museumActiveMs += delta;
+    museumIsOpen = true;
+  } else {
+    museumIsOpen = false;
+  }
+  // live update pokud je muzeum otevřené v UI
+  try{
+    updateMuseumPending();
+    let pendEl = document.getElementById('museumPendingValue');
+    if(pendEl){
+      pendEl.textContent = museumPending + ' Kč';
+      // barva podle stavu
+      pendEl.style.color = museumIsOpen ? '#4caf50' : '#888';
+    }
+    let statusEl = document.getElementById('museumStatus');
+    if(statusEl){
+      statusEl.textContent = museumIsOpen ? '🟢 OTEVŘENO - vydělává' : '🔴 ZAVŘENO - hráč mimo hru';
+      statusEl.style.color = museumIsOpen ? '#4caf50' : '#f44336';
+    }
+    let activeEl = document.getElementById('museumActiveTime');
+    if(activeEl){
+      let mins = Math.floor(museumActiveMs/60000);
+      let secs = Math.floor((museumActiveMs%60000)/1000);
+      activeEl.textContent = mins + 'm ' + secs + 's aktivně';
+    }
+  }catch(e){}
+}
+// spustit ticker každých 100ms pro přesnost, ale ukládá po 1s
+setInterval(tickMuseumActive, 1000);
+setTimeout(()=>{ museumLastActiveTick=Date.now(); }, 100);
+
+// když hráč odejde/zavře kartu - muzeum zavře, stopne výdělek
+document.addEventListener('visibilitychange', ()=>{
+  if(document.hidden){
+    museumIsOpen=false;
+    console.log('🏛️ Muzeum ZAVŘENO - hráč opustil hru, výdělek STOP');
+  } else {
+    museumIsOpen=true;
+    museumLastActiveTick=Date.now();
+    console.log('🏛️ Muzeum OTEVŘENO - hráč zpět ve hře, výdělek jede');
+  }
+  try{ saveGame(); }catch(e){}
+});
+window.addEventListener('focus', ()=>{
+  museumIsOpen=true;
+  museumLastActiveTick=Date.now();
+});
+window.addEventListener('blur', ()=>{
+  // blur necháme jet, zavírá se jen při hidden (zavření karty)
+  // pokud chceš aby se zavřelo i při ztrátě focusu, odkomentuj:
+  // museumIsOpen=false;
+});
+window.addEventListener('pagehide', ()=>{ try{ saveGame(); }catch(e){} });
+window.addEventListener('beforeunload', ()=>{ try{ saveGame(); }catch(e){} });
 function getGalleryBonuses(){
   let lvl=getMuseumLevel();
   let bonuses={tezba:0, rychlost:0, energieRegen:0, cistota:0, vaha:0, energieMax:0, findChance:0};
@@ -1569,12 +1638,19 @@ function renderMuseum(){
     try{ fixMuseum(); }catch(e){}
     let filled = museum.filter(m=>m).length;
     let free = museumSize - filled;
+    let isOpenNow = !document.hidden;
+    let statusText = isOpenNow ? '🟢 OTEVŘENO - vydělává' : '🔴 ZAVŘENO - hráč mimo hru';
+    let statusColor = isOpenNow ? '#4caf50' : '#f44336';
+    let activeMins = Math.floor(museumActiveMs/60000);
+    let activeSecs = Math.floor((museumActiveMs%60000)/1000);
     header.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">'
       +'<div><div style="font-size:14px;font-weight:800;color:#7dd8ff">🏛️ Muzeum - Level '+lvl+'/100</div>'
+      +'<div id="museumStatus" style="font-size:10px;font-weight:700;color:'+statusColor+'">'+statusText+'</div>'
       +'<div style="font-size:10px;color:#8a9a8a">Skóre krásy: <b style="color:#ffeb3b">'+totalBeauty+'</b> | Hodnota: <b style="color:#4caf50">'+totalVal+' Kč</b><br>'
-      +'Příjem: <b style="color:#a5d6a7">'+Math.floor(perMin)+' Kč/min</b> | Obsazeno: <b style="color:#ffeb3b">'+filled+'/'+museumSize+'</b> | Volné: <b style="color:#4caf50">'+free+'</b></div></div>'
-      +'<div style="text-align:right"><div style="font-size:10px;color:#aaa">K výběru:</div><div style="font-size:16px;font-weight:800;color:#4caf50">'+pending+' Kč</div>'
-      +'<button id="collectMuseumBtn" style="margin-top:4px;background:#4caf50;color:#000;border:none;border-radius:6px;padding:5px 10px;font-weight:800;font-size:11px;cursor:pointer">💰 VYBRAT (5min)</button></div>'
+      +'Příjem: <b style="color:#a5d6a7">'+Math.floor(perMin)+' Kč/min</b> | Obsazeno: <b style="color:#ffeb3b">'+filled+'/'+museumSize+'</b> | Volné: <b style="color:#4caf50">'+free+'</b><br>'
+      +'<span id="museumActiveTime" style="font-size:9px;color:#aaa">'+activeMins+'m '+activeSecs+'s aktivně</span></div></div>'
+      +'<div style="text-align:right"><div style="font-size:10px;color:#aaa">K výběru (jen aktivní čas):</div><div id="museumPendingValue" style="font-size:16px;font-weight:800;color:'+(isOpenNow?'#4caf50':'#888')+'">'+pending+' Kč</div>'
+      +'<button id="collectMuseumBtn" style="margin-top:4px;background:#4caf50;color:#000;border:none;border-radius:6px;padding:5px 10px;font-weight:800;font-size:11px;cursor:pointer">💰 VYBRAT (5min aktivně)</button></div>'
       +'</div>'
       +'<div style="margin-top:8px;background:rgba(0,0,0,0.2);border-radius:6px;padding:6px"><div style="font-size:9px;color:#4fc3f7;font-weight:700;text-align:center">BONUSY Z GALERIE - Level '+lvl+'</div>'
       +'<div style="display:flex;flex-wrap:wrap;gap:3px;justify-content:center;margin-top:4px">'+bonusHtml+'</div>'
@@ -7397,7 +7473,7 @@ function saveGame(){
      money,found,goldBricks,
      pickaxeLegacyLevels:player.pickaxeLegacyLevels||[0,0,0,0,0],
      inventory,equipped,petsOwned,activePetId,
-     museum, museumSize, museumExpansionLevel, museumLastCollected, museumPending,
+     museum, museumSize, museumExpansionLevel, museumLastCollected, museumPending, museumActiveMs,
      player:{tool:player.tool,baseMaxEnergy:player.baseMaxEnergy,energyUpgrades:player.energyUpgrades,maxEnergy:player.maxEnergy,energy:player.energy,x:player.x,y:player.y},
      dug:world.map(row=>row.map(c=>({dug:c.dug, dugTime:c.dugTime}))),
      emptyDigs,vipEndTime,fireMapEndTime,iceMapEndTime,isFireMapActive,isIceMapActive,crystalCaveEndTime,isCrystalCaveActive:crystalCaveActive,crystalCaveLastBuyTime
@@ -7459,7 +7535,14 @@ function loadGame(){
      for(let i=0;i<museum.length;i++) if(typeof museum[i]==='undefined') museum[i]=null;
    }catch(e){}
    if(typeof s.museumLastCollected==="number") museumLastCollected=s.museumLastCollected;
-   if(typeof s.museumPending==="number") museumPending=s.museumPending;
+   // museumPending z offline se už nepoužívá - přepočítá se z aktivního času
+   if(typeof s.museumActiveMs==="number") museumActiveMs=s.museumActiveMs; else museumActiveMs=0;
+   // ochrana proti starému offline příjmu - pokud nebylo aktivní Ms uloženo, nedávat offline peníze
+   museumPending = 0;
+   try{ museumPending = Math.floor((museumActiveMs/60000) * (typeof getMuseumTotalValue==='function' ? getMuseumTotalValue()*museumBaseIncomeRate : 0)); }catch(e){ museumPending=0; }
+   // reset ticker - aby se nepočítal offline čas
+   museumLastActiveTick=Date.now();
+   museumIsOpen = !document.hidden;
 
    if(Array.isArray(s.petsOwned)) petsOwned=s.petsOwned;
    if(s.activePetId) activePetId=s.activePetId;
