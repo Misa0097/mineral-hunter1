@@ -10303,7 +10303,7 @@ function applySaveData(save){
       save.inventory.forEach(it=>{ 
         if(!it) return;
         // FIX: whitelist musí obsahovat všechny Mystery Boxy a odměny z eventů
-        if(it && (typeof it.type==="number" || it.isTool || it.isEquipment || it.isChanger || it.isAuraCapeChanger || it.isSpecialChanger || it.isFeed || it.isFireMap || it.isIceMap || it.isVIPItem || it.isEnergyDrink || it.isSuperEnergyDrink || it.isMysteryBox || it.isMysteryAllBox || it.isMysteryFeedBox || it.isMysteryEquipBox || it.isMysteryEquipBoxLegendary || it.isMasterMysteryBox || it.isMysteryBoxAll || it.isMysteryAll || it.isCape || it.isAura || it.isBlueAura || it.isPinkAura || it.isVoidAura || it.isElectricAura || it.isForgeParchment || it.isGoldenAura)){
+        if(it && (typeof it.type==="number" || it.isTool || it.isEquipment || it.isChanger || it.isAuraCapeChanger || it.isSpecialChanger || it.isFeed || it.isFireMap || it.isIceMap || it.isVIPItem || it.isEnergyDrink || it.isSuperEnergyDrink || it.isMysteryBox || it.isMysteryAllBox || it.isMysteryFeedBox || it.isMysteryEquipBox || it.isMysteryEquipBoxLegendary || it.isMasterMysteryBox || it.isMysteryBoxAll || it.isMysteryAll || it.isCape || it.isAura || it.isBlueAura || it.isPinkAura || it.isVoidAura || it.isElectricAura || it.isForgeParchment || it.isGoldenAura || it.isMeltingFurnace || it.isGoldMachine || it.isPlotDrill || it.isDrill || it.isPlotMap || it.isGoldNugget)){
           if(!it.id) it.id=nextToolId(); inventory.push(it);
         } else if(it.id){
           // Fallback - cokoliv s ID zachovej (ochrana proti ztrátě)
