@@ -2683,12 +2683,26 @@ function enterPlotMap(){
   saveGame();
 }
 
-function exitPlotMap(){
-  if(!isPlotMapActive) return;
-  if(isPlacingDrill){
-    isPlacingDrill=false;
-    placingDrillItemId=null;
-  }
+function exitPlotMap(){   if(!isPlotMapActive) return;   if(isPlacingDrill){     isPlacingDrill=false;     placingDrillItemId=null;   }
+  // FIX V68: zavri vsechny plot modaly pri odchodu z pozemku - aby se neukazovaly na zakladni mape
+  try{
+    let goldModal=document.getElementById('goldMachineControlModal');
+    if(goldModal) goldModal.style.display='none';
+    let furnaceModal=document.getElementById('meltingFurnaceControlModal');
+    if(furnaceModal) furnaceModal.style.display='none';
+    let drillModal=document.getElementById('plotDrillControlModal')||document.getElementById('drillControlModal');
+    if(drillModal) drillModal.style.display='none';
+    window.nearbyGoldMachineId=null;
+    window.nearbyMeltingFurnaceId=null;
+    window.nearbyDrillId=null;
+    if(typeof nearbyGoldMachineId!=='undefined') nearbyGoldMachineId=null;
+    if(typeof nearbyMeltingFurnaceId!=='undefined') nearbyMeltingFurnaceId=null;
+    if(typeof nearbyDrillId!=='undefined') nearbyDrillId=null;
+    if(typeof curGoldMachineId!=='undefined') curGoldMachineId=null;
+    if(typeof curMeltingFurnaceId!=='undefined') curMeltingFurnaceId=null;
+    let digBtn=document.getElementById('dig');
+    if(digBtn){ digBtn.style.display='flex'; digBtn.innerHTML='⛏<br>KOPEJ'; }
+  }catch(e){}
   isPlotMapActive=false;
   WORLD_W=ORIGINAL_WORLD_W||90;
   WORLD_H=ORIGINAL_WORLD_H||90;
@@ -10348,7 +10362,7 @@ saveGame = function(){
   _origSaveGame();
   if(currentNick){
     try{
-      const save={money,found,goldBricks,pickaxeLegacyLevels:player.pickaxeLegacyLevels||[0,0,0,0,0],inventory,equipped,petsOwned,activePetId,museum,museumSize,museumExpansionLevel,museumLastCollected,museumPending,player:{tool:player.tool,baseMaxEnergy:player.baseMaxEnergy,energyUpgrades:player.energyUpgrades,maxEnergy:player.maxEnergy,energy:player.energy,x:player.x,y:player.y},dug:world.map(row=>row.map(c=>({dug:c.dug, dugTime:c.dugTime}))),emptyDigs,vipEndTime,fireMapEndTime,iceMapEndTime,isFireMapActive,isIceMapActive};
+      const save={money,found,goldBricks,pickaxeLegacyLevels:player.pickaxeLegacyLevels||[0,0,0,0,0],inventory,equipped,petsOwned,activePetId,museum,museumSize,museumExpansionLevel,museumLastCollected,museumPending,museumActiveMs,plotSizeW,plotSizeH,plotExpansionLevel,PLOT_BASE_W,PLOT_BASE_H,plotDrills,plotDrillHoles,goldMachines,meltingFurnaces,goldTotal,player:{tool:player.tool,baseMaxEnergy:player.baseMaxEnergy,energyUpgrades:player.energyUpgrades,maxEnergy:player.maxEnergy,energy:player.energy,x:player.x,y:player.y},dug:world.map(row=>row.map(c=>({dug:c.dug, dugTime:c.dugTime}))),emptyDigs,vipEndTime,fireMapEndTime,iceMapEndTime,isFireMapActive,isIceMapActive,crystalCaveEndTime,isCrystalCaveActive:typeof crystalCaveActive!=='undefined'?crystalCaveActive:false};
       localStorage.setItem("mineralHunterSave_"+currentNick, JSON.stringify(save));
     }catch(e){}
     savePlayerToFirebase(true);
