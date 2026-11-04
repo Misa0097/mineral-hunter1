@@ -2684,7 +2684,6 @@ function enterPlotMap(){
 }
 
 function exitPlotMap(){   if(!isPlotMapActive) return;   if(isPlacingDrill){     isPlacingDrill=false;     placingDrillItemId=null;   }
-  // FIX V68: zavri vsechny plot modaly pri odchodu z pozemku - aby se neukazovaly na zakladni mape
   try{
     let goldModal=document.getElementById('goldMachineControlModal');
     if(goldModal) goldModal.style.display='none';
@@ -8217,6 +8216,10 @@ function loadGame(){
    if(typeof s.plotSizeH==='number' && s.plotSizeH>=10) plotSizeH=s.plotSizeH; else plotSizeH=10;
    if(typeof s.plotExpansionLevel==='number') plotExpansionLevel=s.plotExpansionLevel; else { plotExpansionLevel=Math.floor((plotSizeW-10)/5); if(plotExpansionLevel<0) plotExpansionLevel=0; }
    if(Array.isArray(s.plotDrills)) plotDrills=s.plotDrills; else plotDrills=[];
+    if(Array.isArray(s.plotDrillHoles)){ let now=Date.now(); plotDrillHoles=s.plotDrillHoles.filter(h=>h.expiresAt && now < h.expiresAt); window.plotDrillHoles=plotDrillHoles; }
+    if(Array.isArray(s.goldMachines)){ goldMachines=s.goldMachines; window.goldMachines=goldMachines; }
+    if(Array.isArray(s.meltingFurnaces)){ meltingFurnaces=s.meltingFurnaces; window.meltingFurnaces=meltingFurnaces; console.log("✅ Pec načtena z main load:", meltingFurnaces.length); }
+    if(typeof s.goldTotal==='number'){ goldTotal=s.goldTotal; window.goldTotal=goldTotal; }
 
    if(typeof s.plotSizeW==='number' && s.plotSizeW>=10) plotSizeW=s.plotSizeW; else plotSizeW=10;
    if(typeof s.plotSizeH==='number' && s.plotSizeH>=10) plotSizeH=s.plotSizeH; else plotSizeH=10;
@@ -14106,15 +14109,17 @@ let goldTotal = 0;
 let placingGoldCooldown=0;
 let placingGoldMachineCooldown=0;
 window.goldTotal = 0;
-
-try {
-  let s = localStorage.getItem('mineralHunterSave_v3');
-  if(s) {
-    let o = JSON.parse(s);
-    if(o.goldTotal) { goldTotal=o.goldTotal; window.goldTotal=o.goldTotal; }
-    if(o.goldMachines) goldMachines=o.goldMachines;
-  }
-} catch(e){}
+  try {
+    let s = localStorage.getItem('mineralHunterSave_v3');
+    if(s) {
+      let o = JSON.parse(s);
+      if(o.goldTotal) { goldTotal=o.goldTotal; window.goldTotal=o.goldTotal; }
+      if(o.goldMachines) { goldMachines=o.goldMachines; window.goldMachines=goldMachines; console.log("✅ Stroj early load:", goldMachines.length); }
+      if(o.meltingFurnaces) { meltingFurnaces=o.meltingFurnaces; window.meltingFurnaces=meltingFurnaces; console.log("✅ Pec early load:", meltingFurnaces.length); }
+      if(o.plotDrillHoles) { let now=Date.now(); plotDrillHoles=o.plotDrillHoles.filter(h=>h.expiresAt && now < h.expiresAt); window.plotDrillHoles=plotDrillHoles; console.log("✅ Díry early load:", plotDrillHoles.length); }
+      if(o.plotDrills) { plotDrills=o.plotDrills; window.plotDrills=plotDrills; }
+    }
+  } catch(e){}
 
 function randomHourlyGold() { return Math.floor(Math.random()*901)+100; }
 
