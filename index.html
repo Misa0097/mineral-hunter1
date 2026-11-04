@@ -2684,6 +2684,7 @@ function enterPlotMap(){
 }
 
 function exitPlotMap(){   if(!isPlotMapActive) return;   if(isPlacingDrill){     isPlacingDrill=false;     placingDrillItemId=null;   }
+  // FIX V72: zavri vsechny plot modaly pri odchodu z pozemku - aby se neukazovaly na zakladni mape
   try{
     let goldModal=document.getElementById('goldMachineControlModal');
     if(goldModal) goldModal.style.display='none';
@@ -2699,8 +2700,29 @@ function exitPlotMap(){   if(!isPlotMapActive) return;   if(isPlacingDrill){    
     if(typeof nearbyDrillId!=='undefined') nearbyDrillId=null;
     if(typeof curGoldMachineId!=='undefined') curGoldMachineId=null;
     if(typeof curMeltingFurnaceId!=='undefined') curMeltingFurnaceId=null;
+    // Reset dig button na KOPEJ a spravny handler
     let digBtn=document.getElementById('dig');
-    if(digBtn){ digBtn.style.display='flex'; digBtn.innerHTML='⛏<br>KOPEJ'; }
+    if(digBtn){
+      digBtn.style.display='flex';
+      digBtn.innerHTML='⛏<br>KOPEJ';
+      digBtn.style.background='radial-gradient(circle at 30% 30%, #a06a3a, #6b4425)';
+      digBtn.style.border='3px solid #c07a3a';
+      digBtn.style.color='#fff';
+      // Odstran stary onclick ktery otviral pec
+      digBtn.onclick=null;
+      // Nastav novy handler co vola dig()
+      try{
+        let newHandler = function(e){
+          e.preventDefault();
+          if(typeof dig==='function') dig();
+        };
+        // Odstran vsechny stare listeners klonovanim
+        let clone = digBtn.cloneNode(true);
+        digBtn.parentNode.replaceChild(clone, digBtn);
+        clone.addEventListener('click', newHandler);
+        clone.addEventListener('pointerdown', newHandler, {passive:false});
+      }catch(e){}
+    }
   }catch(e){}
   isPlotMapActive=false;
   WORLD_W=ORIGINAL_WORLD_W||90;
@@ -2728,7 +2750,8 @@ function exitPlotMap(){   if(!isPlotMapActive) return;   if(isPlacingDrill){    
     }
   }catch(e){}
   try{ updatePlotMapUI(); }catch(e){}
-  saveGame();
+  try{ if(typeof saveGame==='function') saveGame(); }catch(e){}
+  try{ localStorage.setItem('meltingFurnaces_backup', JSON.stringify(meltingFurnaces)); }catch(e){}
 }
 
 function updatePlotMapUI(){
@@ -11316,7 +11339,20 @@ setInterval(checkEventSchedule, 1000);
 setTimeout(checkEventSchedule, 1500);
 setInterval(()=>{ if(document.getElementById('eventPanel')?.classList.contains('open')) renderEventPanel(); }, 1000);
 setInterval(()=>{ try{ checkWeeklyTournamentEnd(); }catch(e){} }, 60000); // kontrola týdne každou minutu
-setInterval(()=>{ try{ if(currentNick) { claimPendingEventRewards(); claimPendingWeeklyRewards(); } }catch(e){} }, 30000); // kontrola odměn každých 30s
+setInterval(()=>{ try{ if(currentNick) { claimPendingEventRewards(); claimPendingWeeklyRewards(); } }catch(e){} }, 30000);
+
+// V72 - 100% pec save - auto save kazdych 5s na pozemku + pri kazdem umisteni
+setInterval(()=>{
+  try{
+    if((typeof isPlotMapActiveCheck==='function' && isPlotMapActiveCheck()) || (typeof isPlotMapActive!=='undefined' && isPlotMapActive)){
+      if(typeof saveGame==='function') saveGame();
+      localStorage.setItem('meltingFurnaces_backup', JSON.stringify(meltingFurnaces));
+      localStorage.setItem('plotDrillHoles_backup', JSON.stringify(plotDrillHoles));
+      localStorage.setItem('goldMachines_backup', JSON.stringify(goldMachines));
+    }
+  }catch(e){}
+}, 5000);
+ // kontrola odměn každých 30s
 
 
 window.openEventPanel = openEventPanel;
@@ -14115,11 +14151,25 @@ window.goldTotal = 0;
       let o = JSON.parse(s);
       if(o.goldTotal) { goldTotal=o.goldTotal; window.goldTotal=o.goldTotal; }
       if(o.goldMachines) { goldMachines=o.goldMachines; window.goldMachines=goldMachines; console.log("✅ Stroj early load:", goldMachines.length); }
-      if(o.meltingFurnaces) { meltingFurnaces=o.meltingFurnaces; window.meltingFurnaces=meltingFurnaces; console.log("✅ Pec early load:", meltingFurnaces.length); }
+      if(o.meltingFurnaces && o.meltingFurnaces.length>0) { meltingFurnaces=o.meltingFurnaces; window.meltingFurnaces=meltingFurnaces; console.log("✅ Pec early load:", meltingFurnaces.length); }
+      else {
+        // Fallback z backup klíče
+        try{
+          let fb = localStorage.getItem('meltingFurnaces_backup');
+          if(fb){ let arr=JSON.parse(fb); if(Array.isArray(arr) && arr.length>0){ meltingFurnaces=arr; window.meltingFurnaces=arr; console.log("✅ Pec backup load:", arr.length); } }
+        }catch(e){}
+      }
       if(o.plotDrillHoles) { let now=Date.now(); plotDrillHoles=o.plotDrillHoles.filter(h=>h.expiresAt && now < h.expiresAt); window.plotDrillHoles=plotDrillHoles; console.log("✅ Díry early load:", plotDrillHoles.length); }
       if(o.plotDrills) { plotDrills=o.plotDrills; window.plotDrills=plotDrills; }
     }
   } catch(e){}
+  // Extra backup load pro pec - kdyby hlavní save selhal
+  try{
+    if((!meltingFurnaces || meltingFurnaces.length===0)){
+      let fb = localStorage.getItem('meltingFurnaces_backup');
+      if(fb){ let arr=JSON.parse(fb); if(Array.isArray(arr) && arr.length>0){ meltingFurnaces=arr; window.meltingFurnaces=arr; console.log("✅ Pec backup2 load:", arr.length); } }
+    }
+  }catch(e){}
 
 function randomHourlyGold() { return Math.floor(Math.random()*901)+100; }
 
@@ -15001,6 +15051,7 @@ window._furnaceJoystickPatched = true;
     let newF = { x:x, y:y, w:2, h:3, id:Date.now()+Math.random(), placedAt:Date.now() };
     if(typeof meltingFurnaces === 'undefined') window.meltingFurnaces = [];
     meltingFurnaces.push(newF);
+    try{ localStorage.setItem('meltingFurnaces_backup', JSON.stringify(meltingFurnaces)); }catch(e){}
     window.meltingFurnaces = meltingFurnaces;
     let inv = (typeof inventory !== 'undefined' ? inventory : window.inventory);
     if(inv){
