@@ -1492,7 +1492,8 @@ function tickMuseumActive(){
 }
 // spustit ticker každých 100ms pro přesnost, ale ukládá po 1s
 setInterval(tickMuseumActive, 1000);
-setTimeout(()=>{ museumLastActiveTick=Date.now(); }, 100);
+setTimeout(()=>{ museumLastActiveTick=Date.now();   try{ processOfflineGoldGeneration(); console.log('✅ Offline gold po loadGame'); }catch(e){}
+    }, 100);
 
 // když hráč odejde/zavře kartu - muzeum zavře, stopne výdělek
 document.addEventListener('visibilitychange', ()=>{
@@ -1502,6 +1503,7 @@ document.addEventListener('visibilitychange', ()=>{
   } else {
     museumIsOpen=true;
     museumLastActiveTick=Date.now();
+      try{ processOfflineGoldGeneration(); console.log('✅ Offline gold po loadGame'); }catch(e){}
     console.log('🏛️ Muzeum OTEVŘENO - hráč zpět ve hře, výdělek jede');
   }
   try{ saveGame(); }catch(e){}
@@ -1509,7 +1511,8 @@ document.addEventListener('visibilitychange', ()=>{
 window.addEventListener('focus', ()=>{
   museumIsOpen=true;
   museumLastActiveTick=Date.now();
-});
+  try{ processOfflineGoldGeneration(); console.log('✅ Offline gold po loadGame'); }catch(e){}
+    });
 window.addEventListener('blur', ()=>{
   // blur necháme jet, zavírá se jen při hidden (zavření karty)
   // pokud chceš aby se zavřelo i při ztrátě focusu, odkomentuj:
@@ -8241,7 +8244,7 @@ function loadGame(){
    if(Array.isArray(s.plotDrills)) plotDrills=s.plotDrills; else plotDrills=[];
     if(Array.isArray(s.plotDrillHoles)){ let now=Date.now(); plotDrillHoles=s.plotDrillHoles.filter(h=>h.expiresAt && now < h.expiresAt); window.plotDrillHoles=plotDrillHoles; }
     if(Array.isArray(s.goldMachines)){ goldMachines=s.goldMachines; window.goldMachines=goldMachines; }
-    if(Array.isArray(s.meltingFurnaces)){ meltingFurnaces=s.meltingFurnaces; window.meltingFurnaces=meltingFurnaces; console.log("✅ Pec načtena z main load:", meltingFurnaces.length); }
+    if(Array.isArray(s.meltingFurnaces)){ meltingFurnaces=s.meltingFurnaces.map(f=>{ if(!f.expiresAt) f.expiresAt=Date.now()+100*365*24*3600*1000; return f; }); window.meltingFurnaces=meltingFurnaces; console.log("✅ Pec načtena z main load (100 let):", meltingFurnaces.length); }
     if(typeof s.goldTotal==='number'){ goldTotal=s.goldTotal; window.goldTotal=goldTotal; }
 
    if(typeof s.plotSizeW==='number' && s.plotSizeW>=10) plotSizeW=s.plotSizeW; else plotSizeW=10;
@@ -8271,7 +8274,8 @@ function loadGame(){
    try{ museumPending = Math.floor((museumActiveMs/60000) * (typeof getMuseumTotalValue==='function' ? getMuseumTotalValue()*museumBaseIncomeRate : 0)); }catch(e){ museumPending=0; }
    // reset ticker - aby se nepočítal offline čas
    museumLastActiveTick=Date.now();
-   museumIsOpen = !document.hidden;
+     try{ processOfflineGoldGeneration(); console.log('✅ Offline gold po loadGame'); }catch(e){}
+    museumIsOpen = !document.hidden;
 
    if(Array.isArray(s.petsOwned)) petsOwned=s.petsOwned;
    if(s.activePetId) activePetId=s.activePetId;
@@ -14151,7 +14155,12 @@ window.goldTotal = 0;
       let o = JSON.parse(s);
       if(o.goldTotal) { goldTotal=o.goldTotal; window.goldTotal=o.goldTotal; }
       if(o.goldMachines) { goldMachines=o.goldMachines; window.goldMachines=goldMachines; console.log("✅ Stroj early load:", goldMachines.length); }
-      if(o.meltingFurnaces && o.meltingFurnaces.length>0) { meltingFurnaces=o.meltingFurnaces; window.meltingFurnaces=meltingFurnaces; console.log("✅ Pec early load:", meltingFurnaces.length); }
+      if(o.meltingFurnaces && o.meltingFurnaces.length>0) {
+      // V73: nastav nekonecnou casomiru pokud chybi, ale skryj ji v UI
+      meltingFurnaces=o.meltingFurnaces.map(f=>{ if(!f.expiresAt) f.expiresAt=Date.now()+100*365*24*3600*1000; return f; });
+      window.meltingFurnaces=meltingFurnaces;
+      console.log("✅ Pec early load (100 let):", meltingFurnaces.length);
+    }
       else {
         // Fallback z backup klíče
         try{
@@ -14167,11 +14176,108 @@ window.goldTotal = 0;
   try{
     if((!meltingFurnaces || meltingFurnaces.length===0)){
       let fb = localStorage.getItem('meltingFurnaces_backup');
-      if(fb){ let arr=JSON.parse(fb); if(Array.isArray(arr) && arr.length>0){ meltingFurnaces=arr; window.meltingFurnaces=arr; console.log("✅ Pec backup2 load:", arr.length); } }
+      if(fb){ let arr=JSON.parse(fb); if(Array.isArray(arr) && arr.length>0){ arr=arr.map(f=>{ if(!f.expiresAt) f.expiresAt=Date.now()+100*365*24*3600*1000; return f; }); meltingFurnaces=arr; window.meltingFurnaces=arr; console.log("✅ Pec backup2 load (100 let):", arr.length); } }
     }
   }catch(e){}
 
 function randomHourlyGold() { return Math.floor(Math.random()*901)+100; }
+
+// V75 - OFFLINE GENERACE ZLATA - 100-1000g/h i kdyz je hra vypla
+function processOfflineGoldGeneration(){
+  try{
+    let now = Date.now();
+    let changed = false;
+    let toRemove = [];
+    for(let i=0;i<goldMachines.length;i++){
+      let gm = goldMachines[i];
+      if(!gm.lastMinuteTick) gm.lastMinuteTick = gm.placedAt || now;
+      // Pokud uz expiroval offline
+      if(now >= gm.expiresAt){
+        // Dogeneruj zbytek do expirace
+        let remainingMs = Math.max(0, gm.expiresAt - gm.lastMinuteTick);
+        let remainingMins = Math.floor(remainingMs / 60000);
+        // Omez na max 360 minut (6h)
+        remainingMins = Math.min(remainingMins, 360);
+        for(let m=0;m<remainingMins;m++){
+          if(gm.minutesThisHour>=60){
+            let nt; do{ nt=randomHourlyGold(); }while(nt===gm.hourlyTarget);
+            gm.hourlyTarget=nt; gm.generatedThisHour=0; gm.minutesThisHour=0;
+          }
+          let remM = 60 - gm.minutesThisHour;
+          let remG = gm.hourlyTarget - gm.generatedThisHour;
+          let gen;
+          if(remM<=1) gen=remG;
+          else {
+            let avg=remG/remM;
+            let max=Math.max(1, Math.floor(avg*2.2));
+            gen=Math.floor(Math.random()*max)+1;
+            if(gen>remG) gen=remG;
+          }
+          gm.goldCollected+=gen;
+          gm.generatedThisHour+=gen;
+          gm.totalGenerated+=gen;
+          gm.minutesThisHour++;
+        }
+        gm.lastMinuteTick = gm.expiresAt;
+        toRemove.push(i);
+        changed=true;
+        continue;
+      }
+      // Normal offline - spocitej kolik minut uběhlo
+      let offlineMs = now - gm.lastMinuteTick;
+      let offlineMins = Math.floor(offlineMs / 60000);
+      // Cap na max 360 minut a na zbývající čas do expirace
+      let maxMinsUntilExpire = Math.floor((gm.expiresAt - gm.lastMinuteTick)/60000);
+      offlineMins = Math.min(offlineMins, maxMinsUntilExpire, 360);
+      if(offlineMins>0){
+        for(let m=0;m<offlineMins;m++){
+          if(gm.minutesThisHour>=60){
+            let nt; do{ nt=randomHourlyGold(); }while(nt===gm.hourlyTarget);
+            gm.hourlyTarget=nt; gm.generatedThisHour=0; gm.minutesThisHour=0;
+          }
+          let remM = 60 - gm.minutesThisHour;
+          let remG = gm.hourlyTarget - gm.generatedThisHour;
+          let gen;
+          if(remM<=1) gen=remG;
+          else {
+            let avg=remG/remM;
+            let max=Math.max(1, Math.floor(avg*2.2));
+            gen=Math.floor(Math.random()*max)+1;
+            if(gen>remG) gen=remG;
+          }
+          gm.goldCollected+=gen;
+          gm.generatedThisHour+=gen;
+          gm.totalGenerated+=gen;
+          gm.minutesThisHour++;
+        }
+        gm.lastMinuteTick = gm.lastMinuteTick + offlineMins*60000;
+        changed=true;
+      }
+    }
+    // Expirovane stroje vrat do batohu i offline
+    if(toRemove.length){
+      toRemove.sort((a,b)=>b-a);
+      for(let idx of toRemove){
+        let gm=goldMachines[idx];
+        // Uloz zbylé zlato do goldTotal? Ne, zustane v inventari jako valouny po vybrani - ale pokud expiroval offline, vrat stroj s goldCollected
+        if(gm.goldCollected>0){
+          // Pridat valouny rovnou? Ne, nechame ve stroji a vratime stroj
+          console.log("⏳ Stroj offline expiroval, vracím do batohu s", gm.goldCollected+"g");
+        }
+        inventory.push({ id:Date.now()+Math.random(), name:"Stroj na zlato", icon:typeof GOLD_MACHINE_ICON_BASE64!=='undefined'?GOLD_MACHINE_ICON_BASE64:'', iconSmall:typeof GOLD_MACHINE_ICON_BASE64!=='undefined'?GOLD_MACHINE_ICON_BASE64:'', price:0, isGoldMachine:true, description:"100-1000g/h, díra 6h", count:1, _offlineGold:gm.goldCollected });
+        goldMachines.splice(idx,1);
+      }
+      try{ renderInventory(); }catch(e){}
+      showToast("⏳ Stroje expirovaly offline a vrátily se do batohu!",3);
+    }
+    if(changed){
+      try{ saveGame(); }catch(e){}
+      console.log("✅ Offline generace zlata: zpracováno");
+    }
+    return changed;
+  }catch(e){ console.error("Offline gold gen err", e); return false; }
+}
+
 
 function isDrillHoleAtForGold(x,y,w=2,h=3) {
   // Stačí aby alespoň 1 dlaždice z 2x3 byla uvnitř vykopané díry (3x3) - benevolentnější pro hráče
@@ -14622,7 +14728,7 @@ function placeMeltingFurnace(){
   if(!isPlacingMeltingFurnace) return;
   let x=placingMeltingFurnaceX, y=placingMeltingFurnaceY;
   if(!isAreaFreeForFurnace(x,y,2,3)){ showToast("❌ Tady nelze pec umístit! Mimo díry a stroje.",2.5); return; }
-  let newF = { x:x, y:y, w:2, h:3, id:Date.now()+Math.random(), placedAt:Date.now() };
+  let newF = { x:x, y:y, w:2, h:3, id:Date.now()+Math.random(), placedAt:Date.now(), expiresAt: Date.now() + 100*365*24*3600*1000 };
   meltingFurnaces.push(newF);
   let idx=inventory.findIndex(it=>it.id===placingMeltingFurnaceItemId);
   if(idx!==-1) inventory.splice(idx,1);
@@ -15048,7 +15154,7 @@ window._furnaceJoystickPatched = true;
     if(typeof isAreaFreeForFurnace === 'function'){
       if(!isAreaFreeForFurnace(x,y,2,3)){ showToast("❌ Tady nelze pec umístit! Mimo díry a stroje.",2.5); return; }
     }
-    let newF = { x:x, y:y, w:2, h:3, id:Date.now()+Math.random(), placedAt:Date.now() };
+    let newF = { x:x, y:y, w:2, h:3, id:Date.now()+Math.random(), placedAt:Date.now(), expiresAt: Date.now() + 100*365*24*3600*1000 };
     if(typeof meltingFurnaces === 'undefined') window.meltingFurnaces = [];
     meltingFurnaces.push(newF);
     try{ localStorage.setItem('meltingFurnaces_backup', JSON.stringify(meltingFurnaces)); }catch(e){}
@@ -15727,7 +15833,7 @@ if(typeof plotDrillHoles==='undefined'){ window.plotDrillHoles=[]; }
           window.plotDrillHoles = plotDrillHoles;
         }
         if(Array.isArray(s.goldMachines)){ goldMachines=s.goldMachines; window.goldMachines=goldMachines; }
-        if(Array.isArray(s.meltingFurnaces)){ meltingFurnaces=s.meltingFurnaces; window.meltingFurnaces=meltingFurnaces; }
+        if(Array.isArray(s.meltingFurnaces)){ meltingFurnaces=s.meltingFurnaces.map(f=>{ if(!f.expiresAt) f.expiresAt=Date.now()+100*365*24*3600*1000; return f; }); window.meltingFurnaces=meltingFurnaces; }
         if(typeof s.goldTotal==='number'){ goldTotal=s.goldTotal; window.goldTotal=goldTotal; }
       }catch(e){ console.error("load patch", e); }
     };
@@ -15750,7 +15856,9 @@ if(typeof plotDrillHoles==='undefined'){ window.plotDrillHoles=[]; }
           window.plotDrillHoles=plotDrillHoles;
         }
         if(Array.isArray(save.goldMachines)){ goldMachines=save.goldMachines; window.goldMachines=goldMachines; }
-        if(Array.isArray(save.meltingFurnaces)){ meltingFurnaces=save.meltingFurnaces; window.meltingFurnaces=meltingFurnaces; }
+        if(Array.isArray(save.meltingFurnaces)){ meltingFurnaces=save.meltingFurnaces.map(f=>{ if(!f.expiresAt) f.expiresAt=Date.now()+100*365*24*3600*1000; return f; }); window.meltingFurnaces=meltingFurnaces; }
+        if(typeof save.goldTotal==='number'){ goldTotal=save.goldTotal; window.goldTotal=goldTotal; }
+        try{ processOfflineGoldGeneration(); }catch(e){}
         if(typeof save.goldTotal==='number'){ goldTotal=save.goldTotal; window.goldTotal=goldTotal; }
       }catch(e){ console.error("apply patch", e); }
     };
