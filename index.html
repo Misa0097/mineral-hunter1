@@ -14182,6 +14182,213 @@ window.goldTotal = 0;
 
 function randomHourlyGold() { return Math.floor(Math.random()*901)+100; }
 
+// V78 - PERMANENTNÍ PEC - 100% SAVE - 3 backup klíče + merge
+(function(){
+  const BACKUP_KEYS = ['meltingFurnaces_backup', 'furnace_permanent_v1', 'plotFurnaces_v1'];
+  
+  function saveFurnacePermanent(){
+    try{
+      if(typeof meltingFurnaces==='undefined' || !meltingFurnaces) return;
+      let data = JSON.stringify(meltingFurnaces);
+      for(let key of BACKUP_KEYS){
+        try{ localStorage.setItem(key, data); }catch(e){}
+      }
+      // Taky do hlavniho save
+      try{
+        let raw = localStorage.getItem('mineralHunterSave_v3');
+        let o = raw ? JSON.parse(raw) : {};
+        o.meltingFurnaces = meltingFurnaces;
+        localStorage.setItem('mineralHunterSave_v3', JSON.stringify(o));
+      }catch(e){}
+      console.log("💾 V78 Pec permanent save:", meltingFurnaces.length, "do", BACKUP_KEYS.length, "klíčů");
+    }catch(e){ console.error("V78 save err", e); }
+  }
+  
+  function loadFurnacePermanent(){
+    try{
+      let all = [];
+      for(let key of BACKUP_KEYS){
+        try{
+          let raw = localStorage.getItem(key);
+          if(raw){
+            let arr = JSON.parse(raw);
+            if(Array.isArray(arr) && arr.length>0){
+              // Pridat nekonecnou casomiru pokud chybi
+              arr = arr.map(f=>{ if(!f.expiresAt) f.expiresAt=Date.now()+100*365*24*3600*1000; return f; });
+              all = all.concat(arr);
+              console.log("✅ V78 Pec load z", key, ":", arr.length);
+            }
+          }
+        }catch(e){}
+      }
+      // Taky z hlavniho save
+      try{
+        let raw = localStorage.getItem('mineralHunterSave_v3');
+        if(raw){
+          let o = JSON.parse(raw);
+          if(o.meltingFurnaces && o.meltingFurnaces.length>0){
+            let arr = o.meltingFurnaces.map(f=>{ if(!f.expiresAt) f.expiresAt=Date.now()+100*365*24*3600*1000; return f; });
+            all = all.concat(arr);
+            console.log("✅ V78 Pec load z v3:", arr.length);
+          }
+        }
+      }catch(e){}
+      
+      if(all.length>0){
+        // Deduplikace podle id
+        let map = {};
+        for(let f of all){
+          if(!f.id) f.id = Date.now()+Math.random();
+          map[f.id] = f;
+        }
+        let merged = Object.values(map);
+        // Filtruj jen neexpirovane (100 let = nikdy neexpiruje)
+        let now = Date.now();
+        merged = merged.filter(f=>!f.expiresAt || now < f.expiresAt);
+        if(merged.length>0){
+          if(typeof meltingFurnaces==='undefined') window.meltingFurnaces=[];
+          // Pokud uz mame pece, mergni, ne prepis
+          if(meltingFurnaces.length===0){
+            meltingFurnaces = merged;
+            window.meltingFurnaces = merged;
+          } else {
+            // Pridej chybejici
+            for(let f of merged){
+              if(!meltingFurnaces.find(ff=>String(ff.id)===String(f.id))){
+                meltingFurnaces.push(f);
+              }
+            }
+            window.meltingFurnaces = meltingFurnaces;
+          }
+          console.log("✅ V78 Pec FINAL MERGE:", meltingFurnaces.length, "pecí");
+          return true;
+        }
+      }
+      return false;
+    }catch(e){ console.error("V78 load err", e); return false; }
+  }
+  
+  window.saveFurnacePermanent = saveFurnacePermanent;
+  window.loadFurnacePermanent = loadFurnacePermanent;
+  
+  // Load hned pri startu
+  try{ loadFurnacePermanent(); }catch(e){}
+  
+  // Auto-save kazde 2s
+  setInterval(()=>{ try{ saveFurnacePermanent(); }catch(e){} }, 2000);
+  
+  // Save pri zavreni
+  window.addEventListener('beforeunload', ()=>{ try{ saveFurnacePermanent(); }catch(e){} });
+  window.addEventListener('pagehide', ()=>{ try{ saveFurnacePermanent(); }catch(e){} });
+  document.addEventListener('visibilitychange', ()=>{ if(document.hidden){ try{ saveFurnacePermanent(); }catch(e){} } });
+  
+  // Prepis puvodni placeMeltingFurnace aby vzdy volal permanent save
+  setTimeout(()=>{
+    try{
+      let origPlace = window.placeMeltingFurnace || (typeof placeMeltingFurnace!=='undefined'?placeMeltingFurnace:null);
+      if(origPlace){
+        // Obalime
+        let wrapper = function(x,y){
+          let res = origPlace.apply(this, arguments);
+          try{ saveFurnacePermanent(); if(typeof saveGame==='function') saveGame(); }catch(e){}
+          return res;
+        };
+        window.placeMeltingFurnace = wrapper;
+        if(typeof placeMeltingFurnace!=='undefined') placeMeltingFurnace = wrapper;
+      }
+    }catch(e){}
+  }, 1000);
+  
+  console.log("✅ V78 Permanent furnace system aktivován");
+
+// V79 - MIGRACE STARÉ PECE - pokud si koupil pec ve starší verzi ale není na pozemku, umísti ji
+function migrateOldFurnace(){
+  try{
+    if(typeof meltingFurnaces==='undefined') window.meltingFurnaces=[];
+    if(meltingFurnaces.length>0) return; // už má pec, nic nedělat
+    let hasFurnaceInInventory = false;
+    try{
+      let inv = (typeof inventory!=='undefined'?inventory: (window.inventory||[]));
+      hasFurnaceInInventory = inv.some(it=>it && (it.isMeltingFurnace || it.id==='meltingFurnace' || (it.name && it.name.toLowerCase().includes('tavící'))));
+    }catch(e){}
+    // Taky zkontroluj localStorage jestli byla koupena (podle toho ze ma v3 save goldBricks nebo pec v inventari historie)
+    let boughtBefore = false;
+    try{
+      let raw = localStorage.getItem('mineralHunterSave_v3');
+      if(raw){
+        let o = JSON.parse(raw);
+        // Pokud mel v inventari pec v minulosti, nebo ma dost penez / expanzi, povazuj ze koupil
+        if(o.inventory && Array.isArray(o.inventory)){
+          boughtBefore = o.inventory.some(it=>it && (it.isMeltingFurnace || (it.name && it.name.toLowerCase().includes('tavící'))));
+        }
+        // Pokud mel pec v backup klíčích
+        let backupKeys = ['meltingFurnaces_backup','furnace_permanent_v1','plotFurnaces_v1'];
+        for(let k of backupKeys){
+          try{
+            let b = localStorage.getItem(k);
+            if(b && JSON.parse(b).length>0){ boughtBefore=true; break; }
+          }catch(e){}
+        }
+      }
+    }catch(e){}
+    
+    if(hasFurnaceInInventory || boughtBefore){
+      console.log("🔄 V79 Migrace - detekována stará pec koupená, umisťuji na pozemek");
+      // Najdi volné místo na pozemku
+      let placed = false;
+      let attempts = 0;
+      let W = (typeof plotSizeW!=='undefined'?plotSizeW:10);
+      let H = (typeof plotSizeH!=='undefined'?plotSizeH:10);
+      // Zkus střed pozemku a okolí
+      let cx = Math.floor(W/2), cy = Math.floor(H/2);
+      let positions = [];
+      for(let dy=-3; dy<=3; dy++) for(let dx=-3; dx<=3; dx++) positions.push({x:cx+dx, y:cy+dy});
+      // Přidej náhodné pozice
+      for(let i=0;i<20;i++) positions.push({x:Math.floor(Math.random()*Math.max(1,W-2)), y:Math.floor(Math.random()*Math.max(1,H-3))});
+      
+      for(let pos of positions){
+        try{
+          if(typeof isAreaFreeForFurnace==='function'){
+            if(!isAreaFreeForFurnace(pos.x, pos.y, 2, 3)) continue;
+          }
+          // Volné místo nalezeno
+          let newF = { x:pos.x, y:pos.y, w:2, h:3, id:Date.now()+Math.random(), placedAt:Date.now(), expiresAt:Date.now()+100*365*24*3600*1000, migrated:true };
+          meltingFurnaces.push(newF);
+          window.meltingFurnaces = meltingFurnaces;
+          placed = true;
+          console.log("✅ V79 Pec migrována na", pos.x, pos.y);
+          try{ if(typeof saveFurnacePermanent==='function') saveFurnacePermanent(); }catch(e){}
+          try{ if(typeof saveGame==='function') saveGame(); }catch(e){}
+          try{ localStorage.setItem('furnace_permanent_v1', JSON.stringify(meltingFurnaces)); }catch(e){}
+          try{ localStorage.setItem('meltingFurnaces_backup', JSON.stringify(meltingFurnaces)); }catch(e){}
+          if(typeof showToast==='function') showToast("🔄 Stará pec vrácena na pozemek! 🔥",3);
+          break;
+        }catch(e){}
+        attempts++;
+        if(attempts>50) break;
+      }
+      if(!placed){
+        console.log("⚠️ V79 Migrace - nenašel volné místo, zkusím 5,5");
+        try{
+          let newF = { x:5, y:5, w:2, h:3, id:Date.now()+Math.random(), placedAt:Date.now(), expiresAt:Date.now()+100*365*24*3600*1000, migrated:true };
+          meltingFurnaces.push(newF);
+          window.meltingFurnaces = meltingFurnaces;
+          if(typeof saveFurnacePermanent==='function') saveFurnacePermanent();
+          if(typeof saveGame==='function') saveGame();
+          if(typeof showToast==='function') showToast("🔄 Stará pec vrácena na pozemek! 🔥",3);
+        }catch(e){}
+      }
+    }
+  }catch(e){ console.error("V79 migrace err", e); }
+}
+
+// Spusť migraci po načtení
+setTimeout(()=>{ try{ migrateOldFurnace(); }catch(e){} }, 2000);
+setTimeout(()=>{ try{ migrateOldFurnace(); }catch(e){} }, 5000);
+
+})();
+
+
 // V75 - OFFLINE GENERACE ZLATA - 100-1000g/h i kdyz je hra vypla
 function processOfflineGoldGeneration(){
   try{
