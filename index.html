@@ -2666,34 +2666,14 @@ function enterPlotMap(){
     ORIGINAL_WORLD_H=WORLD_H;
     plotMapOriginalPos={x:player.x, y:player.y};
   }catch(e){ normalWorldBackup=null; }
-  // FIXED: Zachovej plotWorld pokud existuje, jen ho rozšiř pokud nesedí velikost
   if(!plotWorld || plotWorld.length!=plotSizeH || !plotWorld[0] || plotWorld[0].length!=plotSizeW){
-    if(plotWorld && plotWorld.length>0 && plotWorld[0] && plotWorld[0].length>0){
-      let oldW = plotWorld[0].length;
-      let oldH = plotWorld.length;
-      let oldData = plotWorld.map(r=>r.map(c=>Object.assign({},c)));
-      plotWorld=generatePlotWorld(plotSizeW, plotSizeH);
-      for(let y=0;y<Math.min(oldH,plotSizeH);y++){
-        for(let x=0;x<Math.min(oldW,plotSizeW);x++){
-          if(oldData[y] && oldData[y][x]){
-            plotWorld[y][x].dug = oldData[y][x].dug || false;
-            plotWorld[y][x].isDrillHole = oldData[y][x].isDrillHole || false;
-            plotWorld[y][x].drillHoleExpires = oldData[y][x].drillHoleExpires || 0;
-          }
-        }
-      }
-    } else {
-      plotWorld=generatePlotWorld(plotSizeW, plotSizeH);
-    }
+    plotWorld=generatePlotWorld(plotSizeW, plotSizeH);
   }
   world.length=0;
   for(let y=0;y<plotSizeH;y++){
     world[y]=[];
     for(let x=0;x<plotSizeW;x++){
-      let base = plotWorld[y][x] ? Object.assign({}, plotWorld[y][x]) : {dug:false};
-      // Zachovej dug stav z plotWorld
-      base.dug = plotWorld[y][x].dug || false;
-      world[y][x]=base;
+      world[y][x]=Object.assign({}, plotWorld[y][x], {dug:false});
     }
   }
   WORLD_W=plotSizeW;
@@ -2701,43 +2681,9 @@ function enterPlotMap(){
   player.x=Math.floor(WORLD_W/2)*TILE;
   player.y=Math.floor(WORLD_H/2)*TILE;
   isPlotMapActive=true;
-  // FIXED: Obnov díry a pece po vstupu na pozemek - aby pece zůstávaly všude
-  try{
-    let now=Date.now();
-    if(typeof plotDrillHoles!=='undefined' && plotDrillHoles.length){
-      plotDrillHoles = plotDrillHoles.filter(h=> h.expiresAt && now < h.expiresAt);
-      for(let h of plotDrillHoles){
-        for(let dy=0; dy<h.h; dy++) for(let dx=0; dx<h.w; dx++){
-          let wx=h.x+dx, wy=h.y+dy;
-          if(world[wy] && world[wy][wx]){
-            world[wy][wx].dug=true;
-            world[wy][wx].isDrillHole=true;
-            world[wy][wx].drillHoleExpires=h.expiresAt;
-          }
-          if(plotWorld[wy] && plotWorld[wy][wx]){
-            plotWorld[wy][wx].dug=true;
-            plotWorld[wy][wx].isDrillHole=true;
-            plotWorld[wy][wx].drillHoleExpires=h.expiresAt;
-          }
-        }
-      }
-    }
-    // Pece - ujisti se že všechny zůstávají, i mimo roh
-    if(typeof meltingFurnaces!=='undefined' && meltingFurnaces.length){
-      // Filtruj jen ty co jsou mimo aktuální pozemek (po zmenšení, což se nestává při vstupu)
-      meltingFurnaces = meltingFurnaces.filter(f=> f.x>=0 && f.y>=0 && f.x+f.w<=plotSizeW && f.y+f.h<=plotSizeH);
-      window.meltingFurnaces = meltingFurnaces;
-      console.log("✅ FIXED Pec: po vstupu na pozemek zachováno "+meltingFurnaces.length+" pecí všude");
-    }
-    if(typeof goldMachines!=='undefined' && goldMachines.length){
-      goldMachines = goldMachines.filter(g=> g.x>=0 && g.y>=0 && g.x+g.w<=plotSizeW && g.y+g.h<=plotSizeH);
-      window.goldMachines = goldMachines;
-    }
-  }catch(e){ console.error("enterPlotMap restore err", e); }
-  showToast("🏡 Teleport na pozemek! "+WORLD_W+"x"+WORLD_H+" - pece: "+(typeof meltingFurnaces!=='undefined'?meltingFurnaces.length:0),2);
+  showToast("🏡 Teleport na pozemek! "+WORLD_W+"x"+WORLD_H,2);
   try{ updatePlotMapUI(); }catch(e){}
-  try{ saveGame(); }catch(e){}
-  try{ if(typeof saveFurnacePermanent==='function') saveFurnacePermanent(); }catch(e){}
+  saveGame();
 }
 
 function exitPlotMap(){   if(!isPlotMapActive) return;   if(isPlacingDrill){     isPlacingDrill=false;     placingDrillItemId=null;   }
@@ -2972,55 +2918,18 @@ function expandPlot(){
   let price = basePrice * Math.pow(2, plotExpansionLevel);
   if(money < price){ showToast("Nemáš dost peněz! Rozšíření stojí "+price.toLocaleString('cs-CZ')+" Kč, máš "+money.toLocaleString('cs-CZ')+" Kč",3); return; }
   money-=price;
-  // FIXED: Zachovej všechny pece a stroje při rozšíření
-  let oldW=plotSizeW, oldH=plotSizeH;
-  let oldPlotWorld = null;
-  try{ oldPlotWorld = plotWorld ? plotWorld.map(r=>r.map(c=>Object.assign({},c))) : null; }catch(e){}
-  let oldDrillHoles = [];
-  try{ oldDrillHoles = (typeof plotDrillHoles!=='undefined' && plotDrillHoles) ? [...plotDrillHoles] : []; }catch(e){}
-  let oldMeltingFurnaces = [];
-  try{ oldMeltingFurnaces = (typeof meltingFurnaces!=='undefined' && meltingFurnaces) ? [...meltingFurnaces] : []; }catch(e){}
-  let oldGoldMachines = [];
-  try{ oldGoldMachines = (typeof goldMachines!=='undefined' && goldMachines) ? [...goldMachines] : []; }catch(e){}
-  let oldPlotDrills = [];
-  try{ oldPlotDrills = (typeof plotDrills!=='undefined' && plotDrills) ? [...plotDrills] : []; }catch(e){}
-
   let newW=plotSizeW+5;
   let newH=plotSizeH+5;
   plotSizeW=newW;
   plotSizeH=newH;
   plotExpansionLevel++;
   plotWorld=generatePlotWorld(plotSizeW, plotSizeH);
-  // Obnov stará data do nového většího světa
-  if(oldPlotWorld){
-    for(let y=0;y<Math.min(oldH,newH);y++){
-      for(let x=0;x<Math.min(oldW,newW);x++){
-        if(oldPlotWorld[y] && oldPlotWorld[y][x]){
-          plotWorld[y][x].dug = oldPlotWorld[y][x].dug || false;
-          plotWorld[y][x].isDrillHole = oldPlotWorld[y][x].isDrillHole || false;
-          plotWorld[y][x].drillHoleExpires = oldPlotWorld[y][x].drillHoleExpires || 0;
-        }
-      }
-    }
-  }
-  // Pece a stroje zůstávají - při expanzi je vše uvnitř většího pozemku
-  meltingFurnaces = oldMeltingFurnaces;
-  window.meltingFurnaces = meltingFurnaces;
-  goldMachines = oldGoldMachines;
-  window.goldMachines = goldMachines;
-  plotDrills = oldPlotDrills;
-  window.plotDrills = plotDrills;
-  plotDrillHoles = oldDrillHoles;
-  window.plotDrillHoles = plotDrillHoles;
-
   if(isPlotMapActive){
     world.length=0;
     for(let y=0;y<plotSizeH;y++){
       world[y]=[];
       for(let x=0;x<plotSizeW;x++){
-        let base = plotWorld[y][x] ? Object.assign({}, plotWorld[y][x]) : {dug:false};
-        if(oldPlotWorld && y<oldH && x<oldW && oldPlotWorld[y][x] && oldPlotWorld[y][x].dug) base.dug = true;
-        world[y][x]=base;
+        world[y][x]=Object.assign({}, plotWorld[y][x], {dug:false});
       }
     }
     WORLD_W=plotSizeW;
@@ -3028,42 +2937,20 @@ function expandPlot(){
     player.x=Math.floor(WORLD_W/2)*TILE;
     player.y=Math.floor(WORLD_H/2)*TILE;
   }
-  // Obnov díry do world
-  try{
-    let now=Date.now();
-    for(let h of plotDrillHoles){
-      if(h.expiresAt && now < h.expiresAt){
-        for(let dy=0; dy<h.h; dy++) for(let dx=0; dx<h.w; dx++){
-          let wx=h.x+dx, wy=h.y+dy;
-          if(world[wy] && world[wy][wx]){
-            world[wy][wx].dug=true;
-            world[wy][wx].isDrillHole=true;
-            world[wy][wx].drillHoleExpires=h.expiresAt;
-          }
-          if(plotWorld[wy] && plotWorld[wy][wx]){
-            plotWorld[wy][wx].dug=true;
-            plotWorld[wy][wx].isDrillHole=true;
-            plotWorld[wy][wx].drillHoleExpires=h.expiresAt;
-          }
-        }
-      }
-    }
-  }catch(e){ console.error("expand restore holes err", e); }
-
-  let nextEl=document.getElementById('plotCurrentSize');
-  if(nextEl) nextEl.textContent=plotSizeW+"x"+plotSizeH;
-  let nextEl2=document.getElementById('plotNextSize');
-  if(nextEl2) nextEl2.textContent=(plotSizeW+5)+"x"+(plotSizeH+5);
+  saveGame();
+  try{ updateHUD(); }catch(e){}
+  let curEl=document.getElementById('plotCurrentSize');
+  if(curEl) curEl.textContent=plotSizeW+"x"+plotSizeH;
+  let nextEl=document.getElementById('plotNextSize');
+  if(nextEl) nextEl.textContent=(plotSizeW+5)+"x"+(plotSizeH+5);
   let nextPrice = basePrice * Math.pow(2, plotExpansionLevel);
   let priceEl=document.getElementById('plotExpansionPrice');
   if(priceEl) priceEl.textContent=nextPrice.toLocaleString('cs-CZ')+" Kč";
   let btn=document.getElementById('expandPlotBtn');
   if(btn) btn.innerHTML=nextPrice.toLocaleString('cs-CZ')+" Kč<br><span style='font-size:10px;'>KOUPIT</span>";
-  showToast("🏭 Pozemek rozšířen na "+plotSizeW+"x"+plotSizeH+"! Stálo "+price.toLocaleString('cs-CZ')+" Kč - zachováno "+meltingFurnaces.length+" pecí",3);
+  showToast("🏭 Pozemek rozšířen na "+plotSizeW+"x"+plotSizeH+"! Stálo "+price.toLocaleString('cs-CZ')+" Kč",3);
 
   try{ updatePlotMapUI(); }catch(e){}
-  try{ saveGame(); }catch(e){}
-  try{ if(typeof saveFurnacePermanent==='function') saveFurnacePermanent(); }catch(e){}
 }
 
 // === VRTÁK NA DÍRY - LOGIKA OPRAVENÁ ===
@@ -16228,7 +16115,7 @@ if(typeof plotDrillHoles==='undefined'){ window.plotDrillHoles=[]; }
         if(typeof meltingFurnaces!=='undefined') o.meltingFurnaces = meltingFurnaces;
         if(typeof goldTotal!=='undefined') o.goldTotal = goldTotal;
         if(typeof plotWorld!=='undefined' && plotWorld){
-          try{ o.plotWorldDug = plotWorld.map(r=>r.map(c=>({dug:c.dug||false}))); }catch(e){}
+          try{ o.plotWorldDug = plotWorld.map(r=>r.map(c=>({dug:c.dug||false, isDrillHole:c.isDrillHole||false, drillHoleExpires:c.drillHoleExpires||0}))); }catch(e){}
         }
         if(typeof world!=='undefined' && o.dug){
           try{
@@ -16268,6 +16155,24 @@ if(typeof plotDrillHoles==='undefined'){ window.plotDrillHoles=[]; }
         if(Array.isArray(s.goldMachines)){ goldMachines=s.goldMachines; window.goldMachines=goldMachines; }
         if(Array.isArray(s.meltingFurnaces)){ meltingFurnaces=s.meltingFurnaces.map(f=>{ if(!f.expiresAt) f.expiresAt=Date.now()+100*365*24*3600*1000; return f; }); window.meltingFurnaces=meltingFurnaces; }
         if(typeof s.goldTotal==='number'){ goldTotal=s.goldTotal; window.goldTotal=goldTotal; }
+        // FIXED: načti plotWorldDug a obnov plotWorld
+        if(s.plotWorldDug && Array.isArray(s.plotWorldDug)){
+          try{
+            if(typeof plotWorld!=='undefined' && plotWorld && plotWorld.length===s.plotWorldDug.length){
+              for(let y=0;y<plotWorld.length && y<s.plotWorldDug.length;y++){
+                for(let x=0;x<plotWorld[y].length && x<s.plotWorldDug[y].length;x++){
+                  if(s.plotWorldDug[y][x]){
+                    plotWorld[y][x].dug = s.plotWorldDug[y][x].dug||false;
+                    plotWorld[y][x].isDrillHole = s.plotWorldDug[y][x].isDrillHole||false;
+                    plotWorld[y][x].drillHoleExpires = s.plotWorldDug[y][x].drillHoleExpires||0;
+                  }
+                }
+              }
+            }
+            window.plotWorld = plotWorld;
+            console.log("✅ FIXED plotWorldDug načteno:", s.plotWorldDug.length+"x"+(s.plotWorldDug[0]?s.plotWorldDug[0].length:0));
+          }catch(e){ console.error("plotWorldDug load err", e); }
+        }
       }catch(e){ console.error("load patch", e); }
     };
   }
@@ -16351,11 +16256,13 @@ if(typeof plotDrillHoles==='undefined'){ window.plotDrillHoles=[]; }
     }catch(e){}
   }, 30000);
 
-  setTimeout(()=>{
+  // FIXED: okamžitá obnova děr + pecí, ne až po 1200ms
+  function immediateRestoreHolesAndFurnaces(){
     try{
       if(typeof world!=='undefined' && typeof plotDrillHoles!=='undefined' && plotDrillHoles.length){
         let now=Date.now();
         plotDrillHoles = plotDrillHoles.filter(h=> now < h.expiresAt);
+        window.plotDrillHoles = plotDrillHoles;
         for(let h of plotDrillHoles){
           for(let dy=0; dy<h.h; dy++) for(let dx=0; dx<h.w; dx++){
             let wx=h.x+dx, wy=h.y+dy;
@@ -16364,11 +16271,32 @@ if(typeof plotDrillHoles==='undefined'){ window.plotDrillHoles=[]; }
               world[wy][wx].isDrillHole=true;
               world[wy][wx].drillHoleExpires=h.expiresAt;
             }
+            if(typeof plotWorld!=='undefined' && plotWorld[wy] && plotWorld[wy][wx]){
+              plotWorld[wy][wx].dug=true;
+              plotWorld[wy][wx].isDrillHole=true;
+              plotWorld[wy][wx].drillHoleExpires=h.expiresAt;
+            }
           }
         }
       }
-    }catch(e){}
-  }, 1200);
+      // Pece - ujisti se že zůstávají
+      if(typeof meltingFurnaces!=='undefined' && meltingFurnaces.length){
+        window.meltingFurnaces = meltingFurnaces;
+      }
+      if(typeof goldMachines!=='undefined' && goldMachines.length){
+        window.goldMachines = goldMachines;
+      }
+    }catch(e){ console.error("immediate restore err", e); }
+  }
+  setTimeout(()=>{ try{ immediateRestoreHolesAndFurnaces(); }catch(e){} }, 300);
+  setTimeout(()=>{ try{ immediateRestoreHolesAndFurnaces(); }catch(e){} }, 1200);
+  setTimeout(()=>{ try{ immediateRestoreHolesAndFurnaces(); }catch(e){} }, 3000);
+  // Taky při vstupu na pozemek
+  if(typeof enterPlotMap==='function'){
+    const _origEnter = enterPlotMap;
+    const _origEnterFixed = window.enterPlotMap;
+  }
+
 
   if(typeof regenerateCell==='function' && !regenerateCell._v57Patched){
     let orig=regenerateCell;
@@ -16593,197 +16521,6 @@ function closePlotTutorial(){
   window.resetPlotTutorial = function(){ localStorage.removeItem('plotTutorialSeen_v1'); showPlotTutorial(); };
 })();
 </script>
-
-
-// ===== FIXED: PECE ZŮSTÁVAJÍ VŠUDE, VÍCE PECÍ, GOLD STROJ CENA 0 =====
-(function(){
-  console.log("🔧 FIXED: Pec persistence + Gold stroj cena 0 aktivován");
-
-  // Přepiš isAreaFreeForFurnace aby umožnil více pecí všude (již umožňuje, ale ujistíme se že neblokuje roh)
-  const origIsAreaFreeForFurnace = window.isAreaFreeForFurnace;
-  window.isAreaFreeForFurnace = function(x,y,w,h){
-    try{
-      if(x<0||y<0||x+w>plotSizeW||y+h>plotSizeH) return false;
-      // Kontrola děr - pec musí být MIMO díry
-      if(typeof plotDrillHoles!=='undefined' && plotDrillHoles.length){
-        for(let hole of plotDrillHoles){
-          if(!(x+w<=hole.x || x>=hole.x+hole.w || y+h<=hole.y || y>=hole.y+hole.h)) return false;
-        }
-      }
-      // Check world isDrillHole
-      try{
-        for(let dy=0;dy<h;dy++) for(let dx=0;dx<w;dx++){
-          let cx=x+dx, cy=y+dy;
-          if(world && world[cy] && world[cy][cx] && world[cy][cx].isDrillHole) return false;
-        }
-      }catch(e){}
-      // Check other furnaces - nesmí se překrývat, ale může být více
-      for(let f of meltingFurnaces) if(!(x+w<=f.x || x>=f.x+f.w || y+h<=f.y || y>=f.y+f.h)) return false;
-      // Check drills
-      let drills=(typeof plotDrills!=='undefined'?plotDrills:[]);
-      for(let d of drills) if(!(x+w<=d.x || x>=d.x+(d.w||3) || y+h<=d.y || y>=d.y+(d.h||3))) return false;
-      // Check gold machines
-      let gms=(typeof goldMachines!=='undefined'?goldMachines:[]);
-      for(let gm of gms) if(!(x+w<=gm.x || x>=gm.x+gm.w || y+h<=gm.y || y>=gm.y+gm.h)) return false;
-      return true;
-    }catch(e){ return false; }
-  };
-  if(typeof isAreaFreeForFurnace!=='undefined') isAreaFreeForFurnace = window.isAreaFreeForFurnace;
-
-  // Zajisti že buyMeltingFurnace má cenu 0 a lze koupit více
-  if(typeof window.buyMeltingFurnace==='function'){
-    const origBuy = window.buyMeltingFurnace;
-    window.buyMeltingFurnace = function(){
-      const PRICE=0;
-      if(money < PRICE){ showToast("Nemáš dost peněz! 0 Kč TEST"); return; }
-      money-=PRICE;
-      try{
-        inventory.push({ id:Date.now()+Math.random(), name:"Tavící pec", icon:MELTING_FURNACE_ICON_BASE64, iconSmall:MELTING_FURNACE_ICON_BASE64, price:0, isMeltingFurnace:true, description:"100g valounů = 1 zlatá cihla", count:1 });
-      }catch(e){
-        inventory.push({ id:Date.now()+Math.random(), name:"Tavící pec", price:0, isMeltingFurnace:true, count:1 });
-      }
-      saveGame();
-      try{ renderInventory(); }catch(e){}
-      try{ updateHUD(); }catch(e){}
-      showToast("🔥 Získána Tavící pec! Můžeš mít více pecí kdekoliv na pozemku",2.5);
-    };
-    if(typeof buyMeltingFurnace!=='undefined') buyMeltingFurnace = window.buyMeltingFurnace;
-  }
-
-  // Zajisti že gold stroj má cenu 0 všude
-  if(typeof window.buyGoldMachine==='function'){
-    window.buyGoldMachine = function(){
-      const PRICE=0;
-      if(money < PRICE){ showToast("Nemáš dost peněz! 0 Kč"); return; }
-      money-=PRICE;
-      try{
-        inventory.push({ id:Date.now()+Math.random(), name:"Stroj na zlato", icon:(typeof GOLD_MACHINE_ICON_BASE64!=="undefined"?GOLD_MACHINE_ICON_BASE64:""), iconSmall:(typeof GOLD_MACHINE_ICON_BASE64!=="undefined"?GOLD_MACHINE_ICON_BASE64:""), price:0, isGoldMachine:true, description:"Generuje 100-1000g/h náhodně, díra 6h", count:1 });
-      }catch(e){
-        inventory.push({ id:Date.now()+Math.random(), name:"Stroj na zlato", price:0, isGoldMachine:true, count:1 });
-      }
-      saveGame(); renderInventory(); updateHUD();
-      showToast("⚙️ Získán Stroj na zlato! Cena 0 Kč",2.5);
-    };
-    if(typeof buyGoldMachine!=='undefined') buyGoldMachine = window.buyGoldMachine;
-  }
-
-  // Vylepši saveFurnacePermanent aby ukládal vždy a všude
-  const BACKUP_KEYS = ['meltingFurnaces_backup', 'furnace_permanent_v1', 'plotFurnaces_v1', 'furnace_fix_v2'];
-  function saveFurnacePermanentFixed(){
-    try{
-      if(typeof meltingFurnaces!=='undefined'){
-        let data = JSON.stringify(meltingFurnaces);
-        for(let key of BACKUP_KEYS){
-          try{ localStorage.setItem(key, data); }catch(e){}
-        }
-        // Taky do hlavního save
-        try{
-          let raw = localStorage.getItem("mineralHunterSave_v3");
-          if(raw){
-            let o = JSON.parse(raw);
-            o.meltingFurnaces = meltingFurnaces;
-            localStorage.setItem("mineralHunterSave_v3", JSON.stringify(o));
-          }
-        }catch(e){}
-      }
-      if(typeof goldMachines!=='undefined'){
-        try{
-          let raw = localStorage.getItem("mineralHunterSave_v3");
-          if(raw){
-            let o = JSON.parse(raw);
-            o.goldMachines = goldMachines;
-            localStorage.setItem("mineralHunterSave_v3", JSON.stringify(o));
-          }
-        }catch(e){}
-      }
-    }catch(e){ console.error("Fixed save furnace err", e); }
-  }
-  window.saveFurnacePermanent = saveFurnacePermanentFixed;
-  if(typeof saveFurnacePermanent!=='undefined') saveFurnacePermanent = saveFurnacePermanentFixed;
-
-  // Vylepši load aby načetl všechny pece bez ohledu na pozici (ne jen roh)
-  function loadFurnacePermanentFixed(){
-    try{
-      let all = [];
-      for(let key of BACKUP_KEYS){
-        try{
-          let raw = localStorage.getItem(key);
-          if(raw){
-            let arr = JSON.parse(raw);
-            if(Array.isArray(arr) && arr.length>0){
-              arr = arr.map(f=>{ if(!f.expiresAt) f.expiresAt=Date.now()+100*365*24*3600*1000; return f; });
-              all = all.concat(arr);
-            }
-          }
-        }catch(e){}
-      }
-      try{
-        let raw = localStorage.getItem('mineralHunterSave_v3');
-        if(raw){
-          let o = JSON.parse(raw);
-          if(o.meltingFurnaces && o.meltingFurnaces.length>0){
-            let arr = o.meltingFurnaces.map(f=>{ if(!f.expiresAt) f.expiresAt=Date.now()+100*365*24*3600*1000; return f; });
-            all = all.concat(arr);
-          }
-        }
-      }catch(e){}
-      if(all.length>0){
-        let map = {};
-        for(let f of all){
-          if(!f.id) f.id = Date.now()+Math.random();
-          // Zachovej všechny pece, i mimo roh - filtruj jen pokud jsou opravdu mimo pozemek po expanzi
-          // Ale při načtení nevíme plotSizeW, takže zachovej všechny s x>=0,y>=0
-          if(f.x>=0 && f.y>=0) map[f.id] = f;
-        }
-        let merged = Object.values(map);
-        let now = Date.now();
-        merged = merged.filter(f=>!f.expiresAt || now < f.expiresAt);
-        if(merged.length>0){
-          if(typeof meltingFurnaces==='undefined') window.meltingFurnaces=[];
-          // Merge s existujícími
-          if(meltingFurnaces.length===0){
-            meltingFurnaces = merged;
-            window.meltingFurnaces = merged;
-          } else {
-            let existingIds = new Set(meltingFurnaces.map(ff=>String(ff.id)));
-            for(let f of merged){
-              if(!existingIds.has(String(f.id))){
-                meltingFurnaces.push(f);
-              }
-            }
-            window.meltingFurnaces = meltingFurnaces;
-          }
-          console.log("✅ FIXED Pec FINAL MERGE: "+meltingFurnaces.length+" pecí (všude na pozemku, ne jen roh)");
-          return true;
-        }
-      }
-      return false;
-    }catch(e){ console.error("Fixed load furnace err", e); return false; }
-  }
-  window.loadFurnacePermanent = loadFurnacePermanentFixed;
-
-  // Spusť load při startu a každých 2s save
-  setTimeout(()=>{ try{ loadFurnacePermanentFixed(); }catch(e){} }, 500);
-  setTimeout(()=>{ try{ loadFurnacePermanentFixed(); }catch(e){} }, 2000);
-  setTimeout(()=>{ try{ loadFurnacePermanentFixed(); }catch(e){} }, 5000);
-  setInterval(()=>{ try{ saveFurnacePermanentFixed(); }catch(e){} }, 2000);
-
-  // Oprav i goldMachines persistence
-  setInterval(()=>{
-    try{
-      if(typeof goldMachines!=='undefined' && goldMachines.length>0){
-        let raw = localStorage.getItem("mineralHunterSave_v3");
-        if(raw){
-          let o = JSON.parse(raw);
-          o.goldMachines = goldMachines;
-          localStorage.setItem("mineralHunterSave_v3", JSON.stringify(o));
-        }
-      }
-    }catch(e){}
-  }, 3000);
-
-  console.log("✅ FIXED: Všechny pece zůstávají všude, více pecí povoleno, gold stroj 0 Kč, návrat po 6h opraven");
-})();
 
 </body>
 </html>
