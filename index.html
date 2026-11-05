@@ -14311,6 +14311,37 @@ function randomHourlyGold() { return Math.floor(Math.random()*901)+100; }
   
   console.log("✅ V78 Permanent furnace system aktivován");
 
+// V82 DEBUG - log vsech peci pri nacitani a ukladani
+(function(){
+  let origSave = window.saveFurnacePermanent;
+  window.saveFurnacePermanent = function(){
+    try{
+      if(typeof meltingFurnaces!=='undefined' && meltingFurnaces.length>0){
+        console.log("💾 V82 Ukládám pece:", meltingFurnaces.map(f=>`[${f.x},${f.y} w${f.w}h${f.h}]`).join(", "));
+      }
+    }catch(e){}
+    if(origSave) return origSave.apply(this, arguments);
+  };
+  
+  // Log pri loadu
+  setTimeout(()=>{
+    try{
+      if(typeof meltingFurnaces!=='undefined'){
+        console.log("📍 V82 Pece na pozemku:", meltingFurnaces.length, meltingFurnaces.map(f=>`[${f.x},${f.y}]`).join(", "));
+        // Zkontroluj jestli jsou uvnitr pozemku
+        let W = (typeof plotSizeW!=='undefined'?plotSizeW:10);
+        let H = (typeof plotSizeH!=='undefined'?plotSizeH:10);
+        for(let f of meltingFurnaces){
+          if(f.x<0 || f.y<0 || f.x+f.w>W || f.y+f.h>H){
+            console.warn("⚠️ V82 Pec mimo pozemek!", f, "Plot", W+"x"+H);
+          }
+        }
+      }
+    }catch(e){}
+  }, 3000);
+})();
+
+
 // V80 FINAL SAFETY - po 3s znovu načti z permanent backup pokud je prázdná ale backup má data
 setTimeout(()=>{
   try{
