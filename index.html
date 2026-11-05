@@ -2666,7 +2666,6 @@ function enterPlotMap(){
     ORIGINAL_WORLD_H=WORLD_H;
     plotMapOriginalPos={x:player.x, y:player.y};
   }catch(e){ normalWorldBackup=null; }
-  // FIXED: zachovej plotWorld, neregeneruj zbytečně
   if(!plotWorld || plotWorld.length!=plotSizeH || !plotWorld[0] || plotWorld[0].length!=plotSizeW){
     try{
       const raw=localStorage.getItem("mineralHunterSave_v3");
@@ -2705,7 +2704,6 @@ function enterPlotMap(){
   player.x=Math.floor(WORLD_W/2)*TILE;
   player.y=Math.floor(WORLD_H/2)*TILE;
   isPlotMapActive=true;
-  // Obnov díry ihned
   try{
     let now=Date.now();
     plotDrillHoles=plotDrillHoles.filter(h=>now < h.expiresAt);
@@ -2727,8 +2725,7 @@ function enterPlotMap(){
     window.meltingFurnaces=meltingFurnaces;
     window.goldMachines=goldMachines;
     window.plotDrillHoles=plotDrillHoles;
-    console.log("✅ FIXED enterPlotMap: děr", plotDrillHoles.length, "pecí", meltingFurnaces.length, "ve všech rozích i středu");
-  }catch(e){ console.error("enterPlotMap restore err", e); }
+  }catch(e){}
   showToast("🏡 Teleport na pozemek! "+WORLD_W+"x"+WORLD_H+" - "+meltingFurnaces.length+" pecí, "+plotDrillHoles.length+" děr",2);
   try{ updatePlotMapUI(); }catch(e){}
   try{ saveGame(); }catch(e){}
@@ -2969,15 +2966,10 @@ function expandPlot(){
   let oldW=plotSizeW, oldH=plotSizeH;
   let oldPlotWorld=null;
   try{ oldPlotWorld = plotWorld ? plotWorld.map(r=>r.map(c=>Object.assign({},c))) : null; }catch(e){}
-  let oldHoles = [];
-  try{ oldHoles = (typeof plotDrillHoles!=='undefined' && plotDrillHoles) ? [...plotDrillHoles] : []; }catch(e){}
-  let oldFurnaces = [];
-  try{ oldFurnaces = (typeof meltingFurnaces!=='undefined' && meltingFurnaces) ? [...meltingFurnaces] : []; }catch(e){}
-  let oldGold = [];
-  try{ oldGold = (typeof goldMachines!=='undefined' && goldMachines) ? [...goldMachines] : []; }catch(e){}
-  let oldDrills = [];
-  try{ oldDrills = (typeof plotDrills!=='undefined' && plotDrills) ? [...plotDrills] : []; }catch(e){}
-
+  let oldHoles = []; try{ oldHoles = [...plotDrillHoles]; }catch(e){}
+  let oldFurnaces = []; try{ oldFurnaces = [...meltingFurnaces]; }catch(e){}
+  let oldGold = []; try{ oldGold = [...goldMachines]; }catch(e){}
+  let oldDrills = []; try{ oldDrills = [...plotDrills]; }catch(e){}
   let newW=plotSizeW+5;
   let newH=plotSizeH+5;
   plotSizeW=newW;
@@ -2995,24 +2987,18 @@ function expandPlot(){
       }
     }
   }
-  meltingFurnaces=oldFurnaces;
-  window.meltingFurnaces=meltingFurnaces;
-  goldMachines=oldGold;
-  window.goldMachines=goldMachines;
-  plotDrills=oldDrills;
-  window.plotDrills=plotDrills;
-  plotDrillHoles=oldHoles;
-  window.plotDrillHoles=plotDrillHoles;
-
+  meltingFurnaces=oldFurnaces; window.meltingFurnaces=meltingFurnaces;
+  goldMachines=oldGold; window.goldMachines=goldMachines;
+  plotDrills=oldDrills; window.plotDrills=plotDrills;
+  plotDrillHoles=oldHoles; window.plotDrillHoles=plotDrillHoles;
   if(isPlotMapActive){
     world.length=0;
     for(let y=0;y<plotSizeH;y++){
       world[y]=[];
       for(let x=0;x<plotSizeW;x++){
         let base = plotWorld[y][x] ? Object.assign({}, plotWorld[y][x]) : {dug:false};
-        if(oldPlotWorld && y<oldH && x<oldW && oldPlotWorld[y][x]) base.dug = oldPlotWorld[y][x].dug||false;
+        base.dug = plotWorld[y][x].dug||false;
         base.isDrillHole = plotWorld[y][x].isDrillHole||false;
-        base.drillHoleExpires = plotWorld[y][x].drillHoleExpires||0;
         world[y][x]=base;
       }
     }
@@ -3020,7 +3006,6 @@ function expandPlot(){
     WORLD_H=plotSizeH;
     player.x=Math.floor(WORLD_W/2)*TILE;
     player.y=Math.floor(WORLD_H/2)*TILE;
-    // Obnov díry
     try{
       let now=Date.now();
       for(let h of plotDrillHoles){
@@ -3048,7 +3033,7 @@ function expandPlot(){
   if(priceEl) priceEl.textContent=nextPrice.toLocaleString('cs-CZ')+" Kč";
   let btn=document.getElementById('expandPlotBtn');
   if(btn) btn.innerHTML=nextPrice.toLocaleString('cs-CZ')+" Kč<br><span style='font-size:10px;'>KOUPIT</span>";
-  showToast("🏭 Pozemek rozšířen na "+plotSizeW+"x"+plotSizeH+"! Zachováno "+meltingFurnaces.length+" pecí, "+plotDrillHoles.length+" děr",3);
+  showToast("🏭 Pozemek rozšířen na "+plotSizeW+"x"+plotSizeH+"! Zachováno "+meltingFurnaces.length+" pecí",3);
   try{ updatePlotMapUI(); }catch(e){}
 }
 
@@ -16541,84 +16526,125 @@ function closePlotTutorial(){
 
 
 <script>
-// ULTIMATE FIX - pec ve všech rozích + díra + gold stroj
+// FINAL FIX V3 - sjednoceny system: vrtak ihned, gold ceka na vybrani, bez zelene debug ikony
 (function(){
-  console.log("🔧 ULTIMATE FIX: Pec ve všech rozích");
+  console.log("🔧 FINAL V3: sjednoceny system");
 
-  // Vynucený load pecí ze všech zdrojů při startu
-  function ultimateLoadFurnaces(){
+  // GOLD STROJ - cena 0
+  window.buyGoldMachine = function(){
+    const PRICE=0;
+    money-=PRICE;
+    inventory.push({ id:Date.now()+Math.random(), name:"Stroj na zlato", icon:typeof GOLD_MACHINE_ICON_BASE64!=="undefined"?GOLD_MACHINE_ICON_BASE64:"", iconSmall:typeof GOLD_MACHINE_ICON_BASE64!=="undefined"?GOLD_MACHINE_ICON_BASE64:"", price:0, isGoldMachine:true, description:"Generuje 100-1000g/h, díra 6h", count:1 });
+    saveGame(); renderInventory(); updateHUD();
+    showToast("⚙️ Získán Stroj na zlato! Cena 0 Kč",2.5);
+  };
+
+  // PECE - cena 0, vice kusu vsude
+  window.buyMeltingFurnace = function(){
+    const PRICE=0;
+    money-=PRICE;
+    inventory.push({ id:Date.now()+Math.random(), name:"Tavící pec", icon:typeof MELTING_FURNACE_ICON_BASE64!=="undefined"?MELTING_FURNACE_ICON_BASE64:"", iconSmall:typeof MELTING_FURNACE_ICON_BASE64!=="undefined"?MELTING_FURNACE_ICON_BASE64:"", price:0, isMeltingFurnace:true, description:"100g valounů = 1 cihla", count:1 });
+    saveGame(); renderInventory(); updateHUD();
+    showToast("🔥 Tavící pec! Může být více všude",2.5);
+  };
+
+  // Vrtak - po udelani diry se vraci ihned (uz v puvodnim finishDrill, ale pojistime)
+  // Gold stroj - po 6h ceka na vybrani zlata, pak se vrati
+  setInterval(function(){
     try{
-      let all=[];
-      for(let k of ["meltingFurnaces_backup","furnace_permanent_v1","plotFurnaces_v1","furnace_fix_v2","plotDrillHoles_backup","goldMachines_backup"]){
-        // přeskoč ne-pec klíče pro pece
-      }
-      for(let k of ["meltingFurnaces_backup","furnace_permanent_v1","plotFurnaces_v1","furnace_fix_v2"]){
-        try{
-          let raw=localStorage.getItem(k);
-          if(raw){ let arr=JSON.parse(raw); if(Array.isArray(arr) && arr.length>0) all=all.concat(arr); }
-        }catch(e){}
-      }
-      try{
-        let raw=localStorage.getItem("mineralHunterSave_v3");
-        if(raw){ let o=JSON.parse(raw); if(o.meltingFurnaces && o.meltingFurnaces.length>0) all=all.concat(o.meltingFurnaces); }
-      }catch(e){}
-      if(all.length>0){
-        let map={};
-        for(let f of all){ if(!f.id) f.id=Date.now()+Math.random(); map[String(f.id)]=f; }
-        let merged=Object.values(map);
-        let now=Date.now();
-        merged=merged.filter(f=>!f.expiresAt || now < f.expiresAt);
-        // DŮLEŽITÉ: nefiltruj podle rohu, jen podle hranic
-        let W=(typeof plotSizeW!=="undefined"?plotSizeW:10), H=(typeof plotSizeH!=="undefined"?plotSizeH:10);
-        merged=merged.filter(f=> f.x>=0 && f.y>=0 && f.x+2<=W && f.y+3<=H);
-        if(merged.length>0){
-          if(typeof meltingFurnaces==="undefined") window.meltingFurnaces=[];
-          // Vždy mergni, ne jen když prázdné
-          let existing=new Set(meltingFurnaces.map(ff=>String(ff.id)));
-          for(let f of merged){ if(!existing.has(String(f.id))) meltingFurnaces.push(f); }
-          window.meltingFurnaces=meltingFurnaces;
-          console.log("✅ ULTIMATE pec load:", meltingFurnaces.length, "ve všech rozích", meltingFurnaces.map(f=>`[${f.x},${f.y}]`).join(", "));
+      let now=Date.now();
+      let toRemove=[];
+      for(let i=0;i<goldMachines.length;i++){
+        let gm=goldMachines[i];
+        if(!gm) continue;
+        if(now>=gm.expiresAt){
+          if(gm.goldCollected>0){
+            if(!gm.expiredNotified){
+              gm.expired=true;
+              gm.expiredNotified=true;
+              showToast("⏳ Stroj expiroval! Vyber zlato aby se vrátil ⚙️",4);
+              saveGame();
+            }
+          } else {
+            toRemove.push(i);
+          }
         }
       }
-    }catch(e){ console.error(e); }
-  }
+      if(toRemove.length){
+        toRemove.sort((a,b)=>b-a);
+        for(let idx of toRemove){
+          goldMachines.splice(idx,1);
+          inventory.push({ id:Date.now()+Math.random(), name:"Stroj na zlato", icon:typeof GOLD_MACHINE_ICON_BASE64!=="undefined"?GOLD_MACHINE_ICON_BASE64:"", price:0, isGoldMachine:true, count:1 });
+        }
+        saveGame(); renderInventory();
+        showToast("⚙️ Stroj bez zlata se vrátil do batohu",3);
+      }
+    }catch(e){}
+  }, 5000);
 
-  // Spusť ihned a opakovaně
-  setTimeout(ultimateLoadFurnaces, 500);
-  setTimeout(ultimateLoadFurnaces, 2000);
-  setTimeout(ultimateLoadFurnaces, 5000);
-  setInterval(ultimateLoadFurnaces, 10000);
+  // Prepis collectGoldMachine - po vybrani expirovaneho se vrati
+  const _origCollect = window.collectGoldMachine;
+  window.collectGoldMachine = function(id){
+    let gm=goldMachines.find(g=>String(g.id)===String(id));
+    if(!gm){ if(_origCollect) return _origCollect(id); return; }
+    if(gm.goldCollected<=0){ showToast("Zatím 0g",1.5); return; }
+    let amount=gm.goldCollected;
+    try{
+      let ex=inventory.find(it=>it.isGoldNugget && it.goldLevel===1);
+      if(ex) ex.count=(ex.count||0)+amount;
+      else inventory.push({id:Date.now()+Math.random(), name:"Zlatý valoun", icon:typeof GOLD_NUGGETS_SMALL_BASE64!=="undefined"?GOLD_NUGGETS_SMALL_BASE64:"", price:10, isGoldNugget:true, goldLevel:1, count:amount});
+    }catch(e){}
+    gm.goldCollected=0;
+    let now=Date.now();
+    if(now>=gm.expiresAt || gm.expired){
+      let idx=goldMachines.findIndex(g=>String(g.id)===String(id));
+      if(idx!==-1){
+        goldMachines.splice(idx,1);
+        inventory.push({ id:Date.now()+Math.random(), name:"Stroj na zlato", icon:typeof GOLD_MACHINE_ICON_BASE64!=="undefined"?GOLD_MACHINE_ICON_BASE64:"", price:0, isGoldMachine:true, count:1 });
+        showToast("💰 "+amount+"g vybráno a stroj se vrátil do batohu! ⚙️",3);
+      }
+    } else {
+      showToast("💰 Vybráno "+amount+"g!",2);
+    }
+    saveGame(); renderInventory();
+  };
 
-  // Ukládej pece agresivně
+  // Uloz pece agresivne a obnov vsude
   setInterval(()=>{
     try{
-      if(typeof meltingFurnaces!=="undefined" && meltingFurnaces.length>0){
-        let data=JSON.stringify(meltingFurnaces);
-        localStorage.setItem("meltingFurnaces_backup", data);
-        localStorage.setItem("furnace_permanent_v1", data);
-        localStorage.setItem("plotFurnaces_v1", data);
-        let raw=localStorage.getItem("mineralHunterSave_v3");
-        if(raw){
-          let o=JSON.parse(raw);
-          o.meltingFurnaces=meltingFurnaces;
-          localStorage.setItem("mineralHunterSave_v3", JSON.stringify(o));
-        }
+      if(meltingFurnaces && meltingFurnaces.length>0){
+        let d=JSON.stringify(meltingFurnaces);
+        localStorage.setItem("meltingFurnaces_backup", d);
+        localStorage.setItem("furnace_permanent_v1", d);
+        localStorage.setItem("plotFurnaces_v1", d);
       }
     }catch(e){}
   }, 2000);
 
-  // Debug overlay
-  let dbg=document.createElement("div");
-  dbg.id="furnaceDebug";
-  dbg.style.cssText="position:fixed;top:50px;left:5px;background:rgba(0,0,0,0.7);color:#0f0;padding:4px 6px;font-size:10px;z-index:9999;border-radius:4px;pointer-events:none;";
-  document.body.appendChild(dbg);
-  setInterval(()=>{
+  // Obnov pece ve vsech rozich pri startu
+  setTimeout(()=>{
     try{
-      dbg.textContent=`Pece: ${typeof meltingFurnaces!=="undefined"?meltingFurnaces.length:0} | Díry: ${typeof plotDrillHoles!=="undefined"?plotDrillHoles.length:0} | Pozemek: ${typeof plotSizeW!=="undefined"?plotSizeW+"x"+plotSizeH:"?"} | Uloženo: ${meltingFurnaces.map(f=>`[${f.x},${f.y}]`).join(", ")}`;
+      let all=[];
+      for(let k of ["meltingFurnaces_backup","furnace_permanent_v1","plotFurnaces_v1"]){
+        let raw=localStorage.getItem(k);
+        if(raw){ let arr=JSON.parse(raw); if(arr.length>0) all=all.concat(arr); }
+      }
+      let raw=localStorage.getItem("mineralHunterSave_v3");
+      if(raw){ let o=JSON.parse(raw); if(o.meltingFurnaces) all=all.concat(o.meltingFurnaces); }
+      if(all.length>0){
+        let map={};
+        for(let f of all){ if(!f.id) f.id=Date.now()+Math.random(); map[String(f.id)]=f; }
+        let merged=Object.values(map).filter(f=> f.x>=0 && f.y>=0 && f.x+2<=plotSizeW && f.y+3<=plotSizeH);
+        if(merged.length>meltingFurnaces.length){
+          meltingFurnaces=merged;
+          window.meltingFurnaces=merged;
+          console.log("✅ Pece obnoveny ve vsech rozich:", merged.length);
+        }
+      }
     }catch(e){}
   }, 1000);
 
-  console.log("✅ ULTIMATE FIX aktivován");
+  console.log("✅ FINAL V3 nacten - bez zelene ikony, sjednoceny system");
 })();
 </script>
 
