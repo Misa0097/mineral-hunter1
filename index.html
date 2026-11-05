@@ -16650,213 +16650,112 @@ function closePlotTutorial(){
 
 
 <script>
-// FINAL V4 - Pec 100k + Sklad 0 Kč, stejná logika jako pec
+// FINAL V5 - Pec 100k + Sklad opraven + odstraneni pece uz zustava odstranena
 (function(){
-  console.log("🏗️ FINAL V4: Pec 100k + Sklad");
-
-  // Ikona Skladu - minimalizovaná 212B WEBP (sklad/budova)
-  const SKLAD_ICON_BASE64 = "data:image/webp;base64,UklGRswAAABXRUJQVlA4WAoAAAAQAAAAFwAAFwAAQUxQSCkAAAABUNw2kjL9N71Mh9+ImABsTV1E1EJ+jeIKZVNUjajuUC9A3QBaYP9rcQBWUDggfAAAAFAEAJ0BKhgAGAA+0V6nT6gkoyIoCAEAGglqAJ0vbRUqM1tlAFHLljn0U2AA/";
-  const SKLAD_MAP_BASE64 = SKLAD_ICON_BASE64;
-  window.SKLAD_ICON_BASE64 = SKLAD_ICON_BASE64;
-  window.SKLAD_MAP_BASE64 = SKLAD_MAP_BASE64;
-
-  // Sklad buildings array
+  console.log("FINAL V5: Pec 100k + Sklad opraven");
+  const SKLAD_ICON = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAyUlEQVR42mNgGAWjgEIQYCTynxL9LJRaHGCjwcDAcOM/AwMDw4ZzbxhJNYeRXMshFqOCDUdukOwIJmpZDgsNUqOEkbwgxw82HLnBQGyUMFLqa0IOIeQIRmr5mtzQYKS2r0kNDSZ6WI4vgTJSO8hJjRJGapVoZDnm3BtGRmzBb60hTjNLj954iZIWmBgGGAy4A3BWRn9KDmAq7nEg2mBi9Q/eEMAFNp58QlCNv7nM0EkDgzcKSElwlOgfjYJRB7DgqjAorXBGwZABAE6HViOYGA0gAAAAAElFTkSuQmCC";
+  const SKLAD_MAP = SKLAD_ICON;
+  window.SKLAD_ICON_BASE64 = SKLAD_ICON;
+  window.SKLAD_MAP_BASE64 = SKLAD_MAP;
   if(typeof window.skladBuildings==="undefined") window.skladBuildings=[];
   if(typeof skladBuildings==="undefined") var skladBuildings=window.skladBuildings;
   let isPlacingSklad=false;
-  let placingSkladX=0, placingSkladY=0;
-  let placingSkladItemId=null;
+  let placingSkladX=0, placingSkladY=0, placingSkladItemId=null;
   window.isPlacingSklad=isPlacingSklad;
-  window.placingSkladX=placingSkladX;
-  window.placingSkladY=placingSkladY;
-  window.skladBuildings=skladBuildings;
 
-  // Oprav cenu pece na 100k
-  window.buyMeltingFurnace = function(){
-    const PRICE=100000;
-    if(money < PRICE){ showToast("Nemáš dost peněz! Pec stojí "+PRICE.toLocaleString('cs-CZ')+" Kč",2); return; }
-    money-=PRICE;
-    inventory.push({ id:Date.now()+Math.random(), name:"Tavící pec", icon:typeof MELTING_FURNACE_ICON_BASE64!=="undefined"?MELTING_FURNACE_ICON_BASE64:SKLAD_ICON_BASE64, iconSmall:typeof MELTING_FURNACE_ICON_BASE64!=="undefined"?MELTING_FURNACE_ICON_BASE64:SKLAD_ICON_BASE64, price:PRICE, isMeltingFurnace:true, description:"100g valounů = 1 cihla, zůstává na pozemku", count:1 });
-    saveGame(); renderInventory(); updateHUD();
-    showToast("🔥 Pec koupena za 100 000 Kč!",2.5);
-  };
-  if(typeof buyMeltingFurnace!=="undefined") buyMeltingFurnace=window.buyMeltingFurnace;
-
-  // Sklad - logika stejná jako pec
   function isAreaFreeForSklad(x,y,w,h){
     try{
       if(x<0||y<0||x+w>plotSizeW||y+h>plotSizeH) return false;
-      if(typeof plotDrillHoles!=="undefined" && plotDrillHoles.length){
-        for(let hole of plotDrillHoles){
-          if(!(x+w<=hole.x || x>=hole.x+hole.w || y+h<=hole.y || y>=hole.y+hole.h)) return false;
-        }
-      }
-      try{
-        for(let dy=0;dy<h;dy++) for(let dx=0;dx<w;dx++){
-          let cx=x+dx, cy=y+dy;
-          if(world && world[cy] && world[cy][cx] && world[cy][cx].isDrillHole) return false;
-        }
-      }catch(e){}
-      for(let f of (typeof meltingFurnaces!=="undefined"?meltingFurnaces:[])) if(!(x+w<=f.x || x>=f.x+f.w || y+h<=f.y || y>=f.y+f.h)) return false;
-      for(let s of (typeof skladBuildings!=="undefined"?skladBuildings:[])) if(!(x+w<=s.x || x>=s.x+s.w || y+h<=s.y || y>=s.y+s.h)) return false;
-      let drills=(typeof plotDrills!=="undefined"?plotDrills:[]);
-      for(let d of drills) if(!(x+w<=d.x || x>=d.x+(d.w||3) || y+h<=d.y || y>=d.y+(d.h||3))) return false;
-      let gms=(typeof goldMachines!=="undefined"?goldMachines:[]);
-      for(let gm of gms) if(!(x+w<=gm.x || x>=gm.x+gm.w || y+h<=gm.y || y>=gm.y+gm.h)) return false;
+      for(let hole of (plotDrillHoles||[])) if(!(x+w<=hole.x || x>=hole.x+hole.w || y+h<=hole.y || y>=hole.y+hole.h)) return false;
+      for(let f of (meltingFurnaces||[])) if(!(x+w<=f.x || x>=f.x+f.w || y+h<=f.y || y>=f.y+f.h)) return false;
+      for(let s of (skladBuildings||[])) if(!(x+w<=s.x || x>=s.x+s.w || y+h<=s.y || y>=s.y+s.h)) return false;
+      for(let d of (plotDrills||[])) if(!(x+w<=d.x || x>=d.x+(d.w||3) || y+h<=d.y || y>=d.y+(d.h||3))) return false;
+      for(let gm of (goldMachines||[])) if(!(x+w<=gm.x || x>=gm.x+gm.w || y+h<=gm.y || y>=gm.y+gm.h)) return false;
       return true;
     }catch(e){return false;}
   }
   window.isAreaFreeForSklad=isAreaFreeForSklad;
-
-  // Patch i furnace aby nekolidoval se skladem
-  const _origIsFreeFurnace = window.isAreaFreeForFurnace;
+  const _origFreeFurnace = window.isAreaFreeForFurnace;
   window.isAreaFreeForFurnace = function(x,y,w,h){
-    try{
-      if(_origIsFreeFurnace && !_origIsFreeFurnace(x,y,w,h)) return false;
-      for(let s of (typeof skladBuildings!=="undefined"?skladBuildings:[])) if(!(x+w<=s.x || x>=s.x+s.w || y+h<=s.y || y>=s.y+s.h)) return false;
-      return true;
-    }catch(e){ return false; }
+    if(_origFreeFurnace && !_origFreeFurnace(x,y,w,h)) return false;
+    for(let s of (skladBuildings||[])) if(!(x+w<=s.x || x>=s.x+s.w || y+h<=s.y || y>=s.y+s.h)) return false;
+    return true;
   };
-  if(typeof isAreaFreeForFurnace!=="undefined") isAreaFreeForFurnace=window.isAreaFreeForFurnace;
-
+  window.buyMeltingFurnace = function(){
+    const PRICE=100000;
+    if(money < PRICE){ showToast("Nemáš dost! Pec 100k",2); return; }
+    money-=PRICE;
+    inventory.push({ id:Date.now()+Math.random(), name:"Tavící pec", icon:typeof MELTING_FURNACE_ICON_BASE64!=="undefined"?MELTING_FURNACE_ICON_BASE64:SKLAD_ICON, iconSmall:typeof MELTING_FURNACE_ICON_BASE64!=="undefined"?MELTING_FURNACE_ICON_BASE64:SKLAD_ICON, price:PRICE, isMeltingFurnace:true, description:"100g=1 cihla, zůstává", count:1 });
+    saveGame(); renderInventory(); updateHUD();
+    showToast("🔥 Pec za 100k koupena!",2);
+  };
+  window.buySklad = function(){
+    inventory.push({ id:Date.now()+Math.random(), name:"Sklad", icon:SKLAD_ICON, iconSmall:SKLAD_ICON, price:0, isSklad:true, description:"Sklad 2x3 - zůstává na pozemku, stejná logika jako pec", count:1 });
+    saveGame(); renderInventory(); updateHUD();
+    showToast("📦 Sklad získán! (0 Kč)",2);
+  };
+  window.useSklad = function(id){ startSkladPlacement(id); };
   function startSkladPlacement(itemId){
-    if(!isPlotMapActive){ showToast("📦 Sklad lze umístit jen na pozemku! 🏡",2); return; }
-    let item = inventory.find(it=>it.id===itemId && it.isSklad);
-    if(!item){ showToast("Sklad nenalezen",2); return; }
-    isPlacingSklad=true;
-    placingSkladItemId=itemId;
+    if(!isPlotMapActive){ showToast("📦 Jen na pozemku!",2); return; }
+    let item=inventory.find(it=>it.id===itemId && it.isSklad);
+    if(!item) return;
+    isPlacingSklad=true; placingSkladItemId=itemId;
     placingSkladX=Math.floor(player.x/TILE)-1;
     placingSkladY=Math.floor(player.y/TILE)-1;
     placingSkladX=Math.max(0, Math.min(plotSizeW-2, placingSkladX));
     placingSkladY=Math.max(0, Math.min(plotSizeH-3, placingSkladY));
     window.isPlacingSklad=true;
-    window.placingSkladX=placingSkladX;
-    window.placingSkladY=placingSkladY;
-    let digBtn=document.getElementById('dig');
-    if(digBtn){
-      digBtn.style.display='flex';
-      digBtn.innerHTML='✓<br>VYBRAT';
-      digBtn.style.background='radial-gradient(circle at 30% 30%, #4caf50, #2e7d32)';
-    }
     closeInventoryPanelFixed();
-    showToast("📦 Joystickem vyber místo 2x3 a potvrď VYBRAT",3);
+    showToast("📦 Joystickem vyber místo 2x3",3);
   }
-  window.startSkladPlacement=startSkladPlacement;
-
   function placeSklad(){
     if(!isPlacingSklad) return;
-    let x=placingSkladX, y=placingSkladY;
-    if(!isAreaFreeForSklad(x,y,2,3)){ showToast("❌ Tady nelze sklad umístit! Mimo díry a stroje.",2.5); return; }
-    let newS={ x:x, y:y, w:2, h:3, id:Date.now()+Math.random(), placedAt:Date.now(), expiresAt:Date.now()+100*365*24*3600*1000 };
-    skladBuildings.push(newS);
-    window.skladBuildings=skladBuildings;
+    if(!isAreaFreeForSklad(placingSkladX,placingSkladY,2,3)){ showToast("❌ Tady nelze!",2); return; }
+    let ns={ x:placingSkladX, y:placingSkladY, w:2, h:3, id:Date.now()+Math.random(), placedAt:Date.now(), expiresAt:Date.now()+100*365*24*3600*1000 };
+    skladBuildings.push(ns); window.skladBuildings=skladBuildings;
     let idx=inventory.findIndex(it=>it.id===placingSkladItemId);
     if(idx!==-1) inventory.splice(idx,1);
-    saveGame();
-    try{ renderInventory(); }catch(e){}
-    isPlacingSklad=false;
-    placingSkladItemId=null;
-    window.isPlacingSklad=false;
-    let digBtn=document.getElementById('dig');
-    if(digBtn) digBtn.style.display='none';
-    showToast("✅ Sklad 2x3 umístěn! Zůstává na pozemku i po odhlášení",3);
+    saveGame(); renderInventory();
+    isPlacingSklad=false; window.isPlacingSklad=false;
+    showToast("✅ Sklad umístěn!",2);
   }
   window.placeSklad=placeSklad;
   window.confirmSkladPlacement=placeSklad;
-
-  function cancelSkladPlacement(){
-    isPlacingSklad=false;
-    placingSkladItemId=null;
-    window.isPlacingSklad=false;
-    let digBtn=document.getElementById('dig');
-    if(digBtn){
-      if(isPlotMapActive) digBtn.style.display='none';
-      else { digBtn.style.display='flex'; digBtn.innerHTML='⛏<br>KOPEJ'; }
+  const _origRemoveFurnace = window.removeMeltingFurnace;
+  window.removeMeltingFurnace = function(id, toBackpack=true){
+    let idx=meltingFurnaces.findIndex(f=>String(f.id)===String(id));
+    if(idx===-1) return;
+    meltingFurnaces.splice(idx,1);
+    if(toBackpack){
+      inventory.push({ id:Date.now()+Math.random(), name:"Tavící pec", icon:typeof MELTING_FURNACE_ICON_BASE64!=="undefined"?MELTING_FURNACE_ICON_BASE64:SKLAD_ICON, price:100000, isMeltingFurnace:true, count:1 });
     }
-    showToast("❌ Zrušeno",1.5);
-  }
-  window.cancelSkladPlacement=cancelSkladPlacement;
-
-  window.buySklad = function(){
-    const PRICE=0;
-    if(money < PRICE){ showToast("Nemáš dost",2); return; }
-    money-=PRICE;
-    inventory.push({ id:Date.now()+Math.random(), name:"Sklad", icon:SKLAD_ICON_BASE64, iconSmall:SKLAD_ICON_BASE64, price:PRICE, isSklad:true, description:"Sklad 2x3 - zůstává na pozemku i po odhlášení, stejná logika jako pec", count:1 });
-    saveGame(); renderInventory(); updateHUD();
-    showToast("📦 Sklad získán! (0 Kč, sekce Stavby)",2.5);
-  };
-
-  // Use from inventory
-  window.useSklad = function(itemId){ startSkladPlacement(itemId); };
-
-  // Ukládání
-  function saveSkladPermanent(){
     try{
-      if(typeof skladBuildings==="undefined" || !skladBuildings) return;
-      let data=JSON.stringify(skladBuildings);
-      localStorage.setItem("skladBuildings_backup", data);
-      localStorage.setItem("sklad_permanent_v1", data);
-      try{
-        let raw=localStorage.getItem("mineralHunterSave_v3");
-        let o=raw?JSON.parse(raw):{};
-        o.skladBuildings=skladBuildings;
-        localStorage.setItem("mineralHunterSave_v3", JSON.stringify(o));
-      }catch(e){}
+      localStorage.setItem("meltingFurnaces_backup", JSON.stringify(meltingFurnaces));
+      localStorage.setItem("furnace_permanent_v1", JSON.stringify(meltingFurnaces));
+      localStorage.setItem("plotFurnaces_v1", JSON.stringify(meltingFurnaces));
+      let raw=localStorage.getItem("mineralHunterSave_v3");
+      if(raw){ let o=JSON.parse(raw); o.meltingFurnaces=meltingFurnaces; localStorage.setItem("mineralHunterSave_v3", JSON.stringify(o)); }
     }catch(e){}
-  }
-
-  // Načítání
-  function loadSkladPermanent(){
+    saveGame(); renderInventory();
+    showToast("🗑️ Pec odstraněna a už se nevrátí po odhlášení",2);
+  };
+  window.removeSklad = function(id, toBackpack=true){
+    let idx=skladBuildings.findIndex(f=>String(f.id)===String(id));
+    if(idx===-1) return;
+    skladBuildings.splice(idx,1);
+    if(toBackpack){
+      inventory.push({ id:Date.now()+Math.random(), name:"Sklad", icon:SKLAD_ICON, price:0, isSklad:true, count:1 });
+    }
     try{
-      let all=[];
-      for(let k of ["skladBuildings_backup","sklad_permanent_v1"]){
-        try{
-          let raw=localStorage.getItem(k);
-          if(raw){ let arr=JSON.parse(raw); if(arr.length>0) all=all.concat(arr); }
-        }catch(e){}
-      }
-      try{
-        let raw=localStorage.getItem("mineralHunterSave_v3");
-        if(raw){ let o=JSON.parse(raw); if(o.skladBuildings && o.skladBuildings.length>0) all=all.concat(o.skladBuildings); }
-      }catch(e){}
-      if(all.length>0){
-        let map={};
-        for(let f of all){ if(!f.id) f.id=Date.now()+Math.random(); map[String(f.id)]=f; }
-        let merged=Object.values(map).filter(f=> f.x>=0 && f.y>=0 && f.x+2<=plotSizeW && f.y+3<=plotSizeH);
-        if(merged.length>0){
-          skladBuildings=merged;
-          window.skladBuildings=merged;
-          console.log("✅ Sklad načten:", merged.length);
-        }
-      }
+      localStorage.setItem("skladBuildings_backup", JSON.stringify(skladBuildings));
+      let raw=localStorage.getItem("mineralHunterSave_v3");
+      if(raw){ let o=JSON.parse(raw); o.skladBuildings=skladBuildings; localStorage.setItem("mineralHunterSave_v3", JSON.stringify(o)); }
     }catch(e){}
-  }
-
-  // Patch saveGame aby ukládal i sklad
-  const _origSave = window.saveGame;
-  window.saveGame = function(){
-    try{ if(typeof skladBuildings!=="undefined") saveSkladPermanent(); }catch(e){}
-    return _origSave.apply(this, arguments);
+    saveGame(); renderInventory();
+    showToast("🗑️ Sklad odstraněn",2);
   };
-  if(typeof saveGame!=="undefined") saveGame=window.saveGame;
-
-  // Patch loadGame aby načítal sklad
-  const _origLoad = window.loadGame;
-  window.loadGame = function(){
-    let r=_origLoad.apply(this, arguments);
-    try{ loadSkladPermanent(); }catch(e){}
-    return r;
-  };
-  if(typeof loadGame!=="undefined") loadGame=window.loadGame;
-
-  // Kreslení skladu na mapě - stejný styl jako pec, 2x3, minimal KB
   let _skladImg=null;
-  (function(){
-    let img=new Image();
-    img.src=SKLAD_MAP_BASE64;
-    img.onload=function(){ _skladImg=img; window._skladImg=img; };
-  })();
-
+  (function(){ let img=new Image(); img.src=SKLAD_ICON; img.onload=function(){ _skladImg=img; }; })();
   function patchDrawSklad(){
     if(typeof drawWorld!=="function") return;
     if(drawWorld._skladPatched) return;
@@ -16864,9 +16763,9 @@ function closePlotTutorial(){
     drawWorld=function(cam){
       try{ prev(cam); }catch(e){}
       try{
-        let TILE_SIZE=typeof TILE!=="undefined"?TILE:32;
-        if((typeof isPlotMapActive!=="undefined" && isPlotMapActive) && typeof skladBuildings!=="undefined" && skladBuildings.length && _skladImg && _skladImg.complete){
+        if(isPlotMapActive && skladBuildings && skladBuildings.length && _skladImg && _skladImg.complete){
           for(let s of skladBuildings){
+            let TILE_SIZE=TILE||32;
             let sx=s.x*TILE_SIZE-cam.x, sy=s.y*TILE_SIZE-cam.y;
             if(sx<-200||sx>800+200||sy<-200||sy>600+200) continue;
             ctx.drawImage(_skladImg, sx, sy, s.w*TILE_SIZE, s.h*TILE_SIZE);
@@ -16877,98 +16776,49 @@ function closePlotTutorial(){
     drawWorld._skladPatched=true;
   }
   setTimeout(patchDrawSklad, 800);
-  setTimeout(patchDrawSklad, 2000);
-
-  // VYBRAT tlačítko pro sklad
-  setInterval(function(){
-    try{
-      if(typeof isPlacingSklad!=="undefined" && isPlacingSklad) return;
-      if(typeof isPlacingMeltingFurnace!=="undefined" && isPlacingMeltingFurnace) return;
-      if(typeof isPlacingGoldMachine!=="undefined" && isPlacingGoldMachine) return;
-      if(typeof isPlacingDrill!=="undefined" && isPlacingDrill) return;
-      if(typeof isPlotMapActive!=="undefined" && !isPlotMapActive) return;
-      let b=document.getElementById('dig');
-      if(!b) return;
-      let px=Math.floor((player.x||0)/TILE), py=Math.floor((player.y||0)/TILE);
-      // Nejblizsi sklad
-      let nearest=null, minD=999;
-      for(let s of (typeof skladBuildings!=="undefined"?skladBuildings:[])){
-        let fx=s.x, fy=s.y, fw=s.w||2, fh=s.h||3;
-        let closestX=Math.max(fx, Math.min(px, fx+fw-1));
-        let closestY=Math.max(fy, Math.min(py, fy+fh-1));
-        let d=Math.hypot(px-closestX, py-closestY);
-        if(d<minD){ minD=d; nearest=s; }
-      }
-      if(nearest && minD<=1.5){
-        b.style.display='flex';
-        b.innerHTML='✓<br>VYBRAT';
-        b.style.background='radial-gradient(circle at 30% 30%, #8d6e63, #4e342e)';
-        b.onclick=function(e){ e.preventDefault(); showToast("📦 Sklad ["+nearest.x+","+nearest.y+"] - zůstává na pozemku!",2); };
-      }
-    }catch(e){}
-  }, 400);
-
-  // Přidej Sklad do obchodu Stavby (openPlotBuilding)
-  const _origOpenBuilding = window.openPlotBuilding;
   window.openPlotBuilding = function(){
-    try{
-      // Zavolej původní aby se vytvořil modal
-      _origOpenBuilding();
-      setTimeout(()=>{
-        let modal=document.getElementById('plotBuildingModal');
-        if(!modal) return;
-        let container=modal.querySelector('.shopSection') || modal.querySelector('div');
-        // Najdi sekci a přidej sklad
-        let sections=modal.querySelectorAll('.shopSection, div');
-        let target=null;
-        for(let sec of modal.querySelectorAll('div')){
-          if(sec.innerHTML && sec.innerHTML.includes('Tavící pec')){ target=sec.parentElement; break; }
-        }
-        if(target && !document.getElementById('buySkladV4')){
-          let skladRow=document.createElement('div');
-          skladRow.className='itemRow';
-          skladRow.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:12px;background:rgba(141,110,99,0.12);border:1px solid #8d6e63;border-radius:10px;margin-bottom:10px;margin-top:10px;';
-          skladRow.innerHTML=`
+    let old=document.getElementById('plotBuildingModal');
+    if(old) old.remove();
+    let modal=document.createElement('div');
+    modal.id='plotBuildingModal';
+    modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:100005;padding:16px;overflow-y:auto;';
+    modal.innerHTML=`
+      <div style="background:linear-gradient(135deg,#1a1a2e,#16213e);border:2px solid #4fc3f7;border-radius:16px;padding:20px;max-width:400px;width:100%;box-shadow:0 0 30px rgba(79,195,247,0.3);max-height:90vh;overflow-y:auto;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <h2 style="color:#4fc3f7;margin:0;font-size:18px;">🏗️ Stavení</h2>
+          <button id="closePlotBuildingV5" style="background:#1a1a2e;border:1px solid #4fc3f7;color:#4fc3f7;width:32px;height:32px;border-radius:50%;font-weight:900;cursor:pointer;">X</button>
+        </div>
+        <div class="shopSection">
+          <div class="itemRow" style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:rgba(255,87,34,0.08);border:1px solid #ff5722;border-radius:10px;margin-bottom:12px;">
             <div style="display:flex;gap:10px;align-items:center;">
-              <img src="${SKLAD_ICON_BASE64}" style="width:48px;height:48px;object-fit:contain;background:radial-gradient(circle at 30% 30%, rgba(255,255,255,0.08), rgba(0,0,0,0.35));border-radius:8px;border:1px solid rgba(255,255,255,0.12);">
-              <div>
-                <div style="font-weight:800;color:#d7ccc8;font-size:13px;">📦 Sklad</div>
-                <div style="font-size:11px;color:#aaa;">Uložiště 2x3 - zůstává na mapě<br><b style="color:#8d6e63">Velikost: 2x3</b> • Mimo díry<br><b style="color:#4fc3f7">0 Kč</b> • Stavby</div>
-              </div>
+              <img src="${typeof MELTING_FURNACE_ICON_BASE64!=="undefined"?MELTING_FURNACE_ICON_BASE64:SKLAD_ICON}" style="width:48px;height:48px;object-fit:contain;background:rgba(255,255,255,0.08);border-radius:8px;">
+              <div><div style="font-weight:800;color:#ffccbc;font-size:13px;">🔥 Tavící pec</div><div style="font-size:11px;color:#aaa;">100g = 1 cihla<br><b>2x3</b> • Mimo díry<br><b style="color:#4fc3f7">100 000 Kč</b></div></div>
             </div>
-            <button id="buySkladV4" style="background:linear-gradient(135deg,#8d6e63,#4e342e);border:2px solid #a1887f;color:#fff;padding:8px 14px;border-radius:8px;font-weight:900;font-size:12px;cursor:pointer;min-width:60px;">
-              0 Kč<br><span style="font-size:9px;">KOUPIT</span>
-            </button>
-          `;
-          target.appendChild(skladRow);
-          document.getElementById('buySkladV4').onclick=function(){ window.buySklad(); };
-        }
-        // Oprav cenu pece v UI z 0 Kč TEST na 100 000 Kč
-        let pecBtn=document.getElementById('buyMeltingFurnaceV37');
-        if(pecBtn){ pecBtn.innerHTML='100 000 Kč<br><span style="font-size:9px;">KOUPIT</span>'; }
-        // Najdi text 100 000 Kč v modalu a oprav pokud je 0
-        let html=modal.innerHTML;
-        if(html.includes('0 Kč TEST')){
-          modal.innerHTML=modal.innerHTML.replace(/0 Kč TEST/g, '100 000 Kč');
-        }
-      }, 300);
-    }catch(e){ console.error(e); if(_origOpenBuilding) _origOpenBuilding(); }
+            <button id="buyFurnaceV5" style="background:linear-gradient(135deg,#ff5722,#bf360c);border:2px solid #ff8a65;color:#fff;padding:8px 14px;border-radius:8px;font-weight:900;font-size:12px;cursor:pointer;">100 000 Kč<br><span style="font-size:9px;">KOUPIT</span></button>
+          </div>
+          <div class="itemRow" style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:rgba(141,110,99,0.12);border:1px solid #8d6e63;border-radius:10px;margin-bottom:12px;">
+            <div style="display:flex;gap:10px;align-items:center;">
+              <img src="${SKLAD_ICON}" style="width:48px;height:48px;object-fit:contain;background:rgba(255,255,255,0.08);border-radius:8px;">
+              <div><div style="font-weight:800;color:#d7ccc8;font-size:13px;">📦 Sklad</div><div style="font-size:11px;color:#aaa;">Úložiště 2x3 - zůstává<br><b>2x3</b> • Mimo díry<br><b style="color:#4fc3f7">0 Kč</b> • Stavby</div></div>
+            </div>
+            <button id="buySkladV5" style="background:linear-gradient(135deg,#8d6e63,#4e342e);border:2px solid #a1887f;color:#fff;padding:8px 14px;border-radius:8px;font-weight:900;font-size:12px;cursor:pointer;">0 Kč<br><span style="font-size:9px;">KOUPIT</span></button>
+          </div>
+          <div style="margin-top:12px;padding:8px;background:rgba(79,195,247,0.1);border:1px solid #4fc3f7;border-radius:6px;font-size:10px;color:#81d4fa;text-align:center;">💡 Pec i Sklad zůstávají na mapě i po odhlášení. Odstraněné ručně už se nevrátí.</div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    document.getElementById('closePlotBuildingV5').onclick=function(){ modal.remove(); };
+    modal.onclick=function(e){ if(e.target===modal) modal.remove(); };
+    document.getElementById('buyFurnaceV5').onclick=function(){ window.buyMeltingFurnace(); };
+    document.getElementById('buySkladV5').onclick=function(){ window.buySklad(); };
   };
-  if(typeof openPlotBuilding!=="undefined") openPlotBuilding=window.openPlotBuilding;
-
-  // Ujisti se ze pec ma 100k v inventari shopu
-  setTimeout(()=>{
+  setInterval(()=>{
     try{
-      let raw=localStorage.getItem("mineralHunterSave_v3");
-      if(raw){
-        let o=JSON.parse(raw);
-        if(o.meltingFurnaces) console.log("Pece v save:", o.meltingFurnaces.length);
-        if(o.skladBuildings) console.log("Sklady v save:", o.skladBuildings.length);
-      }
+      if(skladBuildings){ localStorage.setItem("skladBuildings_backup", JSON.stringify(skladBuildings)); }
     }catch(e){}
-  }, 1500);
-
-  console.log("✅ FINAL V4: Pec 100k + Sklad 0 Kč, stejná logika persistence, ikona 212B");
+  }, 2000);
+  console.log("✅ FINAL V5: Pec 100k, Sklad opraven, odstraneni zustava odstranene");
 })();
 </script>
 
