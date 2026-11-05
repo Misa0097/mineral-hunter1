@@ -14745,7 +14745,7 @@ window.sellGoldMachine=function(id){
   showToast("Prodáno za "+(inventory[idx]?.price||0)+" Kč",1.5);
 };
 
-function buyGoldMachine(){   const PRICE=200000; if(money < PRICE){ showToast("Nemáš dost peněz! 200 000 Kč"); return; } money-=PRICE; try{ inventory.push({ id:Date.now()+Math.random(), name:"Stroj na zlato", icon:(typeof GOLD_MACHINE_ICON_BASE64!=="undefined"?GOLD_MACHINE_ICON_BASE64:""), iconSmall:(typeof GOLD_MACHINE_ICON_BASE64!=="undefined"?GOLD_MACHINE_ICON_BASE64:""), price:200000, isGoldMachine:true, description:"Generuje 100-1000g/h náhodně, díra 6h", count:1 }); }catch(e){ inventory.push({ id:Date.now()+Math.random(), name:"Stroj na zlato", price:0, isGoldMachine:true, count:1 }); }
+function buyGoldMachine(){   const PRICE=200000; if(money < PRICE){ showToast("Nemáš dost peněz! 200 000 Kč"); return; } money-=PRICE; try{ inventory.push({ id:Date.now()+Math.random(), name:"Stroj na zlato", icon:(typeof GOLD_MACHINE_ICON_BASE64!=="undefined"?GOLD_MACHINE_ICON_BASE64:""), iconSmall:(typeof GOLD_MACHINE_ICON_BASE64!=="undefined"?GOLD_MACHINE_ICON_BASE64:""), price:0, isGoldMachine:true, description:"Generuje 100-1000g/h náhodně, díra 6h", count:1 }); }catch(e){ inventory.push({ id:Date.now()+Math.random(), name:"Stroj na zlato", price:0, isGoldMachine:true, count:1 }); }
   saveGame(); renderInventory(); updateHUD();
   showToast("⚙️ Získán Stroj na zlato!",2.5);
 }
