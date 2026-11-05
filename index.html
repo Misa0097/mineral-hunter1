@@ -8244,7 +8244,17 @@ function loadGame(){
    if(Array.isArray(s.plotDrills)) plotDrills=s.plotDrills; else plotDrills=[];
     if(Array.isArray(s.plotDrillHoles)){ let now=Date.now(); plotDrillHoles=s.plotDrillHoles.filter(h=>h.expiresAt && now < h.expiresAt); window.plotDrillHoles=plotDrillHoles; }
     if(Array.isArray(s.goldMachines)){ goldMachines=s.goldMachines; window.goldMachines=goldMachines; }
-    if(Array.isArray(s.meltingFurnaces)){ meltingFurnaces=s.meltingFurnaces.map(f=>{ if(!f.expiresAt) f.expiresAt=Date.now()+100*365*24*3600*1000; return f; }); window.meltingFurnaces=meltingFurnaces; console.log("✅ Pec načtena z main load (100 let):", meltingFurnaces.length); }
+    if(Array.isArray(s.meltingFurnaces) && s.meltingFurnaces.length>0){
+          let incoming = s.meltingFurnaces.map(f=>{ if(!f.expiresAt) f.expiresAt=Date.now()+100*365*24*3600*1000; return f; });
+          if(typeof meltingFurnaces==='undefined' || meltingFurnaces.length===0){
+            meltingFurnaces=incoming; window.meltingFurnaces=meltingFurnaces;
+          } else {
+            let existingIds = new Set(meltingFurnaces.map(ff=>String(ff.id)));
+            for(let f of incoming) if(!existingIds.has(String(f.id))) meltingFurnaces.push(f);
+            window.meltingFurnaces=meltingFurnaces;
+          }
+          console.log("✅ Pec načtena z main load (100 let):", meltingFurnaces.length);
+        }
     if(typeof s.goldTotal==='number'){ goldTotal=s.goldTotal; window.goldTotal=goldTotal; }
 
    if(typeof s.plotSizeW==='number' && s.plotSizeW>=10) plotSizeW=s.plotSizeW; else plotSizeW=10;
@@ -14301,6 +14311,32 @@ function randomHourlyGold() { return Math.floor(Math.random()*901)+100; }
   
   console.log("✅ V78 Permanent furnace system aktivován");
 
+// V80 FINAL SAFETY - po 3s znovu načti z permanent backup pokud je prázdná ale backup má data
+setTimeout(()=>{
+  try{
+    if((!meltingFurnaces || meltingFurnaces.length===0)){
+      let keys = ['furnace_permanent_v1','meltingFurnaces_backup','plotFurnaces_v1'];
+      for(let k of keys){
+        try{
+          let raw = localStorage.getItem(k);
+          if(raw){
+            let arr = JSON.parse(raw);
+            if(Array.isArray(arr) && arr.length>0){
+              arr = arr.map(f=>{ if(!f.expiresAt) f.expiresAt=Date.now()+100*365*24*3600*1000; return f; });
+              meltingFurnaces = arr;
+              window.meltingFurnaces = arr;
+              console.log("🛡️ V80 SAFETY NET - pec obnovena z", k, ":", arr.length);
+              if(typeof saveGame==='function') saveGame();
+              break;
+            }
+          }
+        }catch(e){}
+      }
+    }
+  }catch(e){}
+}, 3000);
+
+
 // V79 - MIGRACE STARÉ PECE - pokud si koupil pec ve starší verzi ale není na pozemku, umísti ji
 function migrateOldFurnace(){
   try{
@@ -14959,7 +14995,7 @@ function cancelMeltingFurnacePlacement(){
   showToast("❌ Zrušeno",1.5);
 }
 
-function buyMeltingFurnace(){   const PRICE=100000; if(money < PRICE){ showToast("Nemáš dost peněz! 100 000 Kč"); return; } money-=PRICE; inventory.push({ id:Date.now()+Math.random(), name:"Tavící pec", icon:MELTING_FURNACE_ICON_BASE64, iconSmall:MELTING_FURNACE_ICON_BASE64, price:100000, isMeltingFurnace:true, description:"100g valounů = 1 zlatá cihla", count:1 });
+function buyMeltingFurnace(){   const PRICE=0; if(money < PRICE){ showToast("Nemáš dost peněz! 0 Kč TEST"); return; } money-=PRICE; inventory.push({ id:Date.now()+Math.random(), name:"Tavící pec", icon:MELTING_FURNACE_ICON_BASE64, iconSmall:MELTING_FURNACE_ICON_BASE64, price:0, isMeltingFurnace:true, description:"100g valounů = 1 zlatá cihla", count:1 });
   saveGame(); renderInventory(); updateHUD();
   showToast("🔥 Získána Tavící pec!",2.5);
 }
@@ -15028,7 +15064,7 @@ function ensureFurnaceInBuildingShop(){
     let buildingSection = document.querySelector('[data-section="building"], #buildingShop, .buildingSection');
     // Add to shop if not exists
     if(typeof buildingItems!=='undefined' && !buildingItems.some(i=>i.isMeltingFurnace)){
-      buildingItems.push({ id:'meltingFurnace', name:"Tavící pec", icon:MELTING_FURNACE_ICON_BASE64, price:100000, isMeltingFurnace:true, description:"100g = 1 cihla" });
+      buildingItems.push({ id:'meltingFurnace', name:"Tavící pec", icon:MELTING_FURNACE_ICON_BASE64, price:0, isMeltingFurnace:true, description:"100g = 1 cihla" });
     }
   }catch(e){}
 }
@@ -15156,7 +15192,7 @@ console.log("✅ V36 furnace ultra light 6.5KB loaded");
                 </div>
               </div>
               <button id="buyMeltingFurnaceV37" style="background:linear-gradient(135deg,#ff5722,#bf360c);border:2px solid #ff8a65;color:#fff;padding:8px 14px;border-radius:8px;font-weight:900;font-size:12px;cursor:pointer;min-width:60px;">
-                100 000 Kč<br><span style="font-size:9px;">KOUPIT</span>
+                0 Kč TEST<br><span style="font-size:9px;">KOUPIT</span>
               </button>
             </div>
 
@@ -16062,8 +16098,40 @@ if(typeof plotDrillHoles==='undefined'){ window.plotDrillHoles=[]; }
           plotDrillHoles=save.plotDrillHoles.filter(h=>h.expiresAt && now < h.expiresAt);
           window.plotDrillHoles=plotDrillHoles;
         }
-        if(Array.isArray(save.goldMachines)){ goldMachines=save.goldMachines; window.goldMachines=goldMachines; }
-        if(Array.isArray(save.meltingFurnaces)){ meltingFurnaces=save.meltingFurnaces.map(f=>{ if(!f.expiresAt) f.expiresAt=Date.now()+100*365*24*3600*1000; return f; }); window.meltingFurnaces=meltingFurnaces; }
+        if(Array.isArray(save.goldMachines) && save.goldMachines.length>0){
+          if(typeof goldMachines==='undefined' || goldMachines.length===0){
+            goldMachines=save.goldMachines; window.goldMachines=goldMachines;
+          } else {
+            let existingIds = new Set(goldMachines.map(g=>String(g.id)));
+            for(let g of save.goldMachines) if(!existingIds.has(String(g.id))) goldMachines.push(g);
+            window.goldMachines=goldMachines;
+          }
+        }
+        if(Array.isArray(save.meltingFurnaces) && save.meltingFurnaces.length>0){
+          // V80 FIX: Firebase nesmí přepsat lokální pec prázdným polem - merguj
+          let incoming = save.meltingFurnaces.map(f=>{ if(!f.expiresAt) f.expiresAt=Date.now()+100*365*24*3600*1000; return f; });
+          if(typeof meltingFurnaces==='undefined' || meltingFurnaces.length===0){
+            meltingFurnaces=incoming; window.meltingFurnaces=meltingFurnaces;
+            console.log("✅ V80 Pec z Firebase (byla prázdná lokálně):", incoming.length);
+          } else {
+            // Mergni - přidej jen ty co chybí
+            let existingIds = new Set(meltingFurnaces.map(ff=>String(ff.id)));
+            let added=0;
+            for(let f of incoming){
+              if(!existingIds.has(String(f.id))){
+                meltingFurnaces.push(f); added++;
+              }
+            }
+            window.meltingFurnaces=meltingFurnaces;
+            if(added>0) console.log("✅ V80 Pec merge z Firebase: +", added);
+          }
+        } else if(Array.isArray(save.meltingFurnaces) && save.meltingFurnaces.length===0){
+          // Firebase má prázdné pole ale lokálně máme pec - neprepisuj, ale pushni lokální do Firebase
+          if(typeof meltingFurnaces!=='undefined' && meltingFurnaces.length>0){
+            console.log("⚠️ V80 Firebase má prázdnou pec ale lokálně máme", meltingFurnaces.length, "- neprepisuji, pushnu do Firebase");
+            try{ if(typeof saveGame==='function') setTimeout(()=>saveGame(), 1000); }catch(e){}
+          }
+        }
         if(typeof save.goldTotal==='number'){ goldTotal=save.goldTotal; window.goldTotal=goldTotal; }
         try{ processOfflineGoldGeneration(); }catch(e){}
         if(typeof save.goldTotal==='number'){ goldTotal=save.goldTotal; window.goldTotal=goldTotal; }
