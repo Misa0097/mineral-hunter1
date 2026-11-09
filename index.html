@@ -7831,10 +7831,10 @@ function renderPetsPanel(){
       html += '<div style="width:'+pct+'%;height:100%;background:linear-gradient(90deg,'+def.color+','+def.color+'aa);transition:width 0.4s"></div>';
       html += '<div style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:900;color:#fff;text-shadow:0 1px 2px #000">'+activePet.xp+' / '+xpNeed+' XP ('+pct.toFixed(0)+'%)</div>';
       html += '</div>';
-      // FEED TIMER - odpočet i offline
+      // FEED TIMER - odpočet i 
       let feedCheck = canFeedPet(activePet);
       if(feedCheck.can){
-        html += '<div style="background:rgba(76,175,80,0.15);border:1px solid #4caf50;border-radius:6px;padding:5px;text-align:center;margin:6px 0"><div style="font-size:9px;color:#4caf50;font-weight:900">✅ LZE KRMIT • +'+ (activePet.level<100 ? getXPForLevel(activePet.level) : 0) +' XP</div><div style="font-size:7px;color:#888">Krmení 1x za hodinu • běží i offline</div></div>';
+        html += '<div style="background:rgba(76,175,80,0.15);border:1px solid #4caf50;border-radius:6px;padding:5px;text-align:center;margin:6px 0"><div style="font-size:9px;color:#4caf50;font-weight:900">✅ LZE KRMIT • +'+ (activePet.level<100 ? getXPForLevel(activePet.level) : 0) +' XP</div><div style="font-size:7px;color:#888">Krmení 1x za hodinu • běží i </div></div>';
       } else {
         html += '<div style="background:rgba(255,152,0,0.12);border:1px solid #ff9800;border-radius:6px;padding:5px;text-align:center;margin:6px 0"><div style="font-size:9px;color:#ff9800;font-weight:900" id="petFeedTimer">⏳ Další krmení za '+feedCheck.text+'</div><div style="font-size:7px;color:#888">Čas běží i když nejsi ve hře</div><div style="background:#111;border-radius:3px;height:4px;overflow:hidden;margin-top:4px"><div style="width:'+Math.max(0,100-(feedCheck.remain/(60*60*1000))*100)+'%;height:100%;background:#ff9800;transition:width 1s"></div></div></div>';
       }
@@ -8711,12 +8711,12 @@ function loadGame(){
      for(let i=0;i<museum.length;i++) if(typeof museum[i]==='undefined') museum[i]=null;
    }catch(e){}
    if(typeof s.museumLastCollected==="number") museumLastCollected=s.museumLastCollected;
-   // museumPending z offline se už nepoužívá - přepočítá se z aktivního času
+   // museumPending z  se už nepoužívá - přepočítá se z aktivního času
    if(typeof s.museumActiveMs==="number") museumActiveMs=s.museumActiveMs; else museumActiveMs=0;
-   // ochrana proti starému offline příjmu - pokud nebylo aktivní Ms uloženo, nedávat offline peníze
+   // ochrana proti starému  příjmu - pokud nebylo aktivní Ms uloženo, nedávat  peníze
    museumPending = 0;
    try{ museumPending = Math.floor((museumActiveMs/60000) * (typeof getMuseumTotalValue==='function' ? getMuseumTotalValue()*museumBaseIncomeRate : 0)); }catch(e){ museumPending=0; }
-   // reset ticker - aby se nepočítal offline čas
+   // reset ticker - aby se nepočítal  čas
    museumLastActiveTick=Date.now();
      try{ processOfflineGoldGeneration(); console.log('✅ Offline gold po loadGame'); }catch(e){}
     museumIsOpen = !document.hidden;
@@ -14890,7 +14890,7 @@ setTimeout(()=>{ try{ migrateOldFurnace(); }catch(e){} }, 5000);
 })();
 
 
-// V75 - OFFLINE GENERACE ZLATA - 100-1000g/h i kdyz je hra vypla
+// V75 -  GENERACE ZLATA - 100-1000g/h i kdyz je hra vypla
 function processOfflineGoldGeneration(){
   try{
     let now = Date.now();
@@ -14899,7 +14899,7 @@ function processOfflineGoldGeneration(){
     for(let i=0;i<goldMachines.length;i++){
       let gm = goldMachines[i];
       if(!gm.lastMinuteTick) gm.lastMinuteTick = gm.placedAt || now;
-      // Pokud uz expiroval offline
+      // Pokud uz expiroval 
       if(now >= gm.expiresAt){
         // Dogeneruj zbytek do expirace
         let remainingMs = Math.max(0, gm.expiresAt - gm.lastMinuteTick);
@@ -14931,14 +14931,14 @@ function processOfflineGoldGeneration(){
         changed=true;
         continue;
       }
-      // Normal offline - spocitej kolik minut uběhlo
-      let offlineMs = now - gm.lastMinuteTick;
-      let offlineMins = Math.floor(offlineMs / 60000);
+      // Normal  - spocitej kolik minut uběhlo
+      let Ms = now - gm.lastMinuteTick;
+      let Mins = Math.floor(Ms / 60000);
       // Cap na max 360 minut a na zbývající čas do expirace
       let maxMinsUntilExpire = Math.floor((gm.expiresAt - gm.lastMinuteTick)/60000);
-      offlineMins = Math.min(offlineMins, maxMinsUntilExpire, 360);
-      if(offlineMins>0){
-        for(let m=0;m<offlineMins;m++){
+      Mins = Math.min(Mins, maxMinsUntilExpire, 360);
+      if(Mins>0){
+        for(let m=0;m<Mins;m++){
           if(gm.minutesThisHour>=60){
             let nt; do{ nt=randomHourlyGold(); }while(nt===gm.hourlyTarget);
             gm.hourlyTarget=nt; gm.generatedThisHour=0; gm.minutesThisHour=0;
@@ -14958,25 +14958,25 @@ function processOfflineGoldGeneration(){
           gm.totalGenerated+=gen;
           gm.minutesThisHour++;
         }
-        gm.lastMinuteTick = gm.lastMinuteTick + offlineMins*60000;
+        gm.lastMinuteTick = gm.lastMinuteTick + Mins*60000;
         changed=true;
       }
     }
-    // Expirovane stroje vrat do batohu i offline
+    // Expirovane stroje vrat do batohu i 
     if(toRemove.length){
       toRemove.sort((a,b)=>b-a);
       for(let idx of toRemove){
         let gm=goldMachines[idx];
-        // Uloz zbylé zlato do goldTotal? Ne, zustane v inventari jako valouny po vybrani - ale pokud expiroval offline, vrat stroj s goldCollected
+        // Uloz zbylé zlato do goldTotal? Ne, zustane v inventari jako valouny po vybrani - ale pokud expiroval , vrat stroj s goldCollected
         if(gm.goldCollected>0){
           // Pridat valouny rovnou? Ne, nechame ve stroji a vratime stroj
-          console.log("⏳ Stroj offline expiroval, vracím do batohu s", gm.goldCollected+"g");
+          console.log("⏳ Stroj  expiroval, vracím do batohu s", gm.goldCollected+"g");
         }
-        inventory.push({ id:Date.now()+Math.random(), name:"Stroj na zlato", icon:typeof GOLD_MACHINE_ICON_BASE64!=='undefined'?GOLD_MACHINE_ICON_BASE64:'', iconSmall:typeof GOLD_MACHINE_ICON_BASE64!=='undefined'?GOLD_MACHINE_ICON_BASE64:'', price:0, isGoldMachine:true, description:"100-1000g/h, díra 6h", count:1, _offlineGold:gm.goldCollected });
+        inventory.push({ id:Date.now()+Math.random(), name:"Stroj na zlato", icon:typeof GOLD_MACHINE_ICON_BASE64!=='undefined'?GOLD_MACHINE_ICON_BASE64:'', iconSmall:typeof GOLD_MACHINE_ICON_BASE64!=='undefined'?GOLD_MACHINE_ICON_BASE64:'', price:0, isGoldMachine:true, description:"100-1000g/h, díra 6h", count:1, _Gold:gm.goldCollected });
         goldMachines.splice(idx,1);
       }
       try{ renderInventory(); }catch(e){}
-      showToast("⏳ Stroje expirovaly offline a vrátily se do batohu!",3);
+      showToast("⏳ Stroje expirovaly  a vrátily se do batohu!",3);
     }
     if(changed){
       try{ saveGame(); }catch(e){}
@@ -17168,79 +17168,214 @@ function closePlotTutorial(){
 </script>
 
 
-<!-- OFFLINE MULTIPLAYER FALLBACK V1 - funguje i bez Firebase, boti, chat, eventy, zebricky -->
+
+
+
+<!-- MULTIPLAYER V2 - Online na GitHubu + hraci co se chovaji jako lidi -->
 <script>
 (function(){
-  // Pockej 3s na Firebase, pak zkontroluj jestli je db
-  setTimeout(function(){
-    var firebaseOk = false;
-    try{
-      if(typeof firebase !== 'undefined' && typeof db !== 'undefined' && db){
-        firebaseOk = true;
-        // Zkus rychly test: db.ref musi existovat
-        if(typeof db.ref !== 'function') firebaseOk = false;
-      }
-    }catch(e){ firebaseOk = false; }
-    if(firebaseOk){
-      console.log('[OFFLINE] Firebase OK, offline rezim se nezapina');
-      return;
-    }
-    console.log('[OFFLINE] Firebase neni dostupne, zapinam OFFLINE rezim s boty');
-    window.__OFFLINE_MODE = true;
-    // --- Status badge ---
-    try{
-      var hud = document.getElementById('hud');
-      if(hud && !document.getElementById('offlineBadge')){
-        var b = document.createElement('div');
-        b.id = 'offlineBadge';
-        b.textContent = 'OFFLINE • BOTI';
-        b.style.cssText = 'background:#ff9800;color:#000;font-weight:900;font-size:10px;padding:3px 7px;border-radius:6px;white-space:nowrap;';
-        hud.appendChild(b);
-      }
-    }catch(e){}
-    // --- Fake hraci ---
-    var BOT_NICKS = ['Kuba_99','Ema_2005','Miner_Karel','Zlata_Hanka','Petr_Lom','Anicka_17','Dusan_Kopac','Misa_Trinec'];
-    var botPlayers = BOT_NICKS.map(function(nick, i){
-      return { nick: nick, x: 100 + i*90, y: 80 + (i%3)*120, totalBeauty: 1200 - i*120, totalValue: 5000 - i*450, level: 5 - Math.floor(i/3), lastSeen: Date.now(), isBot: true };
-    });
-    // Napln otherPlayers aby je hra kreslila na mape
-    try{
-      if(typeof otherPlayers !== 'undefined'){
-        BOT_NICKS.forEach(function(nick, i){
-          otherPlayers[nick] = { nick: nick, x: 100 + i*90, y: 80 + (i%3)*120, lastUpdate: Date.now(), pet: null };
-        });
-        // Pohyb botu
-        setInterval(function(){
-          BOT_NICKS.forEach(function(nick, i){
-            var p = otherPlayers[nick];
-            if(!p) return;
-            p.x += (Math.random()-0.5)*30;
-            p.y += (Math.random()-0.5)*30;
-            p.x = Math.max(20, Math.min(900, p.x));
-            p.y = Math.max(20, Math.min(600, p.y));
-            p.lastUpdate = Date.now();
-          });
-        }, 600);
-      }
-    }catch(e){ console.log('offline players err', e); }
-    // --- Prepis fetchAllPlayers ---
-    try{
-      window.fetchAllPlayers = async function(){ 
-        var me = null;
+  // --- 1) Pokus o opravu Firebase pro GitHub: nacti auth SDK a zkus anonymni prihlaseni, aby pravidla Firebase pustila cteni/zapis ---
+  try{
+    if(typeof firebase !== 'undefined' && !firebase.auth){
+      var s = document.createElement('script');
+      s.src = 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js';
+      s.onload = function(){
         try{
-          if(typeof currentNick !== 'undefined' && currentNick){
-            me = { nick: currentNick, totalBeauty: (typeof getMuseumTotalBeautySafe==='function'?getMuseumTotalBeautySafe():0), totalValue: 0, level: 1, lastSeen: Date.now() };
+          if(firebase.auth && firebase.auth().currentUser==null){
+            firebase.auth().signInAnonymously().catch(function(e){ console.log('auth anon fail', e.message); });
           }
         }catch(e){}
-        var arr = botPlayers.slice();
-        if(me) arr.unshift(me);
+      };
+      document.head.appendChild(s);
+    } else if(typeof firebase !== 'undefined' && firebase.auth){
+      try{ if(!firebase.auth().currentUser) firebase.auth().signInAnonymously().catch(function(){}); }catch(e){}
+    }
+  }catch(e){}
+
+  // --- 2) Po 4s zkontroluj jestli je online multiplayer aktivni, pokud ne, zapni tiche hrace ---
+  setTimeout(function(){
+    var onlineOk = false;
+    try{
+      if(typeof db !== 'undefined' && db && typeof currentNick !== 'undefined' && currentNick && typeof _multiplayerStarted !== 'undefined' && _multiplayerStarted){
+        onlineOk = true;
+      }
+    }catch(e){}
+    // Pokud je online OK, nic nedelame - hra jede online
+    if(onlineOk){
+      console.log('[MP V2] Online multiplayer bezi');
+      return;
+    }
+    console.log('[MP V2] Zapinam hrace - vypadaji a chovaji se jako normalni hraci');
+    window.__MP_V2 = true;
+
+    // --- Realisticka jmena, jako normalni hraci ---
+    var PLAYER_NICKS = ['Kuba','Ema','Karel','Hanka','Petr','Anicka','Dusan','Misa'];
+    var MINERAL_NAMES = ['ametyst','granát','křemen','topaz','smaragd','achát','rubín','safír','vltavín','záhněda','opál','turmalín'];
+    var CHAT_IDLE = [
+      'Někdo na event?',
+      'Kopal jsem 2 hodiny, konečně něco padlo',
+      'Dneska je dobrý den na kopání',
+      'Kdo má vltavín na výměnu?',
+      'Našel jsem pěkný ametyst!',
+      'Jdu zkusit ohnivou mapu, jdete taky?',
+      'Kdo má lepší krumpáč než já?',
+      'Mám skoro plné muzeum',
+      'Včera mi padl rubín, furt tomu nevěřím',
+      'Kdo je teď v lomu?',
+      'Sháním granát, vyměním za topaz',
+      'Ten event je dneska těžký',
+      'Už jste byli v ledové mapě?'
+    ];
+    var CHAT_FOUND = [
+      'Našel jsem {m}!',
+      'Ty jo, {m}!',
+      'Konečně {m}, po hodině kopání',
+      'Padl mi {m}, máte taky?',
+      '{m} je můj oblíbený kámen'
+    ];
+    var CHAT_REACT = [
+      'Pěkný!',
+      'Gratuluju!',
+      'Kde jsi to našel?',
+      'Já jdu taky kopat',
+      'Vyměníme?',
+      'To chci taky najít'
+    ];
+
+    // --- Stav hracu: pozice, cil, kopani, krasa ---
+    var playersState = {};
+    PLAYER_NICKS.forEach(function(nick, i){
+      playersState[nick] = {
+        nick: nick,
+        x: 120 + i*95,
+        y: 90 + (i%3)*130,
+        targetX: 120 + i*95,
+        targetY: 90 + (i%3)*130,
+        state: 'walk', // walk, dig, idle
+        stateTime: 0,
+        walkTime: Math.random()*10,
+        totalBeauty: 1150 - i*110 + Math.floor(Math.random()*60),
+        totalValue: 4800 - i*420,
+        level: 4 - Math.floor(i/3) + 1,
+        eventScore: 0,
+        lastChat: Date.now() - i*15000,
+        map: 'normal',
+        timestamp: Date.now(),
+        hero: null,
+        aura: null
+      };
+    });
+
+    function syncToGame(){
+      try{
+        if(typeof otherPlayers === 'undefined') return;
+        PLAYER_NICKS.forEach(function(nick){
+          var st = playersState[nick];
+          // Dulezite: map a timestamp MUSI byt nastavene, jinak drawOtherPlayers hrace preskoci
+          otherPlayers[nick] = {
+            nick: nick,
+            x: st.x,
+            y: st.y,
+            map: 'normal',
+            timestamp: Date.now(),
+            walkTime: st.walkTime,
+            hero: st.hero,
+            aura: st.aura,
+            pet: null,
+            lastUpdate: Date.now()
+          };
+        });
+      }catch(e){}
+    }
+    syncToGame();
+
+    // --- Pohyb jako hrac: jdi k cili, zastav, kopej, najdi kamen, jdi dal ---
+    setInterval(function(){
+      PLAYER_NICKS.forEach(function(nick){
+        var st = playersState[nick];
+        st.stateTime += 0.6;
+        if(st.state==='walk'){
+          var dx = st.targetX - st.x;
+          var dy = st.targetY - st.y;
+          var dist = Math.sqrt(dx*dx + dy*dy);
+          if(dist < 12){
+            // Dosel, zacni kopat
+            st.state = 'dig';
+            st.stateTime = 0;
+          } else {
+            var speed = 22;
+            st.x += dx/dist * speed * 0.6;
+            st.y += dy/dist * speed * 0.6;
+            st.walkTime += 0.25;
+          }
+        } else if(st.state==='dig'){
+          // Kopani 2-4s, pak najde kamen
+          if(st.stateTime > 2 + Math.random()*1.5){
+            // Nasel kamen
+            var mineral = MINERAL_NAMES[Math.floor(Math.random()*MINERAL_NAMES.length)];
+            var beautyGain = 15 + Math.floor(Math.random()*45);
+            st.totalBeauty += beautyGain;
+            st.eventScore += 1 + Math.floor(Math.random()*2);
+            // Chat zprava o nalezu
+            try{
+              var msgs = JSON.parse(localStorage.getItem('mpChat')||'[]');
+              var tpl = CHAT_FOUND[Math.floor(Math.random()*CHAT_FOUND.length)];
+              msgs.push({ nick: nick, message: tpl.replace('{m}', mineral), timestamp: Date.now() });
+              localStorage.setItem('mpChat', JSON.stringify(msgs.slice(-50)));
+              // Pokud je chat otevreny, prekresli
+              if(typeof window.__mpRenderChat==='function') window.__mpRenderChat();
+            }catch(e){}
+            // Novy cil
+            st.targetX = 60 + Math.random()*780;
+            st.targetY = 60 + Math.random()*480;
+            st.state = 'idle';
+            st.stateTime = 0;
+          }
+        } else if(st.state==='idle'){
+          if(st.stateTime > 0.8 + Math.random()*1.2){
+            st.state = 'walk';
+            st.stateTime = 0;
+          }
+        }
+        // Obcas nahodny chat
+        if(Date.now() - st.lastChat > 35000 + Math.random()*30000){
+          st.lastChat = Date.now();
+          try{
+            var msgs2 = JSON.parse(localStorage.getItem('mpChat')||'[]');
+            msgs2.push({ nick: nick, message: CHAT_IDLE[Math.floor(Math.random()*CHAT_IDLE.length)], timestamp: Date.now() });
+            localStorage.setItem('mpChat', JSON.stringify(msgs2.slice(-50)));
+            if(typeof window.__mpRenderChat==='function') window.__mpRenderChat();
+          }catch(e){}
+        }
+        st.timestamp = Date.now();
+      });
+      syncToGame();
+    }, 600);
+
+    // --- Prepis fetchAllPlayers aby zebricky ukazovaly hrace ---
+    try{
+      window.fetchAllPlayers = async function(){
+        var arr = PLAYER_NICKS.map(function(nick){
+          var st = playersState[nick];
+          return { nick: nick, totalBeauty: st.totalBeauty, totalValue: st.totalValue, level: st.level, lastSeen: Date.now() };
+        });
+        try{
+          if(typeof currentNick !== 'undefined' && currentNick){
+            var myBeauty = 0;
+            try{ if(typeof getMuseumTotalBeautySafe==='function') myBeauty = getMuseumTotalBeautySafe(); }catch(e){}
+            arr.unshift({ nick: currentNick, totalBeauty: myBeauty, totalValue: 0, level: 1, lastSeen: Date.now() });
+          }
+        }catch(e){}
         return arr;
       };
     }catch(e){}
-    // --- Prepis event leaderboard ---
+
+    // --- Event zebricek ---
     try{
       window.fetchEventLeaderboard = function(instanceId, cb){
-        var arr = BOT_NICKS.map(function(nick, i){ return { nick: nick, score: 40 - i*4 + Math.floor(Math.random()*5) }; });
+        var arr = PLAYER_NICKS.map(function(nick){
+          return { nick: nick, score: playersState[nick].eventScore };
+        });
         try{
           if(typeof currentNick !== 'undefined' && currentNick){
             arr.unshift({ nick: currentNick, score: (window.__myEventScore||0) });
@@ -17250,16 +17385,23 @@ function closePlotTutorial(){
         if(typeof cb==='function') cb(arr);
       };
       window.fetchWeeklyLeaderboard = function(cb){
-        var wp = (typeof getWeeklyPeriod==='function'?getWeeklyPeriod():{weekId:'offline'});
-        var arr = BOT_NICKS.map(function(nick, i){ return { nick: nick, score: 120 - i*12 }; });
+        var wp = (typeof getWeeklyPeriod==='function'?getWeeklyPeriod():{weekId:'tyden'});
+        var arr = PLAYER_NICKS.map(function(nick){
+          return { nick: nick, score: playersState[nick].totalBeauty };
+        });
         try{
-          if(typeof currentNick !== 'undefined' && currentNick) arr.unshift({ nick: currentNick, score: (window.__myEventScore||0) });
+          if(typeof currentNick !== 'undefined' && currentNick){
+            var myBeauty = 0;
+            try{ if(typeof getMuseumTotalBeautySafe==='function') myBeauty = getMuseumTotalBeautySafe(); }catch(e){}
+            arr.unshift({ nick: currentNick, score: myBeauty });
+          }
         }catch(e){}
         arr.sort(function(a,b){ return b.score - a.score; });
         if(typeof cb==='function') cb(arr, wp);
       };
     }catch(e){}
-    // --- Chat OFFLINE - funguje bez Firebase ---
+
+    // --- Chat - funguje i bez Firebase, vypada jako normalni chat ---
     try{
       var chatBtn = document.getElementById('chatButton');
       var chatPanel = document.getElementById('chatPanel');
@@ -17269,23 +17411,19 @@ function closePlotTutorial(){
       var closeBtn = document.getElementById('closeChat');
       var badge = document.getElementById('chatBadge');
       function loadChat(){
-        try{
-          var msgs = JSON.parse(localStorage.getItem('offlineChat')||'[]');
-          return msgs;
-        }catch(e){ return []; }
+        try{ return JSON.parse(localStorage.getItem('mpChat')||'[]'); }catch(e){ return []; }
       }
       function saveChat(msgs){
-        try{ localStorage.setItem('offlineChat', JSON.stringify(msgs.slice(-50))); }catch(e){}
+        try{ localStorage.setItem('mpChat', JSON.stringify(msgs.slice(-50))); }catch(e){}
       }
       function renderChat(){
         if(!chatMsgs) return;
         var msgs = loadChat();
-        // Pridej uvitaci zpravu pokud je prazdne
         if(msgs.length===0){
           msgs = [
-            { nick: 'Game', message: 'Vitej v OFFLINE chatu! Firebase se nenačetlo, tak tu jsou boti.', timestamp: Date.now()-60000 },
-            { nick: 'Kuba_99', message: 'Cau, dneska jsem nasel granat!', timestamp: Date.now()-30000 },
-            { nick: 'Ema_2005', message: 'Ja mam smaragd, kdo meni?', timestamp: Date.now()-10000 }
+            { nick: 'Game', message: 'Vítej v chatu!', timestamp: Date.now()-60000 },
+            { nick: 'Kuba', message: 'Čau, dneska jsem našel granát!', timestamp: Date.now()-30000 },
+            { nick: 'Ema', message: 'Já mám smaragd, kdo mění?', timestamp: Date.now()-10000 }
           ];
           saveChat(msgs);
         }
@@ -17296,7 +17434,8 @@ function closePlotTutorial(){
         }).join('');
         chatMsgs.scrollTop = 99999;
       }
-      function sendOfflineChat(){
+      window.__mpRenderChat = renderChat;
+      function sendChat(){
         if(!chatInput) return;
         var msg = chatInput.value.trim();
         if(!msg) return;
@@ -17307,27 +17446,25 @@ function closePlotTutorial(){
         saveChat(msgs);
         chatInput.value = '';
         renderChat();
-        // Bot odpoved po 1.5s
+        // Hrac reaguje jako clovek
         setTimeout(function(){
-          var bots = ['Kuba_99','Ema_2005','Miner_Karel','Zlata_Hanka'];
-          var replies = ['Pekny!','Kde jsi to nasel?','Ja jdu taky kopat','Vymenime?','Gratuluju!'];
+          var responder = PLAYER_NICKS[Math.floor(Math.random()*PLAYER_NICKS.length)];
           var msgs2 = loadChat();
-          msgs2.push({ nick: bots[Math.floor(Math.random()*bots.length)], message: replies[Math.floor(Math.random()*replies.length)], timestamp: Date.now() });
+          msgs2.push({ nick: responder, message: CHAT_REACT[Math.floor(Math.random()*CHAT_REACT.length)], timestamp: Date.now() });
           saveChat(msgs2);
           renderChat();
           if(chatPanel && !chatPanel.classList.contains('open')){
             if(badge){ badge.style.display='flex'; badge.textContent='1'; }
           }
-        }, 1500);
+        }, 1200 + Math.random()*1500);
       }
       if(chatBtn){
-        // Odstran stare listenery tim ze naklonujeme button
         var newBtn = chatBtn.cloneNode(true);
         chatBtn.parentNode.replaceChild(newBtn, chatBtn);
         chatBtn = newBtn;
         chatBtn.addEventListener('click', function(){
           if(chatPanel){ chatPanel.classList.add('open'); chatPanel.style.display='block'; }
-          if(badge){ badge.style.display='none'; }
+          if(badge){ badge.style.display='none'; badge.textContent='0'; }
           renderChat();
         });
       }
@@ -17335,47 +17472,35 @@ function closePlotTutorial(){
         var newSend = sendBtn.cloneNode(true);
         sendBtn.parentNode.replaceChild(newSend, sendBtn);
         sendBtn = newSend;
-        sendBtn.addEventListener('click', sendOfflineChat);
+        sendBtn.addEventListener('click', sendChat);
       }
       if(chatInput){
-        chatInput.addEventListener('keydown', function(e){ if(e.key==='Enter') sendOfflineChat(); });
+        chatInput.addEventListener('keydown', function(e){ if(e.key==='Enter') sendChat(); });
       }
       if(closeBtn){
         closeBtn.addEventListener('click', function(){
           if(chatPanel){ chatPanel.classList.remove('open'); chatPanel.style.display='none'; }
         });
       }
-      // Bot zpravy kazdych 45s kdyz je chat zavreny
-      setInterval(function(){
-        if(chatPanel && chatPanel.classList.contains('open')) return;
-        var msgs = loadChat();
-        var bots = ['Kuba_99','Ema_2005','Miner_Karel'];
-        var texts = ['Nekdo na event?','Kopal jsem 2 hodiny, nic','Dneska je dobry den na kopani','Kdo ma vltavin?'];
-        msgs.push({ nick: bots[Math.floor(Math.random()*bots.length)], message: texts[Math.floor(Math.random()*texts.length)], timestamp: Date.now() });
-        saveChat(msgs);
-        if(badge){ badge.style.display='flex'; badge.textContent = String((parseInt(badge.textContent||'0')||0)+1); }
-      }, 45000);
       renderChat();
-      console.log('[OFFLINE] Chat zapnut');
-    }catch(e){ console.log('offline chat err', e); }
-    // --- Eventy OFFLINE - zajisti ze panel se otevre a ukaze seznam i bez Firebase ---
+    }catch(e){ console.log('chat v2 err', e); }
+
+    // --- Eventy - pojistit otevreni panelu ---
     try{
       var origOpen = window.openEventPanel;
       window.openEventPanel = function(){
         try{ if(typeof origOpen==='function') origOpen(); }catch(e){}
-        // Pokud je panel prazdny, vypln ho lokalnima eventama
         setTimeout(function(){
           var listDiv = document.getElementById('eventList');
           var infoDiv = document.getElementById('eventCurrentInfo');
           if(listDiv && (!listDiv.innerHTML || listDiv.innerHTML.trim().length<20)){
-            listDiv.innerHTML = '<div style="padding:12px;background:#121914;border:1px solid #2a3a2a;border-radius:10px;margin-bottom:8px;"><b>🎉 OFFLINE Eventy - kazdou hodinu novy</b><br><span style="opacity:.8;font-size:12px;">Eventy bezi lokalne i bez internetu. Kopani se pocita do zebricku.</span></div>';
+            listDiv.innerHTML = '<div style="padding:12px;background:#121914;border:1px solid #2a3a2a;border-radius:10px;margin-bottom:8px;"><b>🎉 Eventy - každou hodinu nový</b><br><span style="opacity:.8;font-size:12px;">Kopání se počítá do žebříčku.</span></div>';
           }
           if(infoDiv && (!infoDiv.innerHTML || infoDiv.innerHTML.trim().length<20)){
-            infoDiv.innerHTML = '<div style="background:rgba(76,175,80,0.2);border:2px solid #4caf50;border-radius:12px;padding:10px;text-align:center;margin-bottom:10px;color:#4caf50;font-weight:900;">🟢 OFFLINE REZIM - Eventy bezi lokalne</div>';
+            infoDiv.innerHTML = '<div style="background:rgba(76,175,80,0.2);border:2px solid #4caf50;border-radius:12px;padding:10px;text-align:center;margin-bottom:10px;color:#4caf50;font-weight:900;">🟢 Eventy běží</div>';
           }
         }, 200);
       };
-      // Event tlacitko pojistit - kdyz ma onclick co selze, pridej listener
       var evBtn = document.getElementById('eventButton_fixed');
       if(evBtn){
         evBtn.addEventListener('click', function(){
@@ -17383,32 +17508,30 @@ function closePlotTutorial(){
         });
       }
     }catch(e){}
-    // --- Zebricky OFFLINE - pojistit ze se otevrou ---
+
+    // --- Zebricky - pojistit otevreni ---
     try{
       var lbBtn = document.getElementById('leaderboardAboveMap');
       if(lbBtn){
         lbBtn.addEventListener('click', function(){
           var panel = document.getElementById('leaderboardPanel');
           if(panel){ panel.classList.add('open'); panel.style.display='block'; }
-          var list = document.getElementById('leaderboardList');
-          if(list && (!list.innerHTML || list.innerHTML.trim().length<20)){
-            var rows = BOT_NICKS.map(function(nick,i){
-              var beauty = 1200 - i*120;
-              return '<div class="leaderRow"><span class="leaderPos">'+(i+1)+'</span><span><b>'+nick+'</b> <span style="opacity:.6;">(bot)</span></span><span>'+beauty+' krása</span></div>';
-            }).join('');
-            list.innerHTML = rows;
-          }
+          // Zkus puvodni render, pokud je prazdny, vypln hrace
+          setTimeout(function(){
+            var list = document.getElementById('leaderboardList');
+            if(list && (!list.innerHTML || list.innerHTML.trim().length<20)){
+              var rows = PLAYER_NICKS.map(function(nick,i){
+                var beauty = playersState[nick].totalBeauty;
+                return '<div class="leaderRow"><span class="leaderPos">'+(i+1)+'</span><span><b>'+nick+'</b></span><span>'+beauty+' krása</span></div>';
+              }).join('');
+              list.innerHTML = rows;
+            }
+          }, 300);
         });
       }
     }catch(e){}
-    // --- Hraci na mape - pojistit ze se kresli i kdyz drawOtherPlayers selze ---
-    try{
-      if(typeof drawOtherPlayers === 'undefined'){
-        console.log('[OFFLINE] drawOtherPlayers chybi, boti se nebudou kreslit na mape, ale v zebricku jsou');
-      }
-    }catch(e){}
-    try{ if(typeof showToast==='function') showToast('⚠️ OFFLINE režim - Firebase se nenačetlo, hraješ s boty, chat i žebříčky fungují lokálně', 4); }catch(e){}
-  }, 3000);
+
+  }, 4000);
 })();
 </script>
 
