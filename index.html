@@ -17560,5 +17560,161 @@ function closePlotTutorial(){
 })();
 </script>
 
+
+<!-- FIX NICK V2 - bez tlacitka vlevo nahore, VSTOUPIT i X musi fungovat -->
+<style>
+#nickPanel{
+  position:fixed !important;
+  left:50% !important; top:50% !important;
+  transform:translate(-50%,-50%) !important;
+  z-index:999999 !important;
+  display:none;
+}
+#nickPanel.open{display:block !important;}
+#nickPanel .panelHeader{position:relative; padding-right:50px;}
+#nickPanelCloseX{
+  position:absolute !important; right:10px !important; top:10px !important;
+  background:#ff4444 !important; color:#fff !important; border:none !important; border-radius:50% !important;
+  width:36px !important; height:36px !important; font-size:20px !important; font-weight:900 !important;
+  cursor:pointer !important; display:flex !important; align-items:center !important; justify-content:center !important;
+  z-index:10 !important; pointer-events:auto !important;
+}
+#nickBtn{
+  pointer-events:auto !important; cursor:pointer !important; opacity:1 !important;
+}
+#nickInput{pointer-events:auto !important;}
+</style>
+<script>
+(function(){
+  try{
+    var oldBtn = document.getElementById('changeNickBtn');
+    if(oldBtn) oldBtn.remove();
+    var oldCont = document.getElementById('nickPanelContinueBtn');
+    if(oldCont) oldCont.remove();
+    var oldClose = document.getElementById('nickPanelCloseBtn');
+    if(oldClose) oldClose.remove();
+  }catch(e){}
+  function closeNickPanelAsGuest(){
+    try{
+      var panel = document.getElementById('nickPanel');
+      if(panel){ panel.classList.remove('open'); panel.style.display='none'; }
+      if(typeof currentNick==='undefined' || !currentNick){
+        try{
+          var saved = localStorage.getItem('mineralHunterLastNick');
+          if(saved){ currentNick = saved; }
+          else { currentNick = 'Hrac'; }
+        }catch(e){ currentNick = 'Hrac'; }
+      }
+      console.log('[NICK FIX] Panel zavren');
+    }catch(e){}
+  }
+  window.closeNickPanelAsGuest = closeNickPanelAsGuest;
+  function fixNickPanel(){
+    var panel = document.getElementById('nickPanel');
+    if(!panel) return;
+    var header = panel.querySelector('.panelHeader');
+    if(header && !document.getElementById('nickPanelCloseX')){
+      var x = document.createElement('button');
+      x.id = 'nickPanelCloseX';
+      x.type = 'button';
+      x.textContent = '×';
+      x.title = 'Zavřít bez změny';
+      x.addEventListener('click', function(e){
+        e.preventDefault(); e.stopPropagation();
+        closeNickPanelAsGuest();
+      });
+      header.appendChild(x);
+    }
+    var btn = document.getElementById('nickBtn');
+    var input = document.getElementById('nickInput');
+    var errEl = document.getElementById('nickError');
+    if(btn && !btn.dataset.nickFixed){
+      try{
+        var nb = btn.cloneNode(true);
+        nb.dataset.nickFixed = '1';
+        btn.parentNode.replaceChild(nb, btn);
+        btn = nb;
+      }catch(e){ btn.dataset.nickFixed='1'; }
+      btn.addEventListener('click', function(e){
+        e.preventDefault(); e.stopPropagation();
+        var raw = input ? input.value : '';
+        var nick = '';
+        try{
+          if(typeof normalizeNick==='function') nick = normalizeNick(raw);
+          else { nick = (raw||'').trim().replace(/\s+/g,'_').slice(0,16); }
+        }catch(e){ nick = (raw||'').trim().slice(0,16); }
+        if(!nick){
+          nick = 'Player' + String(Math.floor(Math.random()*9000+1000));
+        }
+        if(nick.length < 2){
+          if(errEl) errEl.textContent = 'Min 2 znaky';
+          panel.classList.add('open');
+          panel.style.display = 'block';
+          return;
+        }
+        if(errEl) errEl.textContent = '';
+        try{ currentNick = nick; }catch(e){ window.currentNick = nick; }
+        try{ localStorage.setItem('mineralHunterLastNick', nick); }catch(e){}
+        panel.classList.remove('open');
+        panel.style.display = 'none';
+        try{ if(typeof showToast==='function') showToast('Vítej ' + nick + '!', 2); }catch(e){}
+        setTimeout(function(){
+          try{
+            (async function(){
+              try{
+                var remote = null;
+                if(typeof loadPlayerFromFirebase==='function'){
+                  try{ remote = await loadPlayerFromFirebase(nick); }catch(e){}
+                }
+                if(remote && remote.saveData && typeof applySaveData==='function'){
+                  applySaveData(remote.saveData);
+                } else {
+                  try{
+                    var localRaw = localStorage.getItem('mineralHunterSave_' + nick);
+                    if(localRaw && typeof applySaveData==='function') applySaveData(JSON.parse(localRaw));
+                  }catch(e){}
+                }
+                try{ if(typeof setupChatSystem==='function') setupChatSystem(); }catch(e){}
+                try{ if(typeof setupMultiplayerPresence==='function') setupMultiplayerPresence(); }catch(e){}
+                try{ if(typeof setupGlobalAnnouncementsListener==='function') setupGlobalAnnouncementsListener(); }catch(e){}
+              }catch(e){}
+            })();
+          }catch(e){}
+        }, 100);
+      });
+    }
+    if(input && !input.dataset.nickFixed){
+      input.dataset.nickFixed = '1';
+      input.addEventListener('keydown', function(e){
+        if(e.key==='Enter'){
+          e.preventDefault();
+          var b = document.getElementById('nickBtn');
+          if(b) b.click();
+        }
+      });
+    }
+    try{
+      if(input){
+        var cur = (typeof currentNick!=='undefined' && currentNick) ? currentNick : (function(){ try{ return localStorage.getItem('mineralHunterLastNick')||''; }catch(e){ return ''; } })();
+        if(cur && !input.value) input.value = cur;
+      }
+    }catch(e){}
+  }
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded', function(){ setTimeout(fixNickPanel, 500); });
+  } else {
+    setTimeout(fixNickPanel, 500);
+  }
+  setTimeout(fixNickPanel, 1500);
+  setTimeout(fixNickPanel, 3000);
+  setInterval(function(){
+    try{
+      var btn = document.getElementById('changeNickBtn');
+      if(btn) btn.remove();
+    }catch(e){}
+  }, 3000);
+})();
+</script>
+
 </body>
 </html>
