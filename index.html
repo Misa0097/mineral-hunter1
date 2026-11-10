@@ -12913,7 +12913,7 @@ console.log('✅ V41 Firebase cloud save ready - hra už ukládá i na Firebase,
       var nick = getNick();
       if(!nick) return;
       if(typeof setupMultiplayerPresence === 'function'){ try{ setupMultiplayerPresence(); }catch(e){} }
-      if(typeof setupChatSystem === 'function'){ try{ setupChatSystem(); }catch(e){} }
+      // CHAT FIX V63: setupChatSystem se vola jen jednou z handleNickEntry, ne z intervalu - jinak duplikuje listenery a stare zpravy vyskakuji porad dokola
       if(typeof setupGlobalAnnouncementsListener === 'function'){ try{ setupGlobalAnnouncementsListener(); }catch(e){} }
     }catch(e){}
   }
@@ -13168,6 +13168,47 @@ console.log('✅ V41 Firebase cloud save ready - hra už ukládá i na Firebase,
     }catch(e){ if(cb) cb(false); }
   };
   console.log('Firebase FIX V62 nacten - sjednoceny save do players, UTC eventy, viditelne chyby');
+})();
+<\/script><script>
+(function(){
+  window.__chatFixedStarted = false;
+  window.setupChatSystem = function(){
+    try{
+      if(window.__chatFixedStarted) return;
+      window.__chatFixedStarted = true;
+      var d = null;
+      try{ if(typeof db !== 'undefined' && db) d = db; }catch(e){}
+      try{ if(!d && window.db) d = window.db; }catch(e){}
+      if(!d){ window.__chatFixedStarted = false; console.log('db not ready for chat'); return; }
+      var btn = document.getElementById('chatButton');
+      var panel = document.getElementById('chatPanel');
+      var closeBtn = document.getElementById('closeChat');
+      var input = document.getElementById('chatInput');
+      var sendBtn = document.getElementById('sendChatBtn');
+      var badge = document.getElementById('chatBadge');
+      if(btn){ btn.addEventListener('click', function(){ panel.classList.add('open'); try{ chatPanelOpen = true; }catch(e){} try{ chatUnread = 0; }catch(e){} if(badge){ badge.style.display = 'none'; badge.textContent = '0'; } setTimeout(function(){ var m = document.getElementById('chatMessages'); if(m) m.scrollTop = 99999; }, 100); }); }
+      if(closeBtn){ closeBtn.addEventListener('click', function(){ panel.classList.remove('open'); try{ chatPanelOpen = false; }catch(e){} }); }
+      if(sendBtn){ sendBtn.addEventListener('click', function(){ try{ sendChatMessage(); }catch(e){} }); }
+      if(input){ input.addEventListener('keydown', function(e){ if(e.key === 'Enter') sendChatMessage(); }); }
+      try{ var ov = document.getElementById('chatOverlay'); if(ov) ov.innerHTML = ''; }catch(e){}
+      var initialLoad = true;
+      setTimeout(function(){ initialLoad = false; }, 2000);
+      d.ref('chat').limitToLast(50).on('child_added', function(snap){
+        var data = snap.val();
+        if(!data) return;
+        try{ addChatMessageToPanel(data); }catch(e){}
+        if(initialLoad) return;
+        try{ showChatBubble(data); }catch(e){}
+        try{
+          if(!chatPanelOpen && data.nick !== currentNick){
+            chatUnread = chatUnread + 1;
+            if(badge){ badge.style.display = 'inline-block'; badge.textContent = chatUnread > 99 ? '99+' : chatUnread; }
+          }
+        }catch(e){}
+      });
+    }catch(e){ console.error('chat fix err', e); }
+  };
+  console.log('Chat FIX V63 nacten - chat se zapne jen jednou, stare zpravy nebudou vyskakovat jako nove');
 })();
 <\/script></body>
 </html>`;var Nc=ft(dn(),1),xm=Symbol.for("react.element");var ym=Object.prototype.hasOwnProperty,vm=Nc.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.ReactCurrentOwner,hm={key:!0,ref:!0,__self:!0,__source:!0};function Oc(e,t,n){var i,r={},a=null,o=null;n!==void 0&&(a=""+n),t.key!==void 0&&(a=""+t.key),t.ref!==void 0&&(o=t.ref);for(i in t)ym.call(t,i)&&!hm.hasOwnProperty(i)&&(r[i]=t[i]);if(e&&e.defaultProps)for(i in t=e.defaultProps,t)r[i]===void 0&&(r[i]=t[i]);return{$$typeof:xm,type:e,key:a,ref:o,props:r,_owner:vm.current}}var fe=Oc,ai=Oc;function Am(e){let n=`<style id="v42-github-joystick-kopej-fix">
