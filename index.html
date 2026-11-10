@@ -12806,7 +12806,370 @@ console.log('✅ V41 Firebase cloud save ready - hra už ukládá i na Firebase,
   max-height:9px !important; flex:0 0 9px !important; vertical-align:middle !important;
 }
 </style>
-</body>
+<script>
+(function(){
+  function ensureBanner(){
+    try{
+      var b = document.getElementById('firebaseBanner');
+      if(!b){
+        b = document.createElement('div');
+        b.id = 'firebaseBanner';
+        b.style.cssText = 'position:fixed;left:8px;right:8px;top:44px;z-index:300000;background:#b71c1c;color:#fff;font-size:12px;font-weight:700;padding:9px 10px;border-radius:8px;display:none;box-shadow:0 6px 20px rgba(0,0,0,.5);line-height:1.35;';
+        document.body.appendChild(b);
+      }
+      return b;
+    }catch(e){ return null; }
+  }
+  function showBanner(msg){
+    try{
+      var b = ensureBanner();
+      if(b){ b.textContent = msg; b.style.display = 'block'; }
+      window.__firebaseLastError = msg;
+      try{ var st = document.getElementById('onlineStatus'); if(st){ st.textContent = 'OFFLINE - Firebase chyba'; st.style.color = '#ff6b6b'; } }catch(e){}
+    }catch(e){}
+  }
+  function hideBanner(){
+    try{ var b = document.getElementById('firebaseBanner'); if(b) b.style.display = 'none'; }catch(e){}
+    try{ var st = document.getElementById('onlineStatus'); if(st){ st.textContent = 'Online - Firebase OK'; st.style.color = '#7ed87e'; } }catch(e){}
+  }
+  function reportErr(prefix, e){
+    try{
+      var code = '';
+      var msg = '';
+      try{ if(e && e.code) code = e.code; }catch(e2){}
+      try{ if(e && e.message) msg = e.message; else msg = String(e); }catch(e3){ msg = 'neznama chyba'; }
+      console.error(prefix, e);
+      window.__firebaseLastError = prefix + ': ' + code + ' ' + msg;
+      if(code === 'PERMISSION_DENIED' || msg.indexOf('PERMISSION_DENIED') !== -1){
+        showBanner('Firebase: PERMISSION_DENIED - v Firebase Console, Realtime Database, Rules povol cteni a zapis pro players, mineralBest, eventScores, weeklyScores, chat, online, saves, market, eventRewards, weeklyRewards, pendingRewards, meta. Jinak zustanou zebricky a eventy prazdne.');
+      } else if(code === 'UNAVAILABLE' || msg.indexOf('network') !== -1 || msg.indexOf('Network') !== -1){
+        showBanner('Firebase: nelze se pripojit k databazi - zkontroluj pripojeni k internetu.');
+      }
+    }catch(err){}
+  }
+  function getNick(){
+    try{ if(typeof currentNick !== 'undefined' && currentNick) return currentNick; }catch(e){}
+    try{ if(window.currentNick) return window.currentNick; }catch(e){}
+    try{ var n = localStorage.getItem('mineralHunterLastNick'); if(n) return n; }catch(e){}
+    try{ var n2 = localStorage.getItem('currentNick'); if(n2) return n2; }catch(e){}
+    return null;
+  }
+  function getDb(){
+    try{ if(typeof db !== 'undefined' && db){ window.db = db; return db; } }catch(e){}
+    try{ if(window.db) { try{ db = window.db; }catch(e2){} return window.db; } }catch(e){}
+    return null;
+  }
+  function ensureDb(){
+    var d = getDb();
+    if(d) return d;
+    try{
+      if(typeof firebase !== 'undefined' && firebase && firebase.database){
+        try{
+          var apps = null;
+          try{ apps = firebase.apps; }catch(e){}
+          if(!apps || apps.length === 0){
+            firebase.initializeApp({ apiKey: 'AIzaSyCpgDKPwzesGiwXaOUP_6HWOl_6dKUGqKY', authDomain: 'mineral-hunter.firebaseapp.com', databaseURL: 'https://mineral-hunter-default-rtdb.europe-west1.firebasedatabase.app', projectId: 'mineral-hunter', storageBucket: 'mineral-hunter.firebasestorage.app', messagingSenderId: '97854295928', appId: '1:97854295928:web:c2e45bf38e6024e9c2428d' });
+          }
+          var nd = firebase.database();
+          window.db = nd;
+          try{ db = nd; }catch(e){}
+          console.log('Firebase FIX: db obnoveno');
+          try{ nd.ref('.info/connected').on('value', function(snap){ window.__firebaseConnected = !!snap.val(); if(snap.val()) hideBanner(); }); }catch(e){}
+          return nd;
+        }catch(e){ reportErr('Firebase init', e); }
+      }
+    }catch(e){}
+    return null;
+  }
+  function loadSdk(cb){
+    try{
+      if(typeof firebase !== 'undefined' && firebase && firebase.database){ if(cb) cb(); return; }
+      var s1 = document.createElement('script');
+      s1.src = 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js';
+      s1.onload = function(){
+        var s2 = document.createElement('script');
+        s2.src = 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js';
+        s2.onload = function(){ var d = ensureDb(); if(d) hideBanner(); if(cb) cb(); };
+        s2.onerror = function(){ showBanner('Firebase: nejde nacist SDK z gstatic.com - zkontroluj pripojeni nebo adblock.'); };
+        document.head.appendChild(s2);
+      };
+      s1.onerror = function(){ showBanner('Firebase: nejde nacist SDK z gstatic.com - zkontroluj pripojeni nebo adblock.'); };
+      document.head.appendChild(s1);
+    }catch(e){}
+  }
+  var firstDb = ensureDb();
+  if(!firstDb){
+    loadSdk(function(){ try{ ensureDb(); }catch(e){} });
+  } else {
+    try{ firstDb.ref('.info/connected').on('value', function(snap){ window.__firebaseConnected = !!snap.val(); if(snap.val()) hideBanner(); }); }catch(e){}
+  }
+  setInterval(function(){
+    var d = ensureDb();
+    if(!d){ loadSdk(); }
+    else { trySetupListeners(); }
+  }, 5000);
+  function trySetupListeners(){
+    try{
+      var nick = getNick();
+      if(!nick) return;
+      if(typeof setupMultiplayerPresence === 'function'){ try{ setupMultiplayerPresence(); }catch(e){} }
+      if(typeof setupChatSystem === 'function'){ try{ setupChatSystem(); }catch(e){} }
+      if(typeof setupGlobalAnnouncementsListener === 'function'){ try{ setupGlobalAnnouncementsListener(); }catch(e){} }
+    }catch(e){}
+  }
+  window.testFirebase = async function(){
+    var d = ensureDb();
+    if(!d){ showBanner('Firebase TEST: db je null - SDK se nenacetlo.'); return false; }
+    try{
+      var snap = await d.ref('players').once('value');
+      var count = 0;
+      snap.forEach(function(){ count = count + 1; });
+      console.log('Firebase TEST OK, hracu v players:', count);
+      hideBanner();
+      try{ alert('Firebase TEST OK - hracu v players: ' + count + '. Kdyz je 0 a ty hrac jsi, zkontroluj, jestli se tvuj save zapisuje.'); }catch(e){}
+      return true;
+    }catch(e){ reportErr('Firebase TEST', e); try{ alert('Firebase TEST SELHAL: ' + (e && e.code ? e.code : e)); }catch(e2){} return false; }
+  };
+  function pad2(v){
+    var s = String(v);
+    if(s.length < 2) return '0' + s;
+    return s;
+  }
+  window.getEventInstanceId = function(def, startDate){
+    try{
+      var y = startDate.getUTCFullYear();
+      var m = pad2(startDate.getUTCMonth() + 1);
+      var dd = pad2(startDate.getUTCDate());
+      var h = pad2(startDate.getUTCHours());
+      var id = def && def.id ? def.id : 'event';
+      return '' + y + m + dd + '-' + h + '-' + id;
+    }catch(e){ return 'unknown-event'; }
+  };
+  window.getWeeklyPeriod = function(){
+    var now = new Date();
+    var start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 21, 0, 0, 0));
+    var day = start.getUTCDay();
+    var daysSinceSat = (day - 6 + 7) % 7;
+    if(day === 6 && now.getUTCHours() < 21){ daysSinceSat = 7; }
+    start = new Date(start.getTime() - daysSinceSat * 24 * 3600 * 1000);
+    var end = new Date(start.getTime() + 7 * 24 * 3600 * 1000);
+    var weekId = start.getUTCFullYear() + '-' + pad2(start.getUTCMonth() + 1) + '-' + pad2(start.getUTCDate()) + '_SAT21_UTC';
+    return { start: start, end: end, weekId: weekId };
+  };
+  function getLegacyWeeklyPeriod(){
+    try{
+      var now = new Date();
+      var start = new Date(now); start.setHours(21, 0, 0, 0);
+      var day = start.getDay();
+      var daysSinceSat = (day - 6 + 7) % 7;
+      if(day === 6 && now.getHours() < 21){ daysSinceSat = 7; }
+      start.setDate(start.getDate() - daysSinceSat);
+      var end = new Date(start); end.setDate(end.getDate() + 7);
+      var weekId = start.getFullYear() + '-' + pad2(start.getMonth() + 1) + '-' + pad2(start.getDate()) + '_SAT21';
+      return { start: start, end: end, weekId: weekId };
+    }catch(e){ return null; }
+  }
+  window.fetchAllPlayers = async function(){
+    var d = ensureDb();
+    if(!d){ showBanner('Firebase: neni pripojeno (db je null) - zkontroluj pripojeni a Rules.'); return []; }
+    try{
+      var snap = await d.ref('players').once('value');
+      var arr = [];
+      snap.forEach(function(ch){ var v = ch.val(); if(v) arr.push(v); });
+      if(arr.length > 0) hideBanner();
+      return arr;
+    }catch(e){ reportErr('fetchAllPlayers', e); return []; }
+  };
+  window.fetchMineralBest = async function(type){
+    var d = ensureDb();
+    if(!d) return [];
+    try{ var snap = await d.ref('mineralBest/' + type).once('value'); var arr = []; snap.forEach(function(ch){ arr.push(ch.val()); }); return arr; }catch(e){ reportErr('fetchMineralBest', e); return []; }
+  };
+  window.fetchMineralBestCombined = async function(type){
+    var map = {};
+    try{
+      var bestList = await window.fetchMineralBest(type);
+      bestList.forEach(function(entry){ if(entry && entry.nick) map[entry.nick] = entry; });
+      var players = await window.fetchAllPlayers();
+      players.forEach(function(p){
+        if(!p || !p.nick) return;
+        var nick = p.nick;
+        try{
+          var save = p.saveData; if(!save) return;
+          var candidates = [];
+          if(save.museum && save.museum.filter) candidates = candidates.concat(save.museum.filter(function(x){ return !!x; }));
+          if(save.inventory && save.inventory.filter) candidates = candidates.concat(save.inventory.filter(function(it){ return it && !it.isTool && !it.isEquipment && !it.raw && it.type === type; }));
+          if(candidates.length === 0) return;
+          var best = null;
+          var bestScore = -1;
+          candidates.forEach(function(st){
+            if(st.type !== type) return;
+            var score = (st.quality || 0) + (st.purity || 0) + (st.weight || 0) + ((st.price || 0) / 50) - ((st.cracks || 0) * 15);
+            score = Math.max(0, Math.round(score * 10) / 10);
+            if(score > bestScore){ bestScore = score; best = st; }
+          });
+          if(best && bestScore > 0){
+            var existing = map[nick];
+            if(!existing || bestScore > (existing.beauty || 0)){
+              map[nick] = { nick: nick, type: type, mineralName: '', weight: best.weight, purity: best.purity, quality: best.quality, price: best.price, beauty: bestScore, lastSeen: p.lastSeen || Date.now() };
+            }
+          }
+        }catch(e){}
+      });
+    }catch(e){ reportErr('fetchMineralBestCombined', e); }
+    return Object.values(map);
+  };
+  window.fetchEventLeaderboard = function(instanceId, cb){
+    var d = ensureDb();
+    if(!d){ if(cb) cb([]); showBanner('Firebase: neni pripojeno - event zebricek nelze nacist.'); return; }
+    d.ref('eventScores/' + instanceId).once('value').then(function(snap){
+      var arr = []; snap.forEach(function(ch){ arr.push({ nick: ch.key, score: ch.val() || 0 }); }); arr.sort(function(a, b){ return b.score - a.score; }); if(cb) cb(arr);
+    }).catch(function(e){ reportErr('fetchEventLeaderboard', e); if(cb) cb([]); });
+  };
+  window.fetchWeeklyLeaderboard = function(cb){
+    var d = ensureDb();
+    var wp = window.getWeeklyPeriod();
+    if(!d){ if(cb) cb([], wp); return; }
+    d.ref('weeklyScores/' + wp.weekId).once('value').then(function(snap){
+      var arr = []; snap.forEach(function(ch){ arr.push({ nick: ch.key, score: ch.val() || 0 }); }); arr.sort(function(a, b){ return b.score - a.score; });
+      if(arr.length === 0){
+        var legacy = getLegacyWeeklyPeriod();
+        if(legacy && legacy.weekId !== wp.weekId){
+          d.ref('weeklyScores/' + legacy.weekId).once('value').then(function(s2){
+            var arr2 = []; s2.forEach(function(ch){ arr2.push({ nick: ch.key, score: ch.val() || 0 }); }); arr2.sort(function(a, b){ return b.score - a.score; });
+            if(cb) cb(arr2.length > 0 ? arr2 : arr, wp);
+          }).catch(function(){ if(cb) cb(arr, wp); });
+          return;
+        }
+      }
+      if(cb) cb(arr, wp);
+    }).catch(function(e){ reportErr('fetchWeeklyLeaderboard', e); if(cb) cb([], wp); });
+  };
+  window.loadPlayerFromFirebase = async function(nick){
+    var d = ensureDb();
+    if(!d) return null;
+    try{
+      var snap = await d.ref('players/' + nick).once('value');
+      if(!snap.exists()){
+        try{
+          var snap2 = await d.ref('saves/' + nick).once('value');
+          if(snap2.exists()){ var s = snap2.val(); return { nick: nick, saveData: s, totalBeauty: 0 }; }
+        }catch(e2){}
+        return null;
+      }
+      return snap.val();
+    }catch(e){ reportErr('loadPlayerFromFirebase', e); return null; }
+  };
+  window.addEventScore = function(instanceId, amount){
+    try{
+      var nick = getNick();
+      if(!nick || !instanceId) return;
+      try{
+        if(typeof eventScoresCache !== 'undefined' && eventScoresCache){
+          if(!eventScoresCache[instanceId]) eventScoresCache[instanceId] = {};
+          eventScoresCache[instanceId][nick] = (eventScoresCache[instanceId][nick] || 0) + amount;
+        }
+      }catch(e){}
+      var d = ensureDb();
+      if(d && nick){
+        d.ref('eventScores/' + instanceId + '/' + nick).transaction(function(cur){ return (cur || 0) + amount; }, function(err){ if(err) reportErr('addEventScore', err); });
+      }
+    }catch(e){}
+  };
+  window.savePlayerToFirebase = async function(isFull){
+    if(typeof isFull === 'undefined') isFull = true;
+    var d = ensureDb();
+    var nick = getNick();
+    if(!d || !nick) return;
+    try{
+      var totalBeauty = 0;
+      try{ if(typeof getMuseumTotalBeautySafe === 'function') totalBeauty = getMuseumTotalBeautySafe(); }catch(e){}
+      var best = { score: 0, stone: null };
+      try{ if(typeof getBestSingleStone === 'function') best = getBestSingleStone(); }catch(e){}
+      var perMineral = {};
+      try{ if(typeof getBestPerMineral === 'function') perMineral = getBestPerMineral(); }catch(e){}
+      var totalVal = 0;
+      try{ if(typeof getMuseumTotalValue === 'function') totalVal = getMuseumTotalValue(); }catch(e){}
+      var lvl = 0;
+      try{ if(typeof getMuseumLevel === 'function') lvl = getMuseumLevel(); }catch(e){}
+      var bestStoneOut = null;
+      try{
+        if(best && best.stone){
+          var btype = best.stone.type;
+          var bname = '';
+          try{ if(typeof minerals !== 'undefined' && minerals[btype]) bname = minerals[btype].name || ''; }catch(e){}
+          bestStoneOut = { type: btype, name: bname, weight: best.stone.weight, purity: best.stone.purity, quality: best.stone.quality, price: best.stone.price, beauty: best.score };
+        }
+      }catch(e){}
+      var slotsCount = 0;
+      try{ if(typeof museum !== 'undefined' && museum.filter) slotsCount = museum.filter(function(x){ return !!x; }).length; }catch(e){}
+      var payload = { nick: nick, totalBeauty: totalBeauty, totalValue: totalVal, bestSingleBeauty: best && best.score > 0 ? best.score : 0, bestSingleStone: bestStoneOut, level: lvl, slots: slotsCount, lastSeen: Date.now(), lastSeenISO: new Date().toISOString() };
+      if(isFull){
+        try{
+          var pl = null;
+          try{ if(typeof player !== 'undefined') pl = { tool: player.tool, baseMaxEnergy: player.baseMaxEnergy, energyUpgrades: player.energyUpgrades, maxEnergy: player.maxEnergy, energy: player.energy, x: player.x, y: player.y }; }catch(e){}
+          var dugOut = null;
+          try{ if(typeof world !== 'undefined' && world.map) dugOut = world.map(function(row){ return row.map(function(c){ return { dug: c.dug, dugTime: c.dugTime }; }); }); }catch(e){}
+          var save = {};
+          try{ if(typeof money !== 'undefined') save.money = money; }catch(e){}
+          try{ if(typeof found !== 'undefined') save.found = found; }catch(e){}
+          try{ if(typeof goldBricks !== 'undefined') save.goldBricks = goldBricks; }catch(e){}
+          try{ if(typeof player !== 'undefined' && player.pickaxeLegacyLevels) save.pickaxeLegacyLevels = player.pickaxeLegacyLevels; else save.pickaxeLegacyLevels = [0, 0, 0, 0, 0]; }catch(e){}
+          try{ if(typeof inventory !== 'undefined') save.inventory = inventory; }catch(e){}
+          try{ if(typeof equipped !== 'undefined') save.equipped = equipped; }catch(e){}
+          try{ if(typeof petsOwned !== 'undefined') save.petsOwned = petsOwned; }catch(e){}
+          try{ if(typeof activePetId !== 'undefined') save.activePetId = activePetId; }catch(e){}
+          try{ if(typeof museum !== 'undefined') save.museum = museum; }catch(e){}
+          try{ if(typeof museumSize !== 'undefined') save.museumSize = museumSize; }catch(e){}
+          try{ if(typeof museumExpansionLevel !== 'undefined') save.museumExpansionLevel = museumExpansionLevel; }catch(e){}
+          try{ if(typeof museumLastCollected !== 'undefined') save.museumLastCollected = museumLastCollected; }catch(e){}
+          try{ if(typeof museumPending !== 'undefined') save.museumPending = museumPending; }catch(e){}
+          if(pl) save.player = pl;
+          if(dugOut) save.dug = dugOut;
+          try{ if(typeof emptyDigs !== 'undefined') save.emptyDigs = emptyDigs; }catch(e){}
+          try{ if(typeof vipEndTime !== 'undefined') save.vipEndTime = vipEndTime; }catch(e){}
+          try{ if(typeof fireMapEndTime !== 'undefined') save.fireMapEndTime = fireMapEndTime; }catch(e){}
+          try{ if(typeof iceMapEndTime !== 'undefined') save.iceMapEndTime = iceMapEndTime; }catch(e){}
+          try{ if(typeof isFireMapActive !== 'undefined') save.isFireMapActive = isFireMapActive; }catch(e){}
+          try{ if(typeof isIceMapActive !== 'undefined') save.isIceMapActive = isIceMapActive; }catch(e){}
+          payload.saveData = save;
+        }catch(e){}
+      }
+      await d.ref('players/' + nick).update(payload);
+      for(var type in perMineral){
+        try{
+          var entry = perMineral[type];
+          var st = entry.stone;
+          var mname = '';
+          try{ if(typeof minerals !== 'undefined' && minerals[type]) mname = minerals[type].name || ''; }catch(e){}
+          await d.ref('mineralBest/' + type + '/' + nick).set({ nick: nick, type: parseInt(type), mineralName: mname, weight: st.weight, purity: st.purity, quality: st.quality, price: st.price, beauty: entry.score, lastSeen: Date.now() });
+        }catch(e){}
+      }
+      hideBanner();
+      window.__firebaseLastSave = Date.now();
+    }catch(e){ reportErr('savePlayerToFirebase', e); }
+  };
+  window.saveToFirebase = function(){
+    try{
+      if(window._blockCloudSave && !window._wipeCheckDone) return;
+      var d = ensureDb();
+      if(!d) return;
+      if(window.__saving) return;
+      window.__saving = true;
+      try{
+        var p = window.savePlayerToFirebase(true);
+        if(p && p.then){ p.then(function(){ window.__saving = false; }).catch(function(){ window.__saving = false; }); } else { window.__saving = false; }
+      }catch(e){ window.__saving = false; }
+    }catch(e){}
+  };
+  window.loadFromFirebase = function(nick, cb){
+    try{
+      if(cb) cb(false);
+    }catch(e){ if(cb) cb(false); }
+  };
+  console.log('Firebase FIX V62 nacten - sjednoceny save do players, UTC eventy, viditelne chyby');
+})();
+<\/script></body>
 </html>`;var Nc=ft(dn(),1),xm=Symbol.for("react.element");var ym=Object.prototype.hasOwnProperty,vm=Nc.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.ReactCurrentOwner,hm={key:!0,ref:!0,__self:!0,__source:!0};function Oc(e,t,n){var i,r={},a=null,o=null;n!==void 0&&(a=""+n),t.key!==void 0&&(a=""+t.key),t.ref!==void 0&&(o=t.ref);for(i in t)ym.call(t,i)&&!hm.hasOwnProperty(i)&&(r[i]=t[i]);if(e&&e.defaultProps)for(i in t=e.defaultProps,t)r[i]===void 0&&(r[i]=t[i]);return{$$typeof:xm,type:e,key:a,ref:o,props:r,_owner:vm.current}}var fe=Oc,ai=Oc;function Am(e){let n=`<style id="v42-github-joystick-kopej-fix">
 
 <style id="v44-hard-fix">
