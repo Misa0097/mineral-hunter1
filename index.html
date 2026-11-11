@@ -13210,7 +13210,273 @@ console.log('✅ V41 Firebase cloud save ready - hra už ukládá i na Firebase,
   };
   console.log('Chat FIX V63 nacten - chat se zapne jen jednou, stare zpravy nebudou vyskakovat jako nove');
 })();
-<\/script></body>
+<\/script><script>
+(function(){
+  function applyChatCss(){
+    try{
+      var old = document.getElementById('chat-fix-v64');
+      if(old) return;
+      var st = document.createElement('style');
+      st.id = 'chat-fix-v64';
+      st.textContent = '#chatPanel.open{ bottom: calc(150px + env(safe-area-inset-bottom, 0px)) !important; top: 0 !important; height: auto !important; } #chatPanel.open .chatInputArea{ position: relative !important; z-index: 2000 !important; background: #111 !important; border-top: 2px solid #4caf50 !important; box-shadow: 0 -4px 20px rgba(0,0,0,0.6) !important; padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)) !important; } #chatPanel .chatInputArea input{ font-size: 16px !important; } body.chat-open #controls{ pointer-events: none !important; opacity: 0.35 !important; } body.chat-typing #controls{ pointer-events: none !important; opacity: 0.35 !important; }';
+      document.head.appendChild(st);
+    }catch(e){}
+  }
+  applyChatCss();
+  function isTyping(){
+    try{
+      var ae = document.activeElement;
+      if(ae && ae.id === 'chatInput') return true;
+      if(ae && ae.tagName === 'INPUT') return true;
+      if(ae && ae.tagName === 'TEXTAREA') return true;
+    }catch(e){}
+    try{
+      var cp = document.getElementById('chatPanel');
+      if(cp && cp.classList.contains('open')) return true;
+    }catch(e){}
+    return false;
+  }
+  try{
+    var origSetKey = window.setKey;
+    window.setKey = function(e, down){
+      try{
+        if(isTyping()) return;
+      }catch(e2){}
+      try{
+        if(!e || !e.key) return;
+        var k = e.key.toLowerCase();
+        if(k === 'w' || k === 'arrowup') input.up = down;
+        if(k === 's' || k === 'arrowdown') input.down = down;
+        if(k === 'a' || k === 'arrowleft') input.left = down;
+        if(k === 'd' || k === 'arrowright') input.right = down;
+        if(k === 'arrowup' || k === 'arrowdown' || k === 'arrowleft' || k === 'arrowright' || k === ' ') e.preventDefault();
+        if(k === ' ' && down) dig();
+      }catch(e3){}
+    };
+  }catch(e){}
+  function setupChatInputFix(){
+    try{
+      var inp = document.getElementById('chatInput');
+      if(!inp) return;
+      if(inp.dataset.v64fixed) return;
+      inp.dataset.v64fixed = '1';
+      inp.setAttribute('type', 'text');
+      inp.setAttribute('inputmode', 'text');
+      inp.setAttribute('autocomplete', 'off');
+      inp.setAttribute('autocapitalize', 'off');
+      inp.setAttribute('autocorrect', 'off');
+      inp.setAttribute('spellcheck', 'false');
+      inp.setAttribute('enterkeyhint', 'send');
+      inp.style.fontSize = '16px';
+      inp.addEventListener('keydown', function(e){ e.stopPropagation(); }, false);
+      inp.addEventListener('keyup', function(e){ e.stopPropagation(); }, false);
+      inp.addEventListener('keypress', function(e){ e.stopPropagation(); }, false);
+      inp.addEventListener('focus', function(){ try{ document.body.classList.add('chat-typing'); }catch(e){} });
+      inp.addEventListener('blur', function(){ try{ document.body.classList.remove('chat-typing'); }catch(e){} });
+      inp.addEventListener('input', function(e){ e.stopPropagation(); });
+    }catch(e){}
+  }
+  setupChatInputFix();
+  setInterval(function(){
+    setupChatInputFix();
+    applyChatCss();
+    try{
+      var cp = document.getElementById('chatPanel');
+      var isOpen = cp && cp.classList.contains('open');
+      if(isOpen) document.body.classList.add('chat-open');
+      else document.body.classList.remove('chat-open');
+    }catch(e){}
+  }, 500);
+  try{
+    var chatBtn = document.getElementById('chatButton');
+    if(chatBtn && !chatBtn.dataset.v64focus){
+      chatBtn.dataset.v64focus = '1';
+      chatBtn.addEventListener('click', function(){
+        setTimeout(function(){
+          try{ var inp2 = document.getElementById('chatInput'); if(inp2) inp2.focus(); }catch(e){}
+        }, 150);
+      });
+    }
+  }catch(e){}
+  try{
+    var closeBtn = document.getElementById('closeChat');
+    if(closeBtn && !closeBtn.dataset.v64blur){
+      closeBtn.dataset.v64blur = '1';
+      closeBtn.addEventListener('click', function(){
+        try{ var inp3 = document.getElementById('chatInput'); if(inp3) inp3.blur(); }catch(e){}
+        try{ document.body.classList.remove('chat-open'); document.body.classList.remove('chat-typing'); }catch(e){}
+      });
+    }
+  }catch(e){}
+  console.log('Chat FIX V64 nacten - psaci radek nad KOPEJ a joystickem, mezernik uz nekope');
+})();
+<\/script>
+<script>
+
+// BOTI - BOT PRED JMENEM - LOKALNI + FIREBASE - VIDITELNI HNED
+// 1) Hned je pridame do otherPlayers, takze jsou na zakladni mape okamzite
+// 2) Zaroven je zapisujeme do Firebase /online + /players, aby je videli i ostatni
+var BOTI_LOKAL = [
+  "KrumpacKral","ZlataHorecka","PodzemniVlk","KamennaPest","DiamantovyOrel","RudnyBaron","SkalniSrdce","HlubinnaKralovna","StinZeSachty","BleskZLomu","LovecLomu","TemnyTunel","CihlovyCar","JeskynniSova","KovovyHad","ZlatyKrtko","PikaxePro","MineralniMag","DulniFenix","StribrnyKopac","RubinovyRytir","SmaragdovaLiska","SafirStrelec","TopazovyTulak","OpalovyOhnak","KremennyKnize","BarytovyBorec","MramorovyMistr","UhelnyAndel","BatohPlnyStesti","GeologGhost","ZlatonosnySen","KamenolomKing","RudnaVila"
+].map(function(jmeno, i){
+  return {
+    jmeno: jmeno,
+    displayName: "BOT " + jmeno,
+    onlineNick: "BOT " + jmeno,
+    isBot: true,
+    x: 400 + Math.floor(Math.random()*400),
+    y: 300 + Math.floor(Math.random()*300),
+    walkTime: Math.random()*10,
+    level: 5 + Math.floor(Math.random()*12),
+    totalBeauty: 500 + Math.floor(Math.random()*2500),
+    bestSingleBeauty: 100 + Math.floor(Math.random()*800),
+    totalValue: 1000 + Math.floor(Math.random()*9000),
+    slots: 6 + Math.floor(Math.random()*10)
+  };
+});
+console.log("BOTi: startuji 34 BOTu s BOT pred jmenem");
+function botOdpovedLokal(bot, textOdHrace){
+  var t = (textOdHrace||"").toLowerCase();
+  if(t.indexOf("jsi bot")>=0 || t.indexOf("jsi ai")>=0 || t.indexOf("jsi robot")>=0 || t.indexOf("jsi clovek")>=0){
+    return "Jo, jsem bot, vidis to podle BOT pred jmenem. Ale klidne ti pomuzu s obchodem nebo poradim.";
+  }
+  if(t.indexOf("kolik")>=0 || t.indexOf("cena")>=0 || t.indexOf("cihly")>=0 || t.indexOf("prodas")>=0 || t.indexOf("trh")>=0){
+    return "Mam ted neco na trhu za cihly, koukni na trh. Zelene kolem 5 cihel, zlute kolem 10 cihel.";
+  }
+  if(t.indexOf("jak")>=0 || t.indexOf("porad")>=0 || t.indexOf("kde")>=0 || t.indexOf("tip")>=0){
+    return "Poradim ti: tez hlavne zelene s bonusem, to prodas kolem 5 cihel. Zlute s dobrym bonusem nech za cca 10 cihel. A vzdycky srovnej cenu s obchodem.";
+  }
+  if(t.indexOf("event")>=0){
+    return "Event jsem hral taky, jako bot. V zebricku me najdes s BOT pred jmenem.";
+  }
+  return "Ahoj, jsem tu. Jsem bot, poznas me podle BOT pred jmenem. S cim ti pomuzu?";
+}
+// --- LOKALNI VYKRESLENI - HNED, BEZ CEKANI NA FIREBASE ---
+function startLokalniBOTi(){
+  try{
+    // otherPlayers je globalni objekt ve hre, co vykresluje drawOtherPlayers()
+    if(typeof otherPlayers === "undefined"){
+      console.log("BOTi: otherPlayers jeste neni, zkousim znovu za 1s");
+      setTimeout(startLokalniBOTi, 1000);
+      return;
+    }
+    BOTI_LOKAL.forEach(function(bot){
+      otherPlayers[bot.onlineNick] = {
+        nick: bot.displayName, isBot: true,
+        x: Math.round(bot.x), y: Math.round(bot.y),
+        tool: 0, pickaxeLevel: 1, walkTime: bot.walkTime, digging: false,
+        map: "normal", pet: null, aura: null, cape: null, timestamp: Date.now()
+      };
+    });
+    console.log("BOTi: pridano 34 BOTu do otherPlayers, meli by byt na zakladni mape");
+    // Pohyb kazde 2s
+    setInterval(function(){
+      BOTI_LOKAL.forEach(function(bot){
+        bot.x = Math.max(50, Math.min(950, bot.x + (Math.random()-0.5)*50));
+        bot.y = Math.max(50, Math.min(850, bot.y + (Math.random()-0.5)*50));
+        bot.walkTime += 0.3;
+        if(typeof otherPlayers !== "undefined" && otherPlayers[bot.onlineNick]){
+          otherPlayers[bot.onlineNick].x = Math.round(bot.x);
+          otherPlayers[bot.onlineNick].y = Math.round(bot.y);
+          otherPlayers[bot.onlineNick].walkTime = bot.walkTime;
+          otherPlayers[bot.onlineNick].digging = Math.random() > 0.7;
+          otherPlayers[bot.onlineNick].timestamp = Date.now();
+        }
+      });
+    }, 2000);
+    // --- ZEBRICEK - patch fetchAllPlayers aby vracel i BOTy ---
+    try{
+      if(typeof fetchAllPlayers === "function" && !window._fetchAllPlayersPatched){
+        window._fetchAllPlayersPatched = true;
+        var origFetch = fetchAllPlayers;
+        fetchAllPlayers = async function(){
+          var hraci = [];
+          try{ hraci = await origFetch(); }catch(e){}
+          BOTI_LOKAL.forEach(function(bot){
+            hraci.push({
+              nick: bot.displayName, isBot: true, level: bot.level,
+              totalBeauty: bot.totalBeauty, bestSingleBeauty: bot.bestSingleBeauty,
+              totalValue: bot.totalValue, slots: bot.slots
+            });
+          });
+          return hraci;
+        };
+        console.log("BOTi: fetchAllPlayers patchnut, BOTi budou v zebricku");
+      }
+    }catch(e){ console.log("BOTi: patch zebricku selhal", e); }
+    // --- CHAT - odpovidani na osloveni ---
+    try{
+      if(typeof db !== "undefined" && db){
+        db.ref("chat").limitToLast(1).on("child_added", function(snap){
+          var msg = snap.val();
+          if(!msg || msg.isBot) return;
+          var text = (msg.text || "").toLowerCase();
+          var osloveny = null;
+          for(var i=0;i<BOTI_LOKAL.length;i++){ if(text.indexOf(BOTI_LOKAL[i].jmeno.toLowerCase())>=0){ osloveny = BOTI_LOKAL[i]; break; } }
+          if(!osloveny) return;
+          var odpoved = botOdpovedLokal(osloveny, msg.text);
+          try{ db.ref("chat").push({ od: osloveny.displayName, nick: osloveny.displayName, isBot: true, text: odpoved, cas: Date.now() }); }catch(e){}
+        });
+        console.log("BOTi: chat poslouchani zapnuto");
+      }
+    }catch(e){ console.log("BOTi: chat selhal", e); }
+    // --- FIREBASE ZAPIS - aby je videli i ostatni hraci ---
+    try{
+      if(typeof db !== "undefined" && db){
+        // Host volba - jen jeden zapisuje do Firebase
+        var mujId = "host_" + Math.random().toString(36).slice(2) + "_" + Date.now();
+        var hostRef = db.ref("botsHost");
+        hostRef.transaction(function(soucasny){
+          if(!soucasny || Date.now() - soucasny.cas > 30000){ return { hostId: mujId, cas: Date.now() }; }
+          return;
+        }, function(err, committed, snap){
+          if(committed && snap.val() && snap.val().hostId === mujId){
+            window.jsemBotHostBOT = true;
+            console.log("BOTi: jsem HOST, zapisuji i do Firebase /online + /players");
+            setInterval(function(){
+              if(!window.jsemBotHostBOT) return;
+              BOTI_LOKAL.forEach(function(bot){
+                try{
+                  db.ref("online/" + bot.onlineNick).set({
+                    nick: bot.displayName, isBot: true, x: Math.round(bot.x), y: Math.round(bot.y),
+                    tool: 0, pickaxeLevel: 1, walkTime: bot.walkTime, digging: false,
+                    map: "normal", pet: null, aura: null, cape: null, timestamp: Date.now()
+                  });
+                  db.ref("players/" + bot.onlineNick).set({
+                    nick: bot.displayName, isBot: true, level: bot.level,
+                    totalBeauty: bot.totalBeauty, bestSingleBeauty: bot.bestSingleBeauty,
+                    totalValue: bot.totalValue, slots: bot.slots, lastSeen: Date.now()
+                  });
+                }catch(e){}
+              });
+            }, 5000);
+            setInterval(function(){ if(window.jsemBotHostBOT) hostRef.set({ hostId: mujId, cas: Date.now() }); }, 15000);
+          } else {
+            console.log("BOTi: nejsem HOST, jen lokalni zobrazeni");
+          }
+        });
+      }
+    }catch(e){ console.log("BOTi: Firebase zapis selhal, zustava lokalni", e); }
+    // --- PASIVNI CHAT - jednou za 10-20 minut, lokalne pres Firebase chat ---
+    setInterval(function(){
+      if(Math.random() < 0.3 && typeof db !== "undefined" && db){
+        var bot = BOTI_LOKAL[Math.floor(Math.random()*BOTI_LOKAL.length)];
+        var hlasky = [
+          "Mate nekdo neco zajimaveho do trhu? Mam plny batoh, vymenim za cihly",
+          "Ten dnesni event byl celkem tezkej, co?",
+          "Prodavam na trhu za cihly, ceny mam rozumne, koukni",
+          "Jsem bot, ale tezim poctive jako vy. Kdyztak napis, pomuzu s cenou"
+        ];
+        var text = hlasky[Math.floor(Math.random()*hlasky.length)];
+        try{ db.ref("chat").push({ od: bot.displayName, nick: bot.displayName, isBot: true, text: text, cas: Date.now() }); }catch(e){}
+      }
+    }, 600000);
+  }catch(e){ console.log("BOTi: start selhal", e); }
+}
+setTimeout(startLokalniBOTi, 2000);
+
+<\/script>
+</body>
 </html>`;var Nc=ft(dn(),1),xm=Symbol.for("react.element");var ym=Object.prototype.hasOwnProperty,vm=Nc.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.ReactCurrentOwner,hm={key:!0,ref:!0,__self:!0,__source:!0};function Oc(e,t,n){var i,r={},a=null,o=null;n!==void 0&&(a=""+n),t.key!==void 0&&(a=""+t.key),t.ref!==void 0&&(o=t.ref);for(i in t)ym.call(t,i)&&!hm.hasOwnProperty(i)&&(r[i]=t[i]);if(e&&e.defaultProps)for(i in t=e.defaultProps,t)r[i]===void 0&&(r[i]=t[i]);return{$$typeof:xm,type:e,key:a,ref:o,props:r,_owner:vm.current}}var fe=Oc,ai=Oc;function Am(e){let n=`<style id="v42-github-joystick-kopej-fix">
 
 <style id="v44-hard-fix">
