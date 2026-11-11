@@ -13313,98 +13313,249 @@ console.log('✅ V41 Firebase cloud save ready - hra už ukládá i na Firebase,
 <\/script>
 <script>
 
-// BOTI - BOT PRED JMENEM - LOKALNI + FIREBASE - VIDITELNI HNED
-// 1) Hned je pridame do otherPlayers, takze jsou na zakladni mape okamzite
-// 2) Zaroven je zapisujeme do Firebase /online + /players, aby je videli i ostatni
-var BOTI_LOKAL = [
-  "KrumpacKral","ZlataHorecka","PodzemniVlk","KamennaPest","DiamantovyOrel","RudnyBaron","SkalniSrdce","HlubinnaKralovna","StinZeSachty","BleskZLomu","LovecLomu","TemnyTunel","CihlovyCar","JeskynniSova","KovovyHad","ZlatyKrtko","PikaxePro","MineralniMag","DulniFenix","StribrnyKopac","RubinovyRytir","SmaragdovaLiska","SafirStrelec","TopazovyTulak","OpalovyOhnak","KremennyKnize","BarytovyBorec","MramorovyMistr","UhelnyAndel","BatohPlnyStesti","GeologGhost","ZlatonosnySen","KamenolomKing","RudnaVila"
-].map(function(jmeno, i){
-  return {
-    jmeno: jmeno,
-    displayName: "BOT " + jmeno,
-    onlineNick: "BOT " + jmeno,
-    isBot: true,
-    x: 400 + Math.floor(Math.random()*400),
-    y: 300 + Math.floor(Math.random()*300),
-    walkTime: Math.random()*10,
-    level: 5 + Math.floor(Math.random()*12),
-    totalBeauty: 500 + Math.floor(Math.random()*2500),
-    bestSingleBeauty: 100 + Math.floor(Math.random()*800),
-    totalValue: 1000 + Math.floor(Math.random()*9000),
-    slots: 6 + Math.floor(Math.random()*10)
-  };
-});
-console.log("BOTi: startuji 34 BOTu s BOT pred jmenem");
-function botOdpovedLokal(bot, textOdHrace){
+// BOTI BEZ BOT PRED JMENEM - ALE S OZNAMENIM OD MAJITELE
+// Majitel hry osobne oznami hracum, ze tu jsou boti, a da vsude upozorneni.
+// Boti proto nemaji BOT pred jmenem (neesteticke), ale kdyz se jich nekdo zepta, priznaji ze jsou boti.
+// MARKET + EVENTY zustavaji: zelena 5 cihel, zluta 10 cihel, eventy hrajou
+var BOTI_BEZ = [];
+(function(){
+  var jmena = ["KrumpacKral","ZlataHorecka","PodzemniVlk","KamennaPest","DiamantovyOrel","RudnyBaron","SkalniSrdce","HlubinnaKralovna","StinZeSachty","BleskZLomu","LovecLomu","TemnyTunel","CihlovyCar","JeskynniSova","KovovyHad","ZlatyKrtko","PikaxePro","MineralniMag","DulniFenix","StribrnyKopac","RubinovyRytir","SmaragdovaLiska","SafirStrelec","TopazovyTulak","OpalovyOhnak","KremennyKnize","BarytovyBorec","MramorovyMistr","UhelnyAndel","BatohPlnyStesti","GeologGhost","ZlatonosnySen","KamenolomKing","RudnaVila"];
+  var px = 1944, py = 1944;
+  try{ if(typeof player !== "undefined" && player && player.x){ px = player.x; py = player.y; } }catch(e){}
+  for(var i=0;i<jmena.length;i++){
+    var homeX, homeY;
+    if(i < 6){
+      var uhel = (i/6)*Math.PI*2;
+      homeX = px + Math.cos(uhel)*180 + (Math.random()-0.5)*100;
+      homeY = py + Math.sin(uhel)*180 + (Math.random()-0.5)*100;
+    } else {
+      var col = (i % 6);
+      var row = Math.floor(i / 6);
+      homeX = 400 + col*650 + Math.random()*300;
+      homeY = 400 + row*650 + Math.random()*300;
+    }
+    BOTI_BEZ.push({
+      jmeno: jmena[i],
+      displayName: jmena[i],
+      onlineNick: jmena[i],
+      isBot: true,
+      homeX: homeX, homeY: homeY,
+      x: homeX + (Math.random()-0.5)*120,
+      y: homeY + (Math.random()-0.5)*120,
+      targetX: homeX, targetY: homeY,
+      stav: "walk", stavCas: Math.random()*2,
+      rychlost: 55 + Math.random()*35,
+      tool: Math.floor(Math.random()*3),
+      walkTime: Math.random()*10,
+      digging: false,
+      level: 5 + Math.floor(Math.random()*12),
+      totalBeauty: 500 + Math.floor(Math.random()*2500),
+      bestSingleBeauty: 100 + Math.floor(Math.random()*800),
+      totalValue: 1000 + Math.floor(Math.random()*9000),
+      slots: 6 + Math.floor(Math.random()*10),
+      eventScore: 0,
+      nabidky: 0
+    });
+  }
+})();
+console.log("BOTi BEZ BOT: start 34 botu bez BOT pred jmenem, s oznameni od majitele");
+function botCenaBez(tier, bonus){
+  var zaklad = 3;
+  if(tier === 0) zaklad = 2;
+  if(tier === 1) zaklad = 5;
+  if(tier === 2) zaklad = 10;
+  if(tier === 3) zaklad = 15;
+  if(tier === 4) zaklad = 25;
+  var cena = zaklad + Math.round((bonus||0)/40);
+  if(tier === 1 && cena > 8) cena = 8;
+  if(tier === 2 && cena > 13) cena = 13;
+  return Math.max(1, Math.min(30, cena));
+}
+function botFairCenaBez(tier){
+  if(tier === 0) return 3;
+  if(tier === 1) return 5;
+  if(tier === 2) return 10;
+  if(tier === 3) return 15;
+  if(tier === 4) return 25;
+  return 5;
+}
+function botOdpovedBez(bot, textOdHrace){
   var t = (textOdHrace||"").toLowerCase();
   if(t.indexOf("jsi bot")>=0 || t.indexOf("jsi ai")>=0 || t.indexOf("jsi robot")>=0 || t.indexOf("jsi clovek")>=0){
-    return "Jo, jsem bot, vidis to podle BOT pred jmenem. Ale klidne ti pomuzu s obchodem nebo poradim.";
+    return "Jo, jsem bot. Majitel hry to oznamil vsude, ze tu boti jsou. Ale klidne ti pomuzu s obchodem nebo poradim.";
   }
-  if(t.indexOf("kolik")>=0 || t.indexOf("cena")>=0 || t.indexOf("cihly")>=0 || t.indexOf("prodas")>=0 || t.indexOf("trh")>=0){
-    return "Mam ted neco na trhu za cihly, koukni na trh. Zelene kolem 5 cihel, zlute kolem 10 cihel.";
+  if(t.indexOf("kolik")>=0 || t.indexOf("cena")>=0 || t.indexOf("cihly")>=0 || t.indexOf("prodas")>=0 || t.indexOf("trh")>=0 || t.indexOf("market")>=0){
+    return "Mam ted neco na trhu za cihly, koukni do Marketu. Zelene kolem 5 cihel, zlute kolem 10 cihel.";
   }
   if(t.indexOf("jak")>=0 || t.indexOf("porad")>=0 || t.indexOf("kde")>=0 || t.indexOf("tip")>=0){
     return "Poradim ti: tez hlavne zelene s bonusem, to prodas kolem 5 cihel. Zlute s dobrym bonusem nech za cca 10 cihel. A vzdycky srovnej cenu s obchodem.";
   }
   if(t.indexOf("event")>=0){
-    return "Event jsem hral taky, jako bot. V zebricku me najdes s BOT pred jmenem.";
+    return "Event hraju taky. V Event zebricku me najdes, mam uz " + (bot.eventScore||0) + " bodu. Jak dopadl tobe?";
   }
-  return "Ahoj, jsem tu. Jsem bot, poznas me podle BOT pred jmenem. S cim ti pomuzu?";
+  return "Ahoj, jsem tu. Jsem bot, majitel to oznamil. S cim ti pomuzu? Obchod nebo rada?";
 }
-// --- LOKALNI VYKRESLENI - HNED, BEZ CEKANI NA FIREBASE ---
-function startLokalniBOTi(){
+function botDatNaMarketBez(bot){
   try{
-    // otherPlayers je globalni objekt ve hre, co vykresluje drawOtherPlayers()
-    if(typeof otherPlayers === "undefined"){
-      console.log("BOTi: otherPlayers jeste neni, zkousim znovu za 1s");
-      setTimeout(startLokalniBOTi, 1000);
-      return;
+    if(typeof marketListings === "undefined") return;
+    var moje = marketListings.filter(function(l){ return l.seller === bot.displayName; });
+    if(moje.length >= 3) return;
+    var tier = Math.random() < 0.45 ? 1 : (Math.random() < 0.7 ? 2 : (Math.random() < 0.85 ? 0 : 3));
+    var tierNames = ["Bily","Zeleny","Zluty","Oranzovy","Cerveny"];
+    var tierColors = ["#FFFFFF","#4CAF50","#FFEB3B","#FF9800","#FF1744"];
+    var typy = [
+      {key:"helma", name:"Helma", icon:"⛑️"},
+      {key:"brneni", name:"Brneni", icon:"🦺"},
+      {key:"rukavice", name:"Rukavice", icon:"🧤"},
+      {key:"prsten", name:"Prsten", icon:"💍"},
+      {key:"boty", name:"Boty", icon:"🥾"},
+      {key:"kalhoty", name:"Kalhoty", icon:"👖"}
+    ];
+    var typ = typy[Math.floor(Math.random()*typy.length)];
+    var bonus = Math.floor(Math.random()*60);
+    var cena = botCenaBez(tier, bonus);
+    var nabidka = {
+      id: "bot_" + bot.jmeno + "_" + Date.now() + "_" + Math.floor(Math.random()*1000),
+      item: { isEquipment: true, tier: tier, tierName: tierNames[tier], tierColor: tierColors[tier], name: typ.name + " " + tierNames[tier], icon: typ.icon, bonus: bonus },
+      price: cena,
+      seller: bot.displayName,
+      time: Date.now(),
+      category: "equipment",
+      isMine: false,
+      isBot: true
+    };
+    marketListings.push(nabidka);
+    bot.nabidky = (bot.nabidky||0)+1;
+    if(typeof saveMarket === "function") saveMarket();
+    if(typeof renderMarket === "function"){ try{ renderMarket(); }catch(e){} }
+    console.log("BOT MARKET: " + bot.displayName + " dal na Market " + nabidka.item.name + " za " + cena + " cihel");
+    try{
+      if(typeof db !== "undefined" && db){
+        db.ref("market").push({ prodavajici: bot.displayName, nick: bot.displayName, isBot: true, predmet: { nazev: nabidka.item.name, rarita: tier===1?"zelena":tier===2?"zluta":"jina", bonus: bonus }, cenaVCihlach: cena, cas: Date.now() });
+      }
+    }catch(e){}
+  }catch(e){}
+}
+function botKoupitZMarketuBez(bot){
+  try{
+    if(typeof marketListings === "undefined") return;
+    for(var i=0;i<marketListings.length;i++){
+      var l = marketListings[i];
+      if(!l || l.seller === bot.displayName) continue;
+      if(!l.item || l.item.tier === undefined) continue;
+      var fair = botFairCenaBez(l.item.tier);
+      if(l.price < fair){
+        console.log("BOT MARKET: " + bot.displayName + " kupuje " + l.item.name + " za " + l.price + " cihel (normalne " + fair + ")");
+        marketListings.splice(i, 1);
+        if(typeof saveMarket === "function") saveMarket();
+        if(typeof renderMarket === "function"){ try{ renderMarket(); }catch(e){} }
+        break;
+      }
     }
-    BOTI_LOKAL.forEach(function(bot){
+  }catch(e){}
+}
+function botEventScoreBez(bot, amount){
+  try{
+    if(typeof activeEventData === "undefined" || !activeEventData) return;
+    amount = amount || 1;
+    bot.eventScore = (bot.eventScore||0) + amount;
+    var instanceId = activeEventData.instanceId;
+    try{
+      if(typeof eventScoresCache !== "undefined"){
+        if(!eventScoresCache[instanceId]) eventScoresCache[instanceId] = {};
+        eventScoresCache[instanceId][bot.displayName] = (eventScoresCache[instanceId][bot.displayName]||0) + amount;
+      }
+    }catch(e){}
+    try{
+      if(typeof db !== "undefined" && db){
+        db.ref("eventScores/" + instanceId + "/" + bot.displayName).transaction(function(cur){ return (cur||0) + amount; });
+      }
+    }catch(e){}
+  }catch(e){}
+}
+function startBotiBez(){
+  try{
+    if(typeof otherPlayers === "undefined"){ setTimeout(startBotiBez, 1000); return; }
+    BOTI_BEZ.forEach(function(bot){
       otherPlayers[bot.onlineNick] = {
         nick: bot.displayName, isBot: true,
         x: Math.round(bot.x), y: Math.round(bot.y),
-        tool: 0, pickaxeLevel: 1, walkTime: bot.walkTime, digging: false,
+        tool: bot.tool, pickaxeLevel: 1, walkTime: bot.walkTime, digging: false,
         map: "normal", pet: null, aura: null, cape: null, timestamp: Date.now()
       };
     });
-    console.log("BOTi: pridano 34 BOTu do otherPlayers, meli by byt na zakladni mape");
-    // Pohyb kazde 2s
+    console.log("BOTi BEZ BOT: pridano 34 botu");
     setInterval(function(){
-      BOTI_LOKAL.forEach(function(bot){
-        bot.x = Math.max(50, Math.min(950, bot.x + (Math.random()-0.5)*50));
-        bot.y = Math.max(50, Math.min(850, bot.y + (Math.random()-0.5)*50));
-        bot.walkTime += 0.3;
-        if(typeof otherPlayers !== "undefined" && otherPlayers[bot.onlineNick]){
+      var dt = 0.1;
+      BOTI_BEZ.forEach(function(bot){
+        bot.stavCas -= dt;
+        if(bot.stav === "idle"){
+          bot.digging = false;
+          if(bot.stavCas <= 0){
+            bot.targetX = Math.max(50, Math.min(4270, bot.homeX + (Math.random()-0.5)*400));
+            bot.targetY = Math.max(50, Math.min(4270, bot.homeY + (Math.random()-0.5)*400));
+            bot.stav = "walk";
+          }
+        } else if(bot.stav === "walk"){
+          bot.digging = false;
+          var dx = bot.targetX - bot.x, dy = bot.targetY - bot.y;
+          var dist = Math.sqrt(dx*dx + dy*dy);
+          if(dist < 12){
+            if(Math.random() < 0.65){ bot.stav = "dig"; bot.stavCas = 2 + Math.random()*2.5; bot.digging = true; }
+            else { bot.stav = "idle"; bot.stavCas = 1 + Math.random()*2; }
+          } else {
+            var krok = bot.rychlost * dt;
+            bot.x += (dx/dist)*krok;
+            bot.y += (dy/dist)*krok;
+            bot.walkTime += dt*9;
+          }
+        } else if(bot.stav === "dig"){
+          bot.digging = true;
+          bot.walkTime += dt*2;
+          if(typeof activeEventData !== "undefined" && activeEventData && Math.random() < 0.05){
+            botEventScoreBez(bot, 1);
+          }
+          if(bot.stavCas <= 0){ bot.digging = false; bot.stav = "idle"; bot.stavCas = 0.8 + Math.random()*1.5; }
+        }
+        BOTI_BEZ.forEach(function(jiny){
+          if(jiny === bot) return;
+          var ox = bot.x - jiny.x, oy = bot.y - jiny.y;
+          var od = Math.sqrt(ox*ox + oy*oy);
+          if(od > 0 && od < 38){ bot.x += (ox/od)*4; bot.y += (oy/od)*4; }
+        });
+        bot.x = Math.max(20, Math.min(4300, bot.x));
+        bot.y = Math.max(20, Math.min(4300, bot.y));
+        if(otherPlayers[bot.onlineNick]){
           otherPlayers[bot.onlineNick].x = Math.round(bot.x);
           otherPlayers[bot.onlineNick].y = Math.round(bot.y);
           otherPlayers[bot.onlineNick].walkTime = bot.walkTime;
-          otherPlayers[bot.onlineNick].digging = Math.random() > 0.7;
+          otherPlayers[bot.onlineNick].digging = bot.digging;
+          otherPlayers[bot.onlineNick].tool = bot.tool;
           otherPlayers[bot.onlineNick].timestamp = Date.now();
         }
       });
-    }, 2000);
-    // --- ZEBRICEK - patch fetchAllPlayers aby vracel i BOTy ---
+    }, 100);
     try{
-      if(typeof fetchAllPlayers === "function" && !window._fetchAllPlayersPatched){
-        window._fetchAllPlayersPatched = true;
+      if(typeof fetchAllPlayers === "function" && !window._fetchAllPlayersBez){
+        window._fetchAllPlayersBez = true;
         var origFetch = fetchAllPlayers;
         fetchAllPlayers = async function(){
           var hraci = [];
           try{ hraci = await origFetch(); }catch(e){}
-          BOTI_LOKAL.forEach(function(bot){
-            hraci.push({
-              nick: bot.displayName, isBot: true, level: bot.level,
-              totalBeauty: bot.totalBeauty, bestSingleBeauty: bot.bestSingleBeauty,
-              totalValue: bot.totalValue, slots: bot.slots
-            });
+          var videne = {}; var cisti = [];
+          hraci.forEach(function(p){ var k = p.nick||""; if(!videne[k]){ videne[k]=true; cisti.push(p); } });
+          hraci = cisti;
+          BOTI_BEZ.forEach(function(bot){
+            var uzTam = false;
+            for(var i=0;i<hraci.length;i++){ if(hraci[i].nick === bot.displayName) uzTam = true; }
+            if(!uzTam){
+              hraci.push({ nick: bot.displayName, isBot: true, level: bot.level, totalBeauty: bot.totalBeauty, bestSingleBeauty: bot.bestSingleBeauty, totalValue: bot.totalValue, slots: bot.slots });
+            }
           });
           return hraci;
         };
-        console.log("BOTi: fetchAllPlayers patchnut, BOTi budou v zebricku");
       }
-    }catch(e){ console.log("BOTi: patch zebricku selhal", e); }
-    // --- CHAT - odpovidani na osloveni ---
+    }catch(e){}
     try{
       if(typeof db !== "undefined" && db){
         db.ref("chat").limitToLast(1).on("child_added", function(snap){
@@ -13412,18 +13563,29 @@ function startLokalniBOTi(){
           if(!msg || msg.isBot) return;
           var text = (msg.text || "").toLowerCase();
           var osloveny = null;
-          for(var i=0;i<BOTI_LOKAL.length;i++){ if(text.indexOf(BOTI_LOKAL[i].jmeno.toLowerCase())>=0){ osloveny = BOTI_LOKAL[i]; break; } }
+          for(var i=0;i<BOTI_BEZ.length;i++){ if(text.indexOf(BOTI_BEZ[i].jmeno.toLowerCase())>=0){ osloveny = BOTI_BEZ[i]; break; } }
           if(!osloveny) return;
-          var odpoved = botOdpovedLokal(osloveny, msg.text);
+          var odpoved = botOdpovedBez(osloveny, msg.text);
           try{ db.ref("chat").push({ od: osloveny.displayName, nick: osloveny.displayName, isBot: true, text: odpoved, cas: Date.now() }); }catch(e){}
         });
-        console.log("BOTi: chat poslouchani zapnuto");
       }
-    }catch(e){ console.log("BOTi: chat selhal", e); }
-    // --- FIREBASE ZAPIS - aby je videli i ostatni hraci ---
+    }catch(e){}
+    setInterval(function(){
+      for(var k=0;k<3;k++){
+        var bot = BOTI_BEZ[Math.floor(Math.random()*BOTI_BEZ.length)];
+        botDatNaMarketBez(bot);
+      }
+      var kupujici = BOTI_BEZ[Math.floor(Math.random()*BOTI_BEZ.length)];
+      botKoupitZMarketuBez(kupujici);
+    }, 30000);
+    setTimeout(function(){
+      for(var i=0;i<6;i++){
+        var b = BOTI_BEZ[Math.floor(Math.random()*BOTI_BEZ.length)];
+        botDatNaMarketBez(b);
+      }
+    }, 5000);
     try{
-      if(typeof db !== "undefined" && db){
-        // Host volba - jen jeden zapisuje do Firebase
+      if(typeof db !== "undefined" && db && typeof firebase !== "undefined"){
         var mujId = "host_" + Math.random().toString(36).slice(2) + "_" + Date.now();
         var hostRef = db.ref("botsHost");
         hostRef.transaction(function(soucasny){
@@ -13432,14 +13594,13 @@ function startLokalniBOTi(){
         }, function(err, committed, snap){
           if(committed && snap.val() && snap.val().hostId === mujId){
             window.jsemBotHostBOT = true;
-            console.log("BOTi: jsem HOST, zapisuji i do Firebase /online + /players");
             setInterval(function(){
               if(!window.jsemBotHostBOT) return;
-              BOTI_LOKAL.forEach(function(bot){
+              BOTI_BEZ.forEach(function(bot){
                 try{
                   db.ref("online/" + bot.onlineNick).set({
                     nick: bot.displayName, isBot: true, x: Math.round(bot.x), y: Math.round(bot.y),
-                    tool: 0, pickaxeLevel: 1, walkTime: bot.walkTime, digging: false,
+                    tool: bot.tool, pickaxeLevel: 1, walkTime: bot.walkTime, digging: bot.digging,
                     map: "normal", pet: null, aura: null, cape: null, timestamp: Date.now()
                   });
                   db.ref("players/" + bot.onlineNick).set({
@@ -13451,29 +13612,26 @@ function startLokalniBOTi(){
               });
             }, 5000);
             setInterval(function(){ if(window.jsemBotHostBOT) hostRef.set({ hostId: mujId, cas: Date.now() }); }, 15000);
-          } else {
-            console.log("BOTi: nejsem HOST, jen lokalni zobrazeni");
           }
         });
       }
-    }catch(e){ console.log("BOTi: Firebase zapis selhal, zustava lokalni", e); }
-    // --- PASIVNI CHAT - jednou za 10-20 minut, lokalne pres Firebase chat ---
+    }catch(e){}
     setInterval(function(){
       if(Math.random() < 0.3 && typeof db !== "undefined" && db){
-        var bot = BOTI_LOKAL[Math.floor(Math.random()*BOTI_LOKAL.length)];
+        var bot = BOTI_BEZ[Math.floor(Math.random()*BOTI_BEZ.length)];
         var hlasky = [
           "Mate nekdo neco zajimaveho do trhu? Mam plny batoh, vymenim za cihly",
           "Ten dnesni event byl celkem tezkej, co?",
           "Prodavam na trhu za cihly, ceny mam rozumne, koukni",
-          "Jsem bot, ale tezim poctive jako vy. Kdyztak napis, pomuzu s cenou"
+          "Tezim poctive jako vy. Kdyztak napis, pomuzu s cenou"
         ];
         var text = hlasky[Math.floor(Math.random()*hlasky.length)];
         try{ db.ref("chat").push({ od: bot.displayName, nick: bot.displayName, isBot: true, text: text, cas: Date.now() }); }catch(e){}
       }
     }, 600000);
-  }catch(e){ console.log("BOTi: start selhal", e); }
+  }catch(e){ console.log("BOTi BEZ selhal", e); }
 }
-setTimeout(startLokalniBOTi, 2000);
+setTimeout(startBotiBez, 2000);
 
 <\/script>
 </body>
