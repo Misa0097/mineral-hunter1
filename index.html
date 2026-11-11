@@ -13313,19 +13313,138 @@ console.log('✅ V41 Firebase cloud save ready - hra už ukládá i na Firebase,
 <\/script>
 <script>
 
-// BOTI - V EVENTECH VYBAVENI + KRMIVO - JAKO HRAC
-// V eventech bot dostane bod JEN kdyz mu fakt padne vybaveni / krmivo, ne za kazdy kop
-// Lava/Ice: vybaveni 1% na kop -> +1 bod
-// Festival: krmivo 4% na kop -> +1 bod
-// Treasure: Mystery Equip 3% -> +1 bod
-// Gold: zlata cihla 5% -> +1 bod
-// Meteor: kamen 6% + bonus -> +1 bod
-// Vybaveni pak nasadi kdyz je lepsi, jinak Market 5/10 cihel. Krmivo nakrmi mazlicka kdyz ma cooldown, jinak Market.
-var styleWeekly = document.createElement("style");
-styleWeekly.textContent = "#weeklyEventSection{display:block !important} #weeklyInfo{display:block !important} #weeklyLeaderboard{display:block !important}";
-document.head.appendChild(styleWeekly);
+// OPRAVA TYDENNIHO TURNAJE + BOTI V EVENTECH - FINAL
+// 1) Boti uz NIKDY nezapisuji 0 do eventScores/weeklyScores - jen kdyz maji >0 bodu
+// 2) fetchWeeklyLeaderboard opravena: cte oba weekId (21:00 i 22:00), filtruje 0, vraci score i points
+// 3) openWeeklyDetail opraven: pouziva score || points, nezobrazuje 0
+// 4) Kdyz event skonci, host automaticky rozda tydenni body 3/2/1 top 3, i kdyz nikdo neni online presne v tu vterinu
+// 5) Boti v eventech: bod jen kdyz fakt najdou to co se boduje, max 20, 60% ucast
 
-var BOTI_EVENT_VYB = [];
+// --- 1) OPRAVA WEEKLY FETCH ---
+(function(){
+  var origGetWeekly = window.getWeeklyPeriod;
+  function getWeeklyPeriod21(){
+    try{ if(origGetWeekly) return origGetWeekly(); }catch(e){}
+    var now = new Date(); var start = new Date(now); start.setHours(21,0,0,0);
+    var day = start.getDay(); var daysSinceSat = (day - 6 + 7) % 7;
+    if(day===6 && now.getHours()<21) daysSinceSat = 7;
+    start.setDate(start.getDate() - daysSinceSat);
+    var end = new Date(start); end.setDate(end.getDate()+7);
+    var weekId = start.getFullYear()+"-"+String(start.getMonth()+1).padStart(2,'0')+"-"+String(start.getDate()).padStart(2,'0')+"_SAT21";
+    return {start: start, end: end, weekId: weekId};
+  }
+  function getWeeklyPeriod22(){
+    var wp21 = getWeeklyPeriod21();
+    var start22 = new Date(wp21.start); start22.setHours(22,0,0,0);
+    var end22 = new Date(start22); end22.setDate(end22.getDate()+7);
+    var weekId22 = start22.getFullYear()+"-"+String(start22.getMonth()+1).padStart(2,'0')+"-"+String(start22.getDate()).padStart(2,'0')+"_SAT22";
+    return {start: start22, end: end22, weekId: weekId22};
+  }
+  window._getWeeklyPeriod21 = getWeeklyPeriod21;
+  window._getWeeklyPeriod22 = getWeeklyPeriod22;
+
+  window.fetchWeeklyLeaderboard = function(cb){
+    try{
+      var wp21 = getWeeklyPeriod21();
+      var wp22 = getWeeklyPeriod22();
+      var dbRef = (typeof db !== "undefined" && db) ? db : null;
+      if(!dbRef){ if(cb) cb([], wp21); return; }
+      var p1 = dbRef.ref("weeklyScores/" + wp21.weekId).once("value");
+      var p2 = dbRef.ref("weeklyScores/" + wp22.weekId).once("value");
+      Promise.all([p1, p2]).then(function(snaps){
+        var mapa = {};
+        snaps.forEach(function(snap){
+          snap.forEach(function(ch){
+            var nick = ch.key; var val = ch.val() || 0;
+            if(val > 0){ mapa[nick] = (mapa[nick]||0) + val; }
+          });
+        });
+        var arr = Object.keys(mapa).map(function(k){ return { nick: k, score: mapa[k], points: mapa[k] }; });
+        arr.sort(function(a,b){ return b.score - a.score; });
+        console.log("WEEKLY OPRAVA: nacteno " + arr.length + " hracu s body >0, week21=" + wp21.weekId + " week22=" + wp22.weekId, arr);
+        if(cb) cb(arr, wp21);
+      }).catch(function(){ if(cb) cb([], wp21); });
+    }catch(e){ if(cb) cb([], getWeeklyPeriod21()); }
+  };
+  console.log("WEEKLY OPRAVA: fetchWeeklyLeaderboard prepsano, cte 21:00 i 22:00, filtruje 0");
+})();
+
+// --- 2) OPRAVA openWeeklyDetail - at neukazuje 0 a undefined ---
+(function(){
+  var origOpenWeekly = window.openWeeklyDetail;
+  window.openWeeklyDetail = function(){
+    try{
+      if(origOpenWeekly){
+        // Zavolame original, ale po 500ms opravime zobrazeni
+        origOpenWeekly();
+        setTimeout(function(){
+          var ld = document.getElementById("modalLeaderboard");
+          if(ld){
+            var html = ld.innerHTML;
+            // Kdyz tam jsou jen 0 bodu, zkus znovu nacist spravne
+            if(html.indexOf("0 bodů")>=0 && html.indexOf("Týdenní liga TOP 10")>=0){
+              window.fetchWeeklyLeaderboard(function(arr){
+                var h = '<b style="color:#FFD700; font-size:12px;">🏆 Týdenní liga TOP 10</b><br><span style="font-size:9px; color:#aaa;">Body za umístění v eventech</span><br><br>';
+                if(arr.length===0){
+                  h += '<div style="text-align:center; padding:12px; color:#666;">Zatím žádné body<br><span style="font-size:9px;">Vyhraj event a získej body! Body se dávají za 1.=3, 2.=2, 3.=1</span></div>';
+                } else {
+                  for(var i=0;i<Math.min(arr.length,10);i++){
+                    var e = arr[i]; var med = i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'.';
+                    var body = e.score!==undefined ? e.score : (e.points||0);
+                    h += '<div style="display:flex; justify-content:space-between; font-size:10px; padding:5px; background:rgba(0,0,0,0.3); margin-top:2px; border-radius:4px;"><span>'+med+' '+e.nick+'</span><span style="color:#ffeb3b; font-weight:900;">'+body+' bodů</span></div>';
+                  }
+                }
+                ld.innerHTML = h;
+              });
+            }
+          }
+        }, 600);
+      }
+    }catch(e){ console.log("openWeeklyDetail oprava selhala", e); }
+  };
+})();
+
+// --- 3) AUTO ROZDAVANI TYDENNICH BODU KDYZ EVENT SKONCI ---
+(function(){
+  var lastWeeklyGiven = {};
+  function zkontrolujKonecEventu(){
+    try{
+      if(typeof activeEventData === "undefined" || !activeEventData) return;
+      var now = Date.now();
+      if(now < activeEventData.end) return;
+      var instanceId = activeEventData.instanceId;
+      if(lastWeeklyGiven[instanceId]) return;
+      lastWeeklyGiven[instanceId] = true;
+      console.log("WEEKLY AUTO: event " + instanceId + " skoncil, rozdavam tydenni body");
+      if(typeof fetchEventLeaderboard === "function"){
+        fetchEventLeaderboard(instanceId, function(arr){
+          if(!arr || arr.length===0) return;
+          // Filtruj jen ty co maji >0 bodu
+          var filt = arr.filter(function(e){ return (e.score||0) > 0; });
+          if(filt.length===0) return;
+          filt.slice(0,3).forEach(function(entry, idx){
+            var body = idx===0?3:idx===1?2:1;
+            try{
+              if(typeof db !== "undefined" && db){
+                var wp = window._getWeeklyPeriod21 ? window._getWeeklyPeriod21() : getWeeklyPeriod();
+                var wp22 = window._getWeeklyPeriod22 ? window._getWeeklyPeriod22() : wp;
+                // Zapis do obou weekId, at to najde jakykoliv klient (21 i 22)
+                db.ref("weeklyScores/" + wp.weekId + "/" + entry.nick).transaction(function(cur){ return (cur||0)+body; });
+                db.ref("weeklyScores/" + wp22.weekId + "/" + entry.nick).transaction(function(cur){ return (cur||0)+body; });
+                console.log("WEEKLY AUTO: " + entry.nick + " dostava +" + body + " tydennich bodu za " + (idx+1) + ". misto v eventu");
+              }
+            }catch(e){}
+          });
+        });
+      }
+    }catch(e){}
+  }
+  setInterval(zkontrolujKonecEventu, 5000);
+  console.log("WEEKLY AUTO: kontrola konce eventu kazdych 5s");
+})();
+
+// --- 4) BOTI V EVENTECH - SPRAVNE ---
+var BOTI_FINAL = [];
 (function(){
   var jmena = ["KrumpacKral","ZlataHorecka","PodzemniVlk","KamennaPest","DiamantovyOrel","RudnyBaron","SkalniSrdce","HlubinnaKralovna","StinZeSachty","BleskZLomu","LovecLomu","TemnyTunel","CihlovyCar","JeskynniSova","KovovyHad","ZlatyKrtko","PikaxePro","MineralniMag","DulniFenix","StribrnyKopac","RubinovyRytir","SmaragdovaLiska","SafirStrelec","TopazovyTulak","OpalovyOhnak","KremennyKnize","BarytovyBorec","MramorovyMistr","UhelnyAndel","BatohPlnyStesti","GeologGhost","ZlatonosnySen","KamenolomKing","RudnaVila"];
   var px = 1944, py = 1944;
@@ -13345,7 +13464,7 @@ var BOTI_EVENT_VYB = [];
     var lvl = 5 + Math.floor(Math.random()*12);
     var pet = null;
     if(Math.random() < 0.5){ pet = { name: "Mazlik", level: 1 + Math.floor(Math.random()*9), xp: Math.floor(Math.random()*80), lastFed: 0 }; }
-    BOTI_EVENT_VYB.push({
+    BOTI_FINAL.push({
       jmeno: jmena[i], displayName: jmena[i], onlineNick: jmena[i], isBot: true,
       homeX: homeX, homeY: homeY,
       x: homeX + (Math.random()-0.5)*120, y: homeY + (Math.random()-0.5)*120,
@@ -13363,12 +13482,12 @@ var BOTI_EVENT_VYB = [];
       totalValue: 1000 + Math.floor(Math.random()*9000),
       slots: 6 + Math.floor(Math.random()*10),
       eventScore: 0, eventInstance: "", hrajeEvent: false,
-      nalezenoVybaveni: 0, nalezenoKrmivo: 0, nalezenoCihel: 0
+      nalezenoVybaveni: 0, nalezenoKrmivo: 0
     });
   }
 })();
-console.log("BOTi EVENT VYBAVENI+KRMIVO: start");
-function botCenaEvent(tier, bonus){
+console.log("BOTi FINAL: start 34 botu, bez zapisovani 0");
+function botCenaFinal(tier, bonus){
   var zaklad = 3;
   if(tier === 0) zaklad = 2;
   if(tier === 1) zaklad = 5;
@@ -13380,96 +13499,29 @@ function botCenaEvent(tier, bonus){
   if(tier === 2 && cena > 13) cena = 13;
   return Math.max(1, Math.min(30, cena));
 }
-function botOdpovedEventVyb(bot, textOdHrace){
+function botOdpovedFinal(bot, textOdHrace){
   var t = (textOdHrace||"").toLowerCase();
   if(t.indexOf("jsi bot")>=0 || t.indexOf("jsi ai")>=0 || t.indexOf("jsi robot")>=0 || t.indexOf("jsi clovek")>=0){
     return "Jo, jsem bot. Majitel hry to oznamil vsude, ze tu boti jsou.";
   }
   if(t.indexOf("vybaveni")>=0 || t.indexOf("vybavení")>=0){
-    return "V eventu Lava / Led se boduje vybaveni. Kdyz mi padne, dostanu +1 bod a kdyz je lepsi nez mam, nasadim ho, jinak ho dam na Market. Nasel jsem uz " + bot.nalezenoVybaveni + " kusu.";
+    return "V eventu Lava / Led se boduje vybaveni. Kdyz mi padne, dostanu +1 bod. Nasel jsem uz " + bot.nalezenoVybaveni + " kusu.";
   }
   if(t.indexOf("krmivo")>=0 || t.indexOf("krmeni")>=0 || t.indexOf("mazlicek")>=0 || t.indexOf("granule")>=0){
-    if(bot.pet) return "V eventu Festival se boduje krmivo. Kdyz mi padne krmivo, dostanu +1 bod a nakrmim mazlicka " + bot.pet.name + " level " + bot.pet.level + ", kdyz nemam cooldown. Nasel jsem uz " + bot.nalezenoKrmivo + " krmiv.";
+    if(bot.pet) return "V eventu Festival se boduje krmivo. Kdyz mi padne, dostanu +1 bod a nakrmim mazlicka " + bot.pet.name + " level " + bot.pet.level + ". Nasel jsem uz " + bot.nalezenoKrmivo + " krmiv.";
     return "V eventu Festival se boduje krmivo. Nemam mazlicka, tak krmivo davam na Market.";
   }
-  if(t.indexOf("event")>=0 || t.indexOf("tyden")>=0){
-    return "V eventu hraju jako vy, bod jen kdyz mi fakt padne to co se boduje. Mam uz " + (bot.eventScore||0) + " bodu, max 20.";
+  if(t.indexOf("event")>=0 || t.indexOf("tyden")>=0 || t.indexOf("týden")>=0){
+    return "V eventu hraju jako vy, bod jen kdyz mi fakt padne to co se boduje. Mam uz " + (bot.eventScore||0) + " bodu, max 20. Tydenni body jsou za umisteni 1.=3, 2.=2, 3.=1.";
   }
-  if(t.indexOf("kolik")>=0 || t.indexOf("cena")>=0 || t.indexOf("cihly")>=0 || t.indexOf("market")>=0 || t.indexOf("trh")>=0){
+  if(t.indexOf("kolik")>=0 || t.indexOf("cena")>=0 || t.indexOf("cihly")>=0 || t.indexOf("market")>=0){
     return "Zelene kolem 5 cihel, zlute kolem 10 cihel, koukni do Marketu.";
   }
   return "Ahoj, jsem tu. Jsem bot, majitel to oznamil. S cim ti pomuzu?";
 }
-// --- V EVENTU: co se stane kdyz bot dokopa ---
-function botDokopalVEventu(bot){
-  try{
-    if(typeof activeEventData === "undefined" || !activeEventData) {
-      // Mimo event: normalni sber vybaveni/krmiva s malou sanci, bez bodu
-      if(Math.random()*100 < 0.5) botNaselVybaveniEvent(bot, false);
-      if(Math.random()*100 < 1.5) botNaselKrmivoEvent(bot, false);
-      return;
-    }
-    var instanceId = activeEventData.instanceId;
-    if(bot.eventInstance !== instanceId){
-      bot.eventInstance = instanceId; bot.eventScore = 0; bot.hrajeEvent = Math.random() < 0.6;
-    }
-    if(!bot.hrajeEvent) return;
-    if(bot.eventScore >= 20) return;
-    var eventId = activeEventData.def ? activeEventData.def.id : "";
-    // Podle typu eventu se rolluje presne to co se boduje
-    if(eventId === "lava" || eventId === "ice"){
-      // Vybaveni 1% na kop
-      var sanceVyb = 1 + bot.totalBonus*0.05;
-      if(Math.random()*100 < sanceVyb){
-        bot.nalezenoVybaveni++;
-        bot.eventScore += 1;
-        botZapisEventScore(bot, instanceId);
-        var vyb = botVytvorVybaveni(bot);
-        botZpracujVybaveni(bot, vyb);
-        console.log("BOT EVENT VYBAVENI: " + bot.displayName + " nasel vybaveni v " + eventId + ", +1 bod, celkem " + bot.eventScore);
-      }
-    } else if(eventId === "festival"){
-      // Krmivo 4% na kop
-      if(Math.random()*100 < 4){
-        bot.nalezenoKrmivo++;
-        bot.eventScore += 1;
-        botZapisEventScore(bot, instanceId);
-        var krm = botVytvorKrmivo(bot);
-        botZpracujKrmivo(bot, krm);
-        console.log("BOT EVENT KRMIVO: " + bot.displayName + " nasel krmivo v Festivalu, +1 bod, celkem " + bot.eventScore);
-      }
-    } else if(eventId === "treasure"){
-      // Mystery Equip 3%
-      if(Math.random()*100 < 3){
-        bot.eventScore += 1;
-        botZapisEventScore(bot, instanceId);
-        console.log("BOT EVENT TREASURE: " + bot.displayName + " nasel Mystery Equip, +1 bod, celkem " + bot.eventScore);
-      }
-    } else if(eventId === "gold"){
-      // Zlata cihla 5%
-      if(Math.random()*100 < 5){
-        bot.nalezenoCihel++;
-        bot.eventScore += 1;
-        botZapisEventScore(bot, instanceId);
-        console.log("BOT EVENT GOLD: " + bot.displayName + " nasel cihlu, +1 bod, celkem " + bot.eventScore);
-      }
-    } else if(eventId === "meteor"){
-      // Kamen 6% + bonus
-      var sanceKamen = 6 + bot.bonus;
-      if(Math.random()*100 < sanceKamen){
-        bot.eventScore += 1;
-        botZapisEventScore(bot, instanceId);
-      }
-    } else {
-      // Jiny event: obecna sance 6% + bonus
-      if(Math.random()*100 < 6 + bot.bonus){
-        bot.eventScore += 1;
-        botZapisEventScore(bot, instanceId);
-      }
-    }
-  }catch(e){}
-}
-function botZapisEventScore(bot, instanceId){
+function botZapisEventScoreFinal(bot, instanceId){
+  // DULEZITE: nezapisuj 0, jen kdyz ma >0
+  if(bot.eventScore <= 0) return;
   try{
     if(typeof eventScoresCache !== "undefined"){
       if(!eventScoresCache[instanceId]) eventScoresCache[instanceId] = {};
@@ -13482,67 +13534,89 @@ function botZapisEventScore(bot, instanceId){
     }
   }catch(e){}
 }
-function botVytvorVybaveni(bot){
-  var r = Math.random()*100;
-  var tier = 0;
-  if(r < 70) tier = 0;
-  else if(r < 95) tier = 1;
-  else tier = 2;
-  var tierNames = ["Bily","Zeleny","Zluty"];
-  var tierColors = ["#FFFFFF","#4CAF50","#FFEB3B"];
+function botDokopalVEventuFinal(bot){
+  try{
+    if(typeof activeEventData === "undefined" || !activeEventData){
+      if(Math.random()*100 < 0.5) botNaselVybaveniFinal(bot);
+      if(Math.random()*100 < 1.5) botNaselKrmivoFinal(bot);
+      return;
+    }
+    var instanceId = activeEventData.instanceId;
+    if(bot.eventInstance !== instanceId){
+      bot.eventInstance = instanceId; bot.eventScore = 0; bot.hrajeEvent = Math.random() < 0.6;
+    }
+    if(!bot.hrajeEvent) return;
+    if(bot.eventScore >= 20) return;
+    var eventId = activeEventData.def ? activeEventData.def.id : "";
+    if(eventId === "lava" || eventId === "ice"){
+      var sanceVyb = 1 + bot.totalBonus*0.05;
+      if(Math.random()*100 < sanceVyb){
+        bot.nalezenoVybaveni++; bot.eventScore += 1;
+        botZapisEventScoreFinal(bot, instanceId);
+        var vyb = botVytvorVybaveniFinal(bot);
+        botZpracujVybaveniFinal(bot, vyb);
+      }
+    } else if(eventId === "festival"){
+      if(Math.random()*100 < 4){
+        bot.nalezenoKrmivo++; bot.eventScore += 1;
+        botZapisEventScoreFinal(bot, instanceId);
+        var krm = botVytvorKrmivoFinal(bot);
+        botZpracujKrmivoFinal(bot, krm);
+      }
+    } else if(eventId === "treasure"){
+      if(Math.random()*100 < 3){ bot.eventScore += 1; botZapisEventScoreFinal(bot, instanceId); }
+    } else if(eventId === "gold"){
+      if(Math.random()*100 < 5){ bot.eventScore += 1; botZapisEventScoreFinal(bot, instanceId); }
+    } else if(eventId === "meteor"){
+      if(Math.random()*100 < 6 + bot.bonus){ bot.eventScore += 1; botZapisEventScoreFinal(bot, instanceId); }
+    } else {
+      if(Math.random()*100 < 6 + bot.bonus){ bot.eventScore += 1; botZapisEventScoreFinal(bot, instanceId); }
+    }
+  }catch(e){}
+}
+function botVytvorVybaveniFinal(bot){
+  var r = Math.random()*100; var tier = 0;
+  if(r < 70) tier = 0; else if(r < 95) tier = 1; else tier = 2;
+  var tierNames = ["Bily","Zeleny","Zluty"]; var tierColors = ["#FFFFFF","#4CAF50","#FFEB3B"];
   var typy = [{key:"helma", name:"Helma", icon:"⛑️"},{key:"brneni", name:"Brneni", icon:"🦺"},{key:"rukavice", name:"Rukavice", icon:"🧤"},{key:"prsten", name:"Prsten", icon:"💍"},{key:"boty", name:"Boty", icon:"🥾"},{key:"kalhoty", name:"Kalhoty", icon:"👖"}];
   var typ = typy[Math.floor(Math.random()*typy.length)];
   var bonusVal = 1 + Math.floor(Math.random()*5) + tier*2;
   return { isEquipment: true, equipType: typ.key, tier: tier, tierName: tierNames[tier], tierColor: tierColors[tier], name: typ.name + " " + tierNames[tier], icon: typ.icon, bonuses: [{key:"tezba", name:"Tezba", value: bonusVal, unit:"%", icon:"⛏️"}], bonusCelkem: bonusVal };
 }
-function botZpracujVybaveni(bot, vyb){
-  var aktualni = bot.equipped[vyb.equipType];
-  var aktualniBonus = aktualni ? aktualni.bonusCelkem : 0;
-  if(bot.totalBonus >= 15){
-    botDatNaMarketEvent(bot, vyb);
-    return;
-  }
-  if(!aktualni || vyb.bonusCelkem > aktualniBonus){
-    bot.equipped[vyb.equipType] = vyb;
-    bot.totalBonus = Math.min(15, bot.totalBonus + 0.5);
-  } else {
-    botDatNaMarketEvent(bot, vyb);
-  }
+function botZpracujVybaveniFinal(bot, vyb){
+  var aktualni = bot.equipped[vyb.equipType]; var aktualniBonus = aktualni ? aktualni.bonusCelkem : 0;
+  if(bot.totalBonus >= 15){ botDatNaMarketFinal(bot, vyb); return; }
+  if(!aktualni || vyb.bonusCelkem > aktualniBonus){ bot.equipped[vyb.equipType] = vyb; bot.totalBonus = Math.min(15, bot.totalBonus + 0.5); }
+  else { botDatNaMarketFinal(bot, vyb); }
 }
-function botVytvorKrmivo(bot){
+function botVytvorKrmivoFinal(bot){
   var jeVelke = Math.random() < 0.3;
   return { isFeed: true, feedType: jeVelke ? "big" : "small", name: jeVelke ? "Granule 500xp" : "Granule 200xp", xp: jeVelke ? 500 : 200, count: 1, price: jeVelke ? 5 : 2, icon: "🍖" };
 }
-function botZpracujKrmivo(bot, krm){
+function botZpracujKrmivoFinal(bot, krm){
   if(bot.pet){
-    var ted = Date.now();
-    var cooldown = 60*60*1000;
+    var ted = Date.now(); var cooldown = 60*60*1000;
     if(ted - bot.pet.lastFed >= cooldown){
-      bot.pet.lastFed = ted;
-      bot.pet.xp += krm.xp;
+      bot.pet.lastFed = ted; bot.pet.xp += krm.xp;
       var potreba = bot.pet.level * 100;
-      if(bot.pet.xp >= potreba && bot.pet.level < 100){
-        bot.pet.xp -= potreba;
-        bot.pet.level++;
-        bot.totalBonus = Math.min(15, bot.totalBonus + 0.5);
-      }
+      if(bot.pet.xp >= potreba && bot.pet.level < 100){ bot.pet.xp -= potreba; bot.pet.level++; bot.totalBonus = Math.min(15, bot.totalBonus + 0.5); }
       return;
     }
   }
-  botDatKrmivoNaMarketEvent(bot, krm);
+  botDatKrmivoNaMarketFinal(bot, krm);
 }
-function botDatNaMarketEvent(bot, vyb){
+function botDatNaMarketFinal(bot, vyb){
   try{
     if(typeof marketListings === "undefined") return;
     var moje = marketListings.filter(function(l){ return l.seller === bot.displayName; });
     if(moje.length >= 3) return;
-    var cena = botCenaEvent(vyb.tier, vyb.bonusCelkem*5);
+    var cena = botCenaFinal(vyb.tier, vyb.bonusCelkem*5);
     marketListings.push({ id: "bot_"+bot.jmeno+"_"+Date.now()+"_"+Math.floor(Math.random()*1000), item: vyb, price: cena, seller: bot.displayName, time: Date.now(), category: "equipment", isMine: false, isBot: true });
     if(typeof saveMarket === "function") saveMarket();
     if(typeof renderMarket === "function"){ try{ renderMarket(); }catch(e){} }
   }catch(e){}
 }
-function botDatKrmivoNaMarketEvent(bot, krm){
+function botDatKrmivoNaMarketFinal(bot, krm){
   try{
     if(typeof marketListings === "undefined") return;
     var moje = marketListings.filter(function(l){ return l.seller === bot.displayName; });
@@ -13553,25 +13627,18 @@ function botDatKrmivoNaMarketEvent(bot, krm){
     if(typeof renderMarket === "function"){ try{ renderMarket(); }catch(e){} }
   }catch(e){}
 }
-function botNaselVybaveniEvent(bot, sBodem){
-  var vyb = botVytvorVybaveni(bot);
-  bot.nalezenoVybaveni++;
-  botZpracujVybaveni(bot, vyb);
-}
-function botNaselKrmivoEvent(bot, sBodem){
-  var krm = botVytvorKrmivo(bot);
-  bot.nalezenoKrmivo++;
-  botZpracujKrmivo(bot, krm);
-}
-function startBotiEventVyb(){
+function botNaselVybaveniFinal(bot){ var vyb = botVytvorVybaveniFinal(bot); bot.nalezenoVybaveni++; botZpracujVybaveniFinal(bot, vyb); }
+function botNaselKrmivoFinal(bot){ var krm = botVytvorKrmivoFinal(bot); bot.nalezenoKrmivo++; botZpracujKrmivoFinal(bot, krm); }
+
+function startBotiFinal(){
   try{
-    if(typeof otherPlayers === "undefined"){ setTimeout(startBotiEventVyb, 1000); return; }
-    BOTI_EVENT_VYB.forEach(function(bot){
+    if(typeof otherPlayers === "undefined"){ setTimeout(startBotiFinal, 1000); return; }
+    BOTI_FINAL.forEach(function(bot){
       otherPlayers[bot.onlineNick] = { nick: bot.displayName, isBot: true, x: Math.round(bot.x), y: Math.round(bot.y), tool: bot.tool, pickaxeLevel: 1, walkTime: bot.walkTime, digging: false, map: "normal", pet: bot.pet ? { name: bot.pet.name, level: bot.pet.level } : null, aura: null, cape: null, timestamp: Date.now() };
     });
     setInterval(function(){
       var dt = 0.1;
-      BOTI_EVENT_VYB.forEach(function(bot){
+      BOTI_FINAL.forEach(function(bot){
         bot.energie = Math.min(bot.maxEnergie, bot.energie + 3*dt);
         bot.stavCas -= dt;
         if(bot.stav === "idle"){
@@ -13596,11 +13663,11 @@ function startBotiEventVyb(){
           bot.digging = true; bot.walkTime += dt*2;
           if(bot.stavCas <= 0){
             bot.digging = false; bot.energie = Math.max(0, bot.energie - 8);
-            botDokopalVEventu(bot);
+            botDokopalVEventuFinal(bot);
             bot.stav = "idle"; bot.stavCas = 1.5 + Math.random()*2.5;
           }
         }
-        BOTI_EVENT_VYB.forEach(function(jiny){
+        BOTI_FINAL.forEach(function(jiny){
           if(jiny === bot) return;
           var ox = bot.x - jiny.x, oy = bot.y - jiny.y;
           var od = Math.sqrt(ox*ox + oy*oy);
@@ -13615,8 +13682,8 @@ function startBotiEventVyb(){
       });
     }, 100);
     try{
-      if(typeof fetchAllPlayers === "function" && !window._fetchAllPlayersEventVyb){
-        window._fetchAllPlayersEventVyb = true;
+      if(typeof fetchAllPlayers === "function" && !window._fetchAllPlayersFinal){
+        window._fetchAllPlayersFinal = true;
         var origFetch = fetchAllPlayers;
         fetchAllPlayers = async function(){
           var hraci = [];
@@ -13624,7 +13691,7 @@ function startBotiEventVyb(){
           var videne = {}; var cisti = [];
           hraci.forEach(function(p){ var k = p.nick||""; if(!videne[k]){ videne[k]=true; cisti.push(p); } });
           hraci = cisti;
-          BOTI_EVENT_VYB.forEach(function(bot){
+          BOTI_FINAL.forEach(function(bot){
             var uzTam = false;
             for(var i=0;i<hraci.length;i++){ if(hraci[i].nick === bot.displayName) uzTam = true; }
             if(!uzTam){ hraci.push({ nick: bot.displayName, isBot: true, level: bot.level, totalBeauty: bot.totalBeauty, bestSingleBeauty: bot.bestSingleBeauty, totalValue: bot.totalValue, slots: bot.slots }); }
@@ -13640,9 +13707,9 @@ function startBotiEventVyb(){
           if(!msg || msg.isBot) return;
           var text = (msg.text || "").toLowerCase();
           var osloveny = null;
-          for(var i=0;i<BOTI_EVENT_VYB.length;i++){ if(text.indexOf(BOTI_EVENT_VYB[i].jmeno.toLowerCase())>=0){ osloveny = BOTI_EVENT_VYB[i]; break; } }
+          for(var i=0;i<BOTI_FINAL.length;i++){ if(text.indexOf(BOTI_FINAL[i].jmeno.toLowerCase())>=0){ osloveny = BOTI_FINAL[i]; break; } }
           if(!osloveny) return;
-          var odpoved = botOdpovedEventVyb(osloveny, msg.text);
+          var odpoved = botOdpovedFinal(osloveny, msg.text);
           try{ db.ref("chat").push({ od: osloveny.displayName, nick: osloveny.displayName, isBot: true, text: odpoved, cas: Date.now() }); }catch(e){}
         });
       }
@@ -13659,7 +13726,7 @@ function startBotiEventVyb(){
             window.jsemBotHostBOT = true;
             setInterval(function(){
               if(!window.jsemBotHostBOT) return;
-              BOTI_EVENT_VYB.forEach(function(bot){
+              BOTI_FINAL.forEach(function(bot){
                 try{
                   db.ref("online/" + bot.onlineNick).set({ nick: bot.displayName, isBot: true, x: Math.round(bot.x), y: Math.round(bot.y), tool: bot.tool, pickaxeLevel: 1, walkTime: bot.walkTime, digging: bot.digging, map: "normal", pet: bot.pet ? { name: bot.pet.name, level: bot.pet.level } : null, aura: null, cape: null, timestamp: Date.now() });
                   db.ref("players/" + bot.onlineNick).set({ nick: bot.displayName, isBot: true, level: bot.level, totalBeauty: bot.totalBeauty, bestSingleBeauty: bot.bestSingleBeauty, totalValue: bot.totalValue, slots: bot.slots, lastSeen: Date.now() });
@@ -13671,9 +13738,9 @@ function startBotiEventVyb(){
         });
       }
     }catch(e){}
-  }catch(e){ console.log("BOTi EVENT VYB selhal", e); }
+  }catch(e){ console.log("BOTi FINAL selhal", e); }
 }
-setTimeout(startBotiEventVyb, 2000);
+setTimeout(startBotiFinal, 2000);
 
 <\/script>
 </body>
